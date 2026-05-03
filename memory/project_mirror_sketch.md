@@ -44,8 +44,16 @@ Server → client:
 ### Run model
 - `npm run dev` runs `npm:server` + `npm:start` via `concurrently`. Socket server on `:3000`, Angular on `:4200`.
 - `npm run server` — server alone.
-- Frontend `SOCKET_URL` defaults to `http://localhost:3000`. Override at runtime by setting `window.__SOCKET_URL__` (no env-var indirection — set it in `index.html` or before bootstrap if deploying).
+- Frontend `SOCKET_URL` defaults to `http://localhost:3000`. Override at runtime via `window.__SOCKET_URL__`, which is now set by `public/runtime-config.js` (loaded as a `<script src="runtime-config.js">` in `index.html`).
 - No proxy config; socket.io client uses absolute URL with CORS.
+
+### Render deployment
+- `render.yaml` at repo root defines two services: `couple-games-server` (Node web service, runs `node server/index.js`, free plan, health check `/health`) and `couple-games-web` (static site, builds `npm ci && npm run build:render`, publishes `dist/couple-games/browser`). Both region `oregon`, `NODE_VERSION=20`.
+- Cross-service env wiring: server's `ORIGIN` is set from web's host (CORS allow-list); web's `SOCKET_URL` is set from server's host (consumed by build script).
+- `scripts/write-runtime-config.js` reads `process.env.SOCKET_URL` and emits `public/runtime-config.js`. Auto-prepends `https://` when only a hostname is given (Render's `fromService property: host` returns FQDN without scheme).
+- `npm run build:render` = write runtime config + `ng build --configuration production`. Used by Render; locally the committed `runtime-config.js` (localhost default) is sufficient for `ng serve`.
+- SPA fallback handled by `public/_redirects` (`/*  /index.html  200`), copied into the build output by Angular's asset pipeline.
+- Free-tier caveat: Node service idles after 15 min, first connection after idle takes ~30–60s.
 
 ### UI conventions
 - Mobile-first. `100dvh` on root containers, `touch-action: none` on canvas, `viewport-fit=cover` + `user-scalable=no` in `index.html`.

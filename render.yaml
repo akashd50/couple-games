@@ -1,0 +1,47 @@
+services:
+  # Socket.io game server (long-running Node web service).
+  - type: web
+    name: couple-games-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci
+    startCommand: node server/index.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      # Origin allow-list for socket.io CORS. Filled in below from the static site URL.
+      - key: ORIGIN
+        fromService:
+          type: web
+          name: couple-games-web
+          property: host
+
+  # Angular frontend (static site).
+  - type: web
+    name: couple-games-web
+    runtime: static
+    plan: free
+    region: oregon
+    buildCommand: npm ci && npm run build:render
+    staticPublishPath: dist/couple-games/browser
+    autoDeploy: true
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      # Injected into public/runtime-config.js at build time. The script
+      # auto-prepends https:// when only a hostname is provided.
+      - key: SOCKET_URL
+        fromService:
+          type: web
+          name: couple-games-server
+          property: host
