@@ -35,7 +35,12 @@ export class SocketService implements OnDestroy {
 
   connect(): void {
     if (this.socket && this.socket.connected) return;
-    this.socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    this.socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      // Bypass ngrok's free-tier interstitial on the polling-transport handshake.
+      // Browsers ignore extraHeaders on the WebSocket upgrade, but it covers fallbacks.
+      extraHeaders: { 'ngrok-skip-browser-warning': 'true' },
+    });
 
     this.socket.on('connect', () => {
       this.mySocketId = this.socket?.id ?? null;

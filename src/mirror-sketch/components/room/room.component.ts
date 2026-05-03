@@ -45,11 +45,26 @@ export class RoomComponent implements OnInit {
 
   readonly palette: readonly string[] = ['#1c1d28', '#7a5cff', '#d6336c', '#ffb703', '#2ec27e', '#1e90ff'];
 
+  // Coalesce intermediate move events to ~30Hz so a free-tier tunnel (ngrok)
+  // doesn't get hammered by 60-120Hz pointer rates. start/end always flush.
+  private static readonly EMIT_INTERVAL_MS = 33;
+  private pendingMove: DrawStroke | null = null;
+  private moveFlushTimer: number | null = null;
+  private lastEmitAt = 0;
+
   constructor() {
     effect(() => {
       const phase = this.game.phase();
       if (phase !== 'reveal') this.revealed.set(false);
       else this.revealed.set(true);
+    });
+
+    this.destroyRef.onDestroy(() => {
+      if (this.moveFlushTimer !== null) {
+        clearTimeout(this.moveFlushTimer);
+        this.moveFlushTimer = null;
+      }
+      this.pendingMove = null;
     });
   }
 
@@ -113,7 +128,35 @@ export class RoomComponent implements OnInit {
   }
 
   onStroke(stroke: DrawStroke): void {
-    this.socket.sendStroke(stroke);
+    if (stroke.phase !== 'move') {
+      this.flushPendingMove();
+      this.socket.sendStroke(stroke);
+      this.lastEmitAt = performance.now();
+      return;
+    }
+
+    this.pendingMove = stroke;
+    const elapsed = performance.now() - this.lastEmitAt;
+    if (elapsed >= RoomComponent.EMIT_INTERVAL_MS) {
+      this.flushPendingMove();
+    } else if (this.moveFlushTimer === null) {
+      this.moveFlushTimer = window.setTimeout(
+        () => this.flushPendingMove(),
+        RoomComponent.EMIT_INTERVAL_MS - elapsed,
+      );
+    }
+  }
+
+  private flushPendingMove(): void {
+    if (this.moveFlushTimer !== null) {
+      clearTimeout(this.moveFlushTimer);
+      this.moveFlushTimer = null;
+    }
+    const s = this.pendingMove;
+    if (!s) return;
+    this.pendingMove = null;
+    this.lastEmitAt = performance.now();
+    this.socket.sendStroke(s);
   }
 
   clear(): void {
