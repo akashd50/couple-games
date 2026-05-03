@@ -47,10 +47,9 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.scheduleFit());
     this.resizeObserver.observe(canvas);
 
-    if (this.interactive) {
-      // Run pointer listeners outside Angular for performance.
-      this.zone.runOutsideAngular(() => this.bindPointerEvents());
-    }
+    // Always bind handlers — `interactive` is checked at event time so the
+    // input can be toggled (e.g. during reveal) without rebinding.
+    this.zone.runOutsideAngular(() => this.bindPointerEvents());
   }
 
   ngOnDestroy(): void {
@@ -163,6 +162,7 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
     };
 
     const onDown = (ev: PointerEvent) => {
+      if (!this.interactive) return;
       ev.preventDefault();
       canvas.setPointerCapture?.(ev.pointerId);
       this.activeStrokeId = this.nextStrokeId++;
@@ -171,7 +171,7 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
     };
 
     const onMove = (ev: PointerEvent) => {
-      if (this.activeStrokeId === null) return;
+      if (!this.interactive || this.activeStrokeId === null) return;
       ev.preventDefault();
       const p = toNormalized(ev.clientX, ev.clientY);
       emit('move', p.x, p.y);

@@ -5,6 +5,7 @@ import {
   ElementRef,
   OnInit,
   ViewChild,
+  computed,
   effect,
   inject,
   signal,
@@ -17,6 +18,8 @@ import { GameService } from '../../services/game.service';
 import { SocketService } from '../../services/socket.service';
 import { DrawCanvasDirective } from '../../directives/draw-canvas.directive';
 import { getRandomScene } from '../../data/scenes';
+
+type CanvasTab = 'reference' | 'drawing';
 
 @Component({
   selector: 'ms-room',
@@ -43,6 +46,27 @@ export class RoomComponent implements OnInit {
   readonly color = signal('#1c1d28');
   readonly brushSize = signal(5);
 
+  readonly activeTab = signal<CanvasTab>('reference');
+  readonly showSpectatorHelp = signal(false);
+
+  // Visible only on the describer's mirror canvas — hides during non-spectator play.
+  readonly mirrorMounted = computed(() => {
+    if (this.game.myRole() !== 'describer') return false;
+    const phase = this.game.phase();
+    if (phase === 'reveal') return true;
+    if (phase === 'playing') return this.game.spectator();
+    return false;
+  });
+
+  // Two-tab layout kicks in for describer-during-play (spectator) and either role at reveal.
+  readonly showTabs = computed(() => {
+    const phase = this.game.phase();
+    const role = this.game.myRole();
+    if (phase === 'reveal') return true;
+    if (phase === 'playing' && role === 'describer' && this.game.spectator()) return true;
+    return false;
+  });
+
   readonly palette: readonly string[] = ['#1c1d28', '#7a5cff', '#d6336c', '#ffb703', '#2ec27e', '#1e90ff'];
 
   // Coalesce intermediate move events to ~30Hz so a free-tier tunnel (ngrok)
@@ -57,6 +81,19 @@ export class RoomComponent implements OnInit {
       const phase = this.game.phase();
       if (phase !== 'reveal') this.revealed.set(false);
       else this.revealed.set(true);
+    });
+
+    // Pick a sensible default tab whenever phase or role changes.
+    effect(() => {
+      const phase = this.game.phase();
+      const role = this.game.myRole();
+      if (phase === 'reveal') {
+        this.activeTab.set(role === 'drawer' ? 'reference' : 'drawing');
+      } else if (phase === 'playing') {
+        this.activeTab.set(role === 'describer' ? 'reference' : 'drawing');
+      } else {
+        this.activeTab.set('reference');
+      }
     });
 
     this.destroyRef.onDestroy(() => {
@@ -83,6 +120,10 @@ export class RoomComponent implements OnInit {
 
     this.socket.drawStroke$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((s) => {
       this.canvasDir?.applyStroke(s);
+    });
+
+    this.socket.drawReplay$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((strokes) => {
+      this.applyReplay(strokes);
     });
 
     this.socket.drawClear$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -125,6 +166,25 @@ export class RoomComponent implements OnInit {
     const res = await this.socket.startGame(scene.id);
     this.busy.set(false);
     if (!res.ok) this.errorMsg.set(res.error ?? 'Could not start');
+  }
+
+  async toggleSurpriseMode(event: Event): Promise<void> {
+    const checked = (event.target as HTMLInputElement).checked;
+    // Surprise mode = describer is NOT a spectator.
+    const res = await this.socket.setSpectator(!checked);
+    if (!res.ok) {
+      this.errorMsg.set(res.error ?? 'Could not change setting');
+      // Revert UI on failure — broadcast will re-sync but the checkbox is mid-flip.
+      (event.target as HTMLInputElement).checked = !checked;
+    }
+  }
+
+  toggleSpectatorHelp(): void {
+    this.showSpectatorHelp.update((v) => !v);
+  }
+
+  setTab(tab: CanvasTab): void {
+    this.activeTab.set(tab);
   }
 
   onStroke(stroke: DrawStroke): void {
@@ -207,5 +267,19 @@ export class RoomComponent implements OnInit {
 
   myRoleIs(role: Role): boolean {
     return this.game.myRole() === role;
+  }
+
+  // Replay buffered strokes onto the describer's mirror canvas. The canvas is
+  // only mounted after phase flips to 'reveal' and ResizeObserver sizes it,
+  // so retry across a few frames until both conditions hold.
+  private applyReplay(strokes: DrawStroke[], retries = 12): void {
+    const canvas = this.canvasEl?.nativeElement;
+    if (!this.canvasDir || !canvas || canvas.width === 0) {
+      if (retries <= 0) return;
+      requestAnimationFrame(() => this.applyReplay(strokes, retries - 1));
+      return;
+    }
+    this.canvasDir.clear();
+    for (const s of strokes) this.canvasDir.applyStroke(s);
   }
 }

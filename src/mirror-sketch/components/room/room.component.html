@@ -56,6 +56,31 @@
             </button>
           </div>
 
+          @if (myRoleIs('describer')) {
+            <div class="setting">
+              <label class="setting__row">
+                <input
+                  type="checkbox"
+                  [checked]="!game.spectator()"
+                  (change)="toggleSurpriseMode($event)"
+                />
+                <span class="setting__label">Surprise mode</span>
+              </label>
+              <button
+                type="button"
+                class="help"
+                (click)="toggleSpectatorHelp()"
+                aria-label="What is surprise mode?"
+              >?</button>
+              @if (showSpectatorHelp()) {
+                <div class="setting__pop">
+                  Hide your partner's drawing while they sketch — you'll only
+                  see the finished picture at the reveal.
+                </div>
+              }
+            </div>
+          }
+
           <button
             type="button"
             class="btn btn--primary"
@@ -69,78 +94,131 @@
     </div>
   }
 
-  <!-- Phase: playing -->
+  <!-- Phase: playing / reveal — tabbed canvas board -->
   @if (game.phase() === 'playing' || game.phase() === 'reveal') {
     <div class="phase phase--play">
       @if (myRoleIs('describer')) {
-        <div class="describer">
-          <div class="reference">
-            <h3>Describe this</h3>
-            <div class="reference__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
-            <p class="muted">Tell your partner where to draw — but don't name it!</p>
-          </div>
+        <div class="board-wrap">
+          @if (showTabs()) {
+            <div class="tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.tab--active]="activeTab() === 'reference'"
+                [attr.aria-selected]="activeTab() === 'reference'"
+                (click)="setTab('reference')"
+              >Reference</button>
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.tab--active]="activeTab() === 'drawing'"
+                [attr.aria-selected]="activeTab() === 'drawing'"
+                (click)="setTab('drawing')"
+              >{{ game.phase() === 'reveal' ? 'Final Drawing' : 'Their Drawing' }}</button>
+            </div>
+          }
 
-          <div class="mirror">
-            <h3>Their canvas</h3>
-            <canvas
-              #canvasEl
-              msDrawCanvas
-              [interactive]="false"
-              class="canvas canvas--mirror"
-            ></canvas>
-          </div>
-
-          <div class="actions">
-            @if (game.phase() === 'playing') {
-              <button type="button" class="btn btn--primary" (click)="reveal()">Reveal &amp; Compare</button>
-            } @else {
-              <button type="button" class="btn btn--ghost" (click)="playAgain()">Play Again</button>
+          <div class="board" [class.board--tabbed]="showTabs()">
+            <div class="board__panel" [class.board__panel--active]="activeTab() === 'reference'">
+              <div class="board__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
+            </div>
+            @if (mirrorMounted()) {
+              <div class="board__panel" [class.board__panel--active]="activeTab() === 'drawing'">
+                <canvas
+                  #canvasEl
+                  msDrawCanvas
+                  [interactive]="false"
+                  class="board__canvas"
+                ></canvas>
+              </div>
             }
           </div>
+
+          @if (game.phase() === 'playing') {
+            <p class="muted muted--center">Tell your partner where to draw — but don't name it!</p>
+            <div class="actions">
+              <button type="button" class="btn btn--primary" (click)="reveal()">Reveal &amp; Compare</button>
+            </div>
+          } @else {
+            <div class="actions">
+              <button type="button" class="btn btn--ghost" (click)="playAgain()">Play Again</button>
+            </div>
+          }
         </div>
       } @else if (myRoleIs('drawer')) {
-        <div class="drawer">
-          <div class="canvas-wrap">
-            <canvas
-              #canvasEl
-              msDrawCanvas
-              [interactive]="true"
-              [color]="color()"
-              [size]="brushSize()"
-              (stroke)="onStroke($event)"
-              class="canvas canvas--draw"
-            ></canvas>
-          </div>
-
-          <div class="toolbar">
-            <div class="palette">
-              @for (c of palette; track c) {
-                <button
-                  type="button"
-                  class="swatch"
-                  [class.swatch--active]="color() === c"
-                  [style.background]="c"
-                  (click)="setColor(c)"
-                  [attr.aria-label]="'Color ' + c"
-                ></button>
-              }
+        <div class="board-wrap">
+          @if (showTabs()) {
+            <div class="tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.tab--active]="activeTab() === 'drawing'"
+                [attr.aria-selected]="activeTab() === 'drawing'"
+                (click)="setTab('drawing')"
+              >My Drawing</button>
+              <button
+                type="button"
+                role="tab"
+                class="tab"
+                [class.tab--active]="activeTab() === 'reference'"
+                [attr.aria-selected]="activeTab() === 'reference'"
+                (click)="setTab('reference')"
+              >Reference</button>
             </div>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              [value]="brushSize()"
-              (input)="setBrush(+$any($event.target).value)"
-              class="brush"
-              aria-label="Brush size"
-            />
-            <button type="button" class="iconbtn iconbtn--danger" (click)="clear()" aria-label="Clear">⟲</button>
+          }
+
+          <div class="board" [class.board--tabbed]="showTabs()">
+            <div
+              class="board__panel"
+              [class.board__panel--active]="game.phase() === 'playing' || activeTab() === 'drawing'"
+            >
+              <canvas
+                #canvasEl
+                msDrawCanvas
+                [interactive]="game.phase() === 'playing'"
+                [color]="color()"
+                [size]="brushSize()"
+                (stroke)="onStroke($event)"
+                class="board__canvas board__canvas--draw"
+              ></canvas>
+            </div>
+            @if (game.phase() === 'reveal') {
+              <div class="board__panel" [class.board__panel--active]="activeTab() === 'reference'">
+                <div class="board__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
+              </div>
+            }
           </div>
 
-          @if (game.phase() === 'reveal') {
-            <div class="reveal-card">
-              <h3>The original was…</h3>
-              <div class="reference__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
+          @if (game.phase() === 'playing') {
+            <div class="toolbar">
+              <div class="palette">
+                @for (c of palette; track c) {
+                  <button
+                    type="button"
+                    class="swatch"
+                    [class.swatch--active]="color() === c"
+                    [style.background]="c"
+                    (click)="setColor(c)"
+                    [attr.aria-label]="'Color ' + c"
+                  ></button>
+                }
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="20"
+                [value]="brushSize()"
+                (input)="setBrush(+$any($event.target).value)"
+                class="brush"
+                aria-label="Brush size"
+              />
+              <button type="button" class="iconbtn iconbtn--danger" (click)="clear()" aria-label="Clear">⟲</button>
+            </div>
+          } @else {
+            <div class="actions">
               <button type="button" class="btn btn--ghost" (click)="playAgain()">Play Again</button>
             </div>
           }

@@ -8,7 +8,14 @@ export interface Player {
 export interface RoomState {
   code: string;
   sceneId: string | null;
+  // Whether the describer wants to watch the live drawing (false = surprise mode).
+  spectator: boolean;
   players: Player[];
+}
+
+export interface GameStartedPayload {
+  sceneId: string | null;
+  spectator: boolean;
 }
 
 export type StrokePhase = 'start' | 'move' | 'end';

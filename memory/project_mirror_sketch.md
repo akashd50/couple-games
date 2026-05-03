@@ -28,15 +28,20 @@ Client → server (with ack):
 - `room:create {}` → `{ ok, code, you, state }`
 - `room:join { code }` → same shape
 - `role:choose { role: 'drawer' | 'describer' }` → `{ ok }`
+- `room:settings { spectator }` → `{ ok }` (describer-only — surprise mode toggle)
 - `game:start { sceneId }` → `{ ok }` (server validates both roles picked)
 
 Client → server (fire-and-forget):
-- `draw:stroke <DrawStroke>` — server relays to peers via `socket.to(room).emit` (sender is excluded)
+- `draw:stroke <DrawStroke>` — in spectator mode, relayed to peers; in surprise mode, buffered server-side in `room.strokeHistory` and NOT relayed
 - `draw:clear`, `game:reveal`, `game:reset` — server broadcasts to entire room (including sender)
 
 Server → client:
-- `room:state <RoomState>` — broadcast on join/role-change/start/disconnect
-- `draw:stroke`, `draw:clear`, `game:started { sceneId }`, `game:reveal`, `game:reset`, `peer:left { id }`
+- `room:state <RoomState>` — broadcast on join/role-change/settings-change/start/disconnect. RoomState carries `spectator: boolean`.
+- `draw:stroke`, `draw:clear`, `game:started { sceneId, spectator }`, `game:reveal`, `game:reset`, `peer:left { id }`
+- `draw:replay <DrawStroke[]>` — emitted only to the describer just before `game:reveal` when `spectator=false`. Carries the full buffered stroke history so the describer can replay the drawing on their (until-now blank) mirror canvas.
+
+### Surprise mode (non-spectator)
+Describer toggles "Surprise mode" in lobby → server sets `room.spectator=false`. During play, drawer's strokes are buffered server-side rather than relayed. On reveal, server emits `draw:replay` to the describer's socket id with the full history, then broadcasts `game:reveal`. Client side: `RoomComponent.applyReplay` retries across animation frames until `canvasEl` is mounted and sized (the mirror canvas is only mounted via `mirrorMounted()` once phase is `reveal` for non-spectator mode).
 
 ### Drawing coordinate convention
 `DrawStroke` carries `{ phase: 'start'|'move'|'end', x, y, color, size, strokeId }`. **`x`, `y` are normalized 0..1** so the describer's mirror canvas can replay strokes at any size. `strokeId` is monotonic per drawer; the directive maintains a `lastPoints` map keyed by `strokeId` to connect line segments. The describer's canvas is mounted with `[interactive]="false"` so the directive does not bind pointer listeners — only `applyStroke()` calls from socket events render.
@@ -54,6 +59,9 @@ Server → client:
 - `npm run build:render` = write runtime config + `ng build --configuration production`. Used by Render; locally the committed `runtime-config.js` (localhost default) is sufficient for `ng serve`.
 - SPA fallback handled by `routes` block in `render.yaml` (`type: rewrite, source: /*, destination: /index.html`). `public/_redirects` is also present as a backup but Render's native `routes` config is what's actually wired.
 - Free-tier caveat: Node service idles after 15 min, first connection after idle takes ~30–60s.
+
+### Tabbed canvas board
+Both roles share a single `.board` container (`aspect-ratio: 1/1`, `position: relative`) with absolutely-positioned `.board__panel` children that fade via opacity. This keeps every canvas continuously sized so the `ResizeObserver` in `DrawCanvasDirective` works across tab switches. `RoomComponent.activeTab` is `'reference' | 'drawing'`. `showTabs()` is true for describer-during-play (spectator only) and either role at reveal. Default tab on reveal: drawer→reference (the unseen original), describer→drawing (the unseen result). Drawer canvas stays mounted across phases (`interactive` toggled to false on reveal — directive checks the input at event time, not bind time).
 
 ### UI conventions
 - Mobile-first. `100dvh` on root containers, `touch-action: none` on canvas, `viewport-fit=cover` + `user-scalable=no` in `index.html`.

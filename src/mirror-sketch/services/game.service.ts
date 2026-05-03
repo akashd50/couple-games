@@ -25,6 +25,7 @@ export class GameService {
     const players = this._state()?.players ?? [];
     return players.length === 2 && players.every((p) => p.role !== null);
   });
+  readonly spectator = computed<boolean>(() => this._state()?.spectator ?? true);
   readonly currentScene = computed<Scene | null>(() => getSceneById(this._sceneId()));
 
   readonly scenes: readonly Scene[] = SCENES;

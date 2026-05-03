@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
-import { AckResponse, DrawStroke, Role, RoomState } from '../models/game.types';
+import { AckResponse, DrawStroke, GameStartedPayload, Role, RoomState } from '../models/game.types';
 
 // In dev the Angular server runs on a different port from the socket server.
 // Use absolute URL when present, otherwise same origin.
@@ -15,8 +15,9 @@ export class SocketService implements OnDestroy {
 
   private readonly roomStateSubject = new Subject<RoomState>();
   private readonly drawStrokeSubject = new Subject<DrawStroke>();
+  private readonly drawReplaySubject = new Subject<DrawStroke[]>();
   private readonly drawClearSubject = new Subject<void>();
-  private readonly gameStartedSubject = new Subject<{ sceneId: string | null }>();
+  private readonly gameStartedSubject = new Subject<GameStartedPayload>();
   private readonly gameRevealSubject = new Subject<void>();
   private readonly gameResetSubject = new Subject<void>();
   private readonly peerLeftSubject = new Subject<{ id: string }>();
@@ -24,8 +25,9 @@ export class SocketService implements OnDestroy {
 
   readonly roomState$: Observable<RoomState> = this.roomStateSubject.asObservable();
   readonly drawStroke$: Observable<DrawStroke> = this.drawStrokeSubject.asObservable();
+  readonly drawReplay$: Observable<DrawStroke[]> = this.drawReplaySubject.asObservable();
   readonly drawClear$: Observable<void> = this.drawClearSubject.asObservable();
-  readonly gameStarted$: Observable<{ sceneId: string | null }> = this.gameStartedSubject.asObservable();
+  readonly gameStarted$: Observable<GameStartedPayload> = this.gameStartedSubject.asObservable();
   readonly gameReveal$: Observable<void> = this.gameRevealSubject.asObservable();
   readonly gameReset$: Observable<void> = this.gameResetSubject.asObservable();
   readonly peerLeft$: Observable<{ id: string }> = this.peerLeftSubject.asObservable();
@@ -50,8 +52,9 @@ export class SocketService implements OnDestroy {
 
     this.socket.on('room:state', (state: RoomState) => this.roomStateSubject.next(state));
     this.socket.on('draw:stroke', (s: DrawStroke) => this.drawStrokeSubject.next(s));
+    this.socket.on('draw:replay', (strokes: DrawStroke[]) => this.drawReplaySubject.next(strokes));
     this.socket.on('draw:clear', () => this.drawClearSubject.next());
-    this.socket.on('game:started', (p: { sceneId: string | null }) => this.gameStartedSubject.next(p));
+    this.socket.on('game:started', (p: GameStartedPayload) => this.gameStartedSubject.next(p));
     this.socket.on('game:reveal', () => this.gameRevealSubject.next());
     this.socket.on('game:reset', () => this.gameResetSubject.next());
     this.socket.on('peer:left', (p: { id: string }) => this.peerLeftSubject.next(p));
@@ -76,6 +79,10 @@ export class SocketService implements OnDestroy {
 
   chooseRole(role: Role): Promise<AckResponse> {
     return this.emitWithAck('role:choose', { role });
+  }
+
+  setSpectator(spectator: boolean): Promise<AckResponse> {
+    return this.emitWithAck('room:settings', { spectator });
   }
 
   startGame(sceneId: string): Promise<AckResponse> {
