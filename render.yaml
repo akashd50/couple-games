@@ -23,7 +23,6 @@ services:
   - type: web
     name: couple-games-web
     runtime: static
-    plan: free
     buildCommand: npm ci && npm run build:render
     staticPublishPath: dist/couple-games/browser
     autoDeploy: true
