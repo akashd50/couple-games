@@ -1,0 +1,120 @@
+@use '../../styles/shared' as *;
+
+:host {
+  display: flex;
+  flex: 1;
+  min-height: 100%;
+  width: 100%;
+  background: linear-gradient(180deg, #fdf7ff 0%, #f1eaff 100%);
+}
+
+.lobby {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+
+  &__header {
+    text-align: center;
+
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: clamp(1.8rem, 6vw, 2.6rem);
+      color: $ink;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      margin: 0;
+      color: $muted;
+      font-size: 1rem;
+    }
+  }
+
+  &__card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    background: $panel;
+    border-radius: 22px;
+    padding: 1.5rem;
+    box-shadow: $shadow;
+  }
+
+  &__footer p {
+    color: $muted;
+    font-size: 0.85rem;
+    text-align: center;
+    margin: 0;
+  }
+}
+
+.btn {
+  &--primary { @include button-primary; }
+  &--ghost { @include button-ghost; }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: $muted;
+  font-size: 0.85rem;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e6e3f1;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  &__label {
+    font-size: 0.85rem;
+    color: $muted;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__input {
+    appearance: none;
+    border: 2px solid #e6e3f1;
+    border-radius: $radius;
+    padding: 0.9rem 1rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.5em;
+    text-align: center;
+    text-transform: uppercase;
+    background: #fafafe;
+    color: $ink;
+    outline: none;
+    transition: border-color 0.15s ease;
+
+    &:focus { border-color: $accent; }
+  }
+}
+
+.error {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: rgba(214, 51, 108, 0.08);
+  color: $danger;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  text-align: center;
+}

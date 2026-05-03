@@ -1,0 +1,52 @@
+<section class="lobby">
+  <header class="lobby__header">
+    <h1>Mirror Sketch</h1>
+    <p>One describes, one draws. No peeking.</p>
+  </header>
+
+  <div class="lobby__card">
+    @if (mode() === 'menu') {
+      <button type="button" class="btn btn--primary" (click)="createRoom()" [disabled]="busy()">
+        {{ busy() ? 'Creating…' : 'Create a Room' }}
+      </button>
+      <div class="divider"><span>or</span></div>
+      <button type="button" class="btn btn--ghost" (click)="showJoin()" [disabled]="busy()">
+        Join with a Code
+      </button>
+    } @else {
+      <label class="field">
+        <span class="field__label">Room Code</span>
+        <input
+          class="field__input"
+          inputmode="latin"
+          autocapitalize="characters"
+          autocomplete="off"
+          spellcheck="false"
+          maxlength="4"
+          placeholder="ABCD"
+          [value]="joinCode()"
+          (input)="onCodeInput($any($event.target).value)"
+        />
+      </label>
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="joinRoom()"
+        [disabled]="busy() || joinCode().length < 4"
+      >
+        {{ busy() ? 'Joining…' : 'Join Room' }}
+      </button>
+      <button type="button" class="btn btn--ghost" (click)="back()" [disabled]="busy()">
+        Back
+      </button>
+    }
+
+    @if (errorMsg(); as err) {
+      <p class="error">{{ err }}</p>
+    }
+  </div>
+
+  <footer class="lobby__footer">
+    <p>Best with two phones — share the code with your partner.</p>
+  </footer>
+</section>

@@ -1,0 +1,155 @@
+<section class="room">
+  <header class="room__topbar">
+    <button type="button" class="iconbtn" (click)="leave()" aria-label="Leave room">←</button>
+    <button type="button" class="code" (click)="copyCode()" title="Tap to copy">
+      <span class="code__label">Room</span>
+      <span class="code__value">{{ game.roomCode() }}</span>
+    </button>
+    <div class="players">
+      <span class="dot dot--me" title="You"></span>
+      <span class="dot" [class.dot--on]="!!game.peer()" title="Partner"></span>
+    </div>
+  </header>
+
+  @if (errorMsg(); as err) {
+    <div class="banner banner--error">{{ err }}</div>
+  }
+
+  <!-- Phase: lobby — waiting for both, role pick -->
+  @if (game.phase() === 'lobby') {
+    <div class="phase phase--lobby">
+      @if (!game.bothJoined()) {
+        <div class="card card--center">
+          <h2>Waiting for your partner</h2>
+          <p>Share the room code <strong>{{ game.roomCode() }}</strong> with them.</p>
+          <div class="bigcode">{{ game.roomCode() }}</div>
+          <button type="button" class="btn btn--ghost" (click)="copyCode()">Copy Code</button>
+        </div>
+      } @else {
+        <div class="card">
+          <h2>Pick your role</h2>
+          <p class="muted">One describes the picture, the other draws what they hear.</p>
+
+          <div class="roles">
+            <button
+              type="button"
+              class="role"
+              [class.role--mine]="myRoleIs('describer')"
+              [disabled]="busy() || (isRoleTaken('describer') && !myRoleIs('describer'))"
+              (click)="chooseRole('describer')"
+            >
+              <span class="role__emoji">🗣️</span>
+              <span class="role__name">Describer</span>
+              <span class="role__hint">See the picture, give directions</span>
+            </button>
+
+            <button
+              type="button"
+              class="role"
+              [class.role--mine]="myRoleIs('drawer')"
+              [disabled]="busy() || (isRoleTaken('drawer') && !myRoleIs('drawer'))"
+              (click)="chooseRole('drawer')"
+            >
+              <span class="role__emoji">✏️</span>
+              <span class="role__name">Drawer</span>
+              <span class="role__hint">Listen and sketch on the canvas</span>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="!game.bothChose() || busy()"
+            (click)="startGame()"
+          >
+            {{ game.bothChose() ? 'Start Game' : 'Waiting for both roles…' }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Phase: playing -->
+  @if (game.phase() === 'playing' || game.phase() === 'reveal') {
+    <div class="phase phase--play">
+      @if (myRoleIs('describer')) {
+        <div class="describer">
+          <div class="reference">
+            <h3>Describe this</h3>
+            <div class="reference__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
+            <p class="muted">Tell your partner where to draw — but don't name it!</p>
+          </div>
+
+          <div class="mirror">
+            <h3>Their canvas</h3>
+            <canvas
+              #canvasEl
+              msDrawCanvas
+              [interactive]="false"
+              class="canvas canvas--mirror"
+            ></canvas>
+          </div>
+
+          <div class="actions">
+            @if (game.phase() === 'playing') {
+              <button type="button" class="btn btn--primary" (click)="reveal()">Reveal &amp; Compare</button>
+            } @else {
+              <button type="button" class="btn btn--ghost" (click)="playAgain()">Play Again</button>
+            }
+          </div>
+        </div>
+      } @else if (myRoleIs('drawer')) {
+        <div class="drawer">
+          <div class="canvas-wrap">
+            <canvas
+              #canvasEl
+              msDrawCanvas
+              [interactive]="true"
+              [color]="color()"
+              [size]="brushSize()"
+              (stroke)="onStroke($event)"
+              class="canvas canvas--draw"
+            ></canvas>
+          </div>
+
+          <div class="toolbar">
+            <div class="palette">
+              @for (c of palette; track c) {
+                <button
+                  type="button"
+                  class="swatch"
+                  [class.swatch--active]="color() === c"
+                  [style.background]="c"
+                  (click)="setColor(c)"
+                  [attr.aria-label]="'Color ' + c"
+                ></button>
+              }
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              [value]="brushSize()"
+              (input)="setBrush(+$any($event.target).value)"
+              class="brush"
+              aria-label="Brush size"
+            />
+            <button type="button" class="iconbtn iconbtn--danger" (click)="clear()" aria-label="Clear">⟲</button>
+          </div>
+
+          @if (game.phase() === 'reveal') {
+            <div class="reveal-card">
+              <h3>The original was…</h3>
+              <div class="reference__art" [innerHTML]="sceneSvg(game.currentScene())"></div>
+              <button type="button" class="btn btn--ghost" (click)="playAgain()">Play Again</button>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="card card--center">
+          <h2>Pick a role first</h2>
+        </div>
+      }
+    </div>
+  }
+</section>

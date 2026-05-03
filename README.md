@@ -2,6 +2,28 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.4.
 
+## Claude Instructions
+Make sure to create memory files in the /memory folder for the conversation. Keep the content clean and concise and organized. It should be efficient so it doesn't waste any extra credits.
+Create the memory directory and file if it doesn't exist already.
+
+## Game Ideas
+### 1. Mirror Sketch
+A creative communication game that should work via Socket.io, connection two players i.e. a couple to play games in a private room
+
+The Mechanic: Player A sees a simple image (e.g., a house with a sun). Player B has a blank canvas. Player A must describe how to draw it using only directional commands, while Player B uses touch gestures to draw.
+
+- At the beginning, one of the two players creates a room and the app will give them with a new room code which can be entered by the second user to join the room. Once joined, players can pick whether they want to be the person drawing or the person describing the scene. The person that needs to describe will then be given a random image form the directory of the images and the person drawing will have a canvas where they can draw. Everything they draw will be shown in real-time to the person describing as well.   
+
+The Fun Factor: Comparing the original image to the "masterpiece" at the end is usually hilarious.
+
+Angular Tip: Use the HTML5 Canvas API within an Angular Directive to handle touch events (touchstart, touchmove) for the drawing interface, use whatever api is good for real-time efficient simple drawings.
+
+
+### Coding practices
+- Clean well-organized code
+- Always specify typescript types for all functions and definitions
+- Use angular services where applicable for reusability
+
 ## Development server
 
 To start a local development server, run:

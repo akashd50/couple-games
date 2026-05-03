@@ -1,0 +1,48 @@
+// Shared design tokens and utilities for the Mirror Sketch UI.
+$bg: #fdf7ff;
+$panel: #ffffff;
+$ink: #1c1d28;
+$muted: #6c7088;
+$accent: #7a5cff;
+$accent-soft: #ebe4ff;
+$danger: #d6336c;
+$ok: #2ec27e;
+$radius: 14px;
+$shadow: 0 6px 18px rgba(60, 30, 100, 0.08);
+
+@mixin button-base {
+  appearance: none;
+  border: 0;
+  border-radius: $radius;
+  padding: 0.85rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.15s ease, box-shadow 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: $accent;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(122, 92, 255, 0.35);
+  &:active { transform: translateY(1px); }
+  &:disabled {
+    background: #c9c2e3;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background: $accent-soft;
+  color: $accent;
+  &:active { transform: translateY(1px); }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
