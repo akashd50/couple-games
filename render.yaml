@@ -36,10 +36,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
-      # Injected into public/runtime-config.js at build time. The script
-      # auto-prepends https:// when only a hostname is provided.
+      # Injected into public/runtime-config.js at build time. Hardcoded
+      # because Render's `fromService property: host` was returning the
+      # bare service name instead of the FQDN.
       - key: SOCKET_URL
-        fromService:
-          type: web
-          name: couple-games-server
-          property: host
+        value: https://couple-games-server.onrender.com

@@ -49,7 +49,7 @@ Server → client:
 
 ### Render deployment
 - `render.yaml` at repo root defines two services: `couple-games-server` (Node web service, runs `node server/index.js`, free plan, health check `/health`) and `couple-games-web` (static site, builds `npm ci && npm run build:render`, publishes `dist/couple-games/browser`). Both region `oregon`, `NODE_VERSION=20`.
-- Cross-service env wiring: server's `ORIGIN` is set from web's host (CORS allow-list); web's `SOCKET_URL` is set from server's host (consumed by build script).
+- Cross-service env wiring: server's `ORIGIN` is set from web's host (CORS allow-list, via `fromService`). Web's `SOCKET_URL` is hardcoded to `https://couple-games-server.onrender.com` because `fromService property: host` was returning the bare service name instead of the FQDN.
 - `scripts/write-runtime-config.js` reads `process.env.SOCKET_URL` and emits `public/runtime-config.js`. Auto-prepends `https://` when only a hostname is given (Render's `fromService property: host` returns FQDN without scheme).
 - `npm run build:render` = write runtime config + `ng build --configuration production`. Used by Render; locally the committed `runtime-config.js` (localhost default) is sufficient for `ng serve`.
 - SPA fallback handled by `public/_redirects` (`/*  /index.html  200`), copied into the build output by Angular's asset pipeline.
