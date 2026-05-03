@@ -52,7 +52,7 @@ Server → client:
 - Cross-service env wiring: server's `ORIGIN` is set from web's host (CORS allow-list, via `fromService`). Web's `SOCKET_URL` is hardcoded to `https://couple-games-server.onrender.com` because `fromService property: host` was returning the bare service name instead of the FQDN.
 - `scripts/write-runtime-config.js` reads `process.env.SOCKET_URL` and emits `public/runtime-config.js`. Auto-prepends `https://` when only a hostname is given (Render's `fromService property: host` returns FQDN without scheme).
 - `npm run build:render` = write runtime config + `ng build --configuration production`. Used by Render; locally the committed `runtime-config.js` (localhost default) is sufficient for `ng serve`.
-- SPA fallback handled by `public/_redirects` (`/*  /index.html  200`), copied into the build output by Angular's asset pipeline.
+- SPA fallback handled by `routes` block in `render.yaml` (`type: rewrite, source: /*, destination: /index.html`). `public/_redirects` is also present as a backup but Render's native `routes` config is what's actually wired.
 - Free-tier caveat: Node service idles after 15 min, first connection after idle takes ~30–60s.
 
 ### UI conventions
