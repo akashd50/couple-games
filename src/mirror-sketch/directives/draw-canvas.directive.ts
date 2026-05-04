@@ -36,6 +36,9 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
   // Tracks last drawn point per stroke id so we can connect line segments.
   private lastPoints = new Map<number, { x: number; y: number }>();
 
+  // Full ordered log of every applied stroke event so we can replay on undo.
+  private strokeHistory: DrawStroke[] = [];
+
   private activeStrokeId: number | null = null;
   private nextStrokeId = 1;
 
@@ -70,6 +73,8 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
     this.ctx.fillStyle = s.color;
     this.ctx.lineWidth = s.size * (canvas.width / canvas.clientWidth || 1);
 
+    this.strokeHistory.push(s);
+
     if (s.phase === 'start' || !last) {
       this.ctx.beginPath();
       this.ctx.arc(x, y, this.ctx.lineWidth / 2, 0, Math.PI * 2);
@@ -97,6 +102,30 @@ export class DrawCanvasDirective implements AfterViewInit, OnDestroy {
     const c = this.host.nativeElement;
     this.ctx.clearRect(0, 0, c.width, c.height);
     this.lastPoints.clear();
+    this.strokeHistory = [];
+  }
+
+  // Drops the most recent contiguous stroke (all events sharing the last
+  // strokeId) and replays the rest. Returns false when there's nothing to undo.
+  undo(): boolean {
+    if (this.strokeHistory.length === 0) return false;
+    const lastId = this.strokeHistory[this.strokeHistory.length - 1].strokeId;
+    let cut = this.strokeHistory.length;
+    while (cut > 0 && this.strokeHistory[cut - 1].strokeId === lastId) cut -= 1;
+    const remaining = this.strokeHistory.slice(0, cut);
+
+    if (this.ctx) {
+      const c = this.host.nativeElement;
+      this.ctx.clearRect(0, 0, c.width, c.height);
+    }
+    this.lastPoints.clear();
+    this.strokeHistory = [];
+    for (const s of remaining) this.applyStroke(s);
+    return true;
+  }
+
+  hasStrokes(): boolean {
+    return this.strokeHistory.length > 0;
   }
 
   @HostListener('contextmenu', ['$event'])

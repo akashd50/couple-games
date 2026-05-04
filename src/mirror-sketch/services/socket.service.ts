@@ -17,6 +17,7 @@ export class SocketService implements OnDestroy {
   private readonly drawStrokeSubject = new Subject<DrawStroke>();
   private readonly drawReplaySubject = new Subject<DrawStroke[]>();
   private readonly drawClearSubject = new Subject<void>();
+  private readonly drawUndoSubject = new Subject<void>();
   private readonly gameStartedSubject = new Subject<GameStartedPayload>();
   private readonly gameRevealSubject = new Subject<void>();
   private readonly gameResetSubject = new Subject<void>();
@@ -27,6 +28,7 @@ export class SocketService implements OnDestroy {
   readonly drawStroke$: Observable<DrawStroke> = this.drawStrokeSubject.asObservable();
   readonly drawReplay$: Observable<DrawStroke[]> = this.drawReplaySubject.asObservable();
   readonly drawClear$: Observable<void> = this.drawClearSubject.asObservable();
+  readonly drawUndo$: Observable<void> = this.drawUndoSubject.asObservable();
   readonly gameStarted$: Observable<GameStartedPayload> = this.gameStartedSubject.asObservable();
   readonly gameReveal$: Observable<void> = this.gameRevealSubject.asObservable();
   readonly gameReset$: Observable<void> = this.gameResetSubject.asObservable();
@@ -54,6 +56,7 @@ export class SocketService implements OnDestroy {
     this.socket.on('draw:stroke', (s: DrawStroke) => this.drawStrokeSubject.next(s));
     this.socket.on('draw:replay', (strokes: DrawStroke[]) => this.drawReplaySubject.next(strokes));
     this.socket.on('draw:clear', () => this.drawClearSubject.next());
+    this.socket.on('draw:undo', () => this.drawUndoSubject.next());
     this.socket.on('game:started', (p: GameStartedPayload) => this.gameStartedSubject.next(p));
     this.socket.on('game:reveal', () => this.gameRevealSubject.next());
     this.socket.on('game:reset', () => this.gameResetSubject.next());
@@ -95,6 +98,10 @@ export class SocketService implements OnDestroy {
 
   sendClear(): void {
     this.socket?.emit('draw:clear');
+  }
+
+  sendUndo(): void {
+    this.socket?.emit('draw:undo');
   }
 
   reveal(): void {

@@ -141,6 +141,23 @@ io.on('connection', (socket) => {
     io.to(joinedCode).emit('draw:clear');
   });
 
+  // Drawer asked to undo their last stroke. In spectator mode the describer
+  // is mirroring live and re-runs its own undo; in surprise mode the strokes
+  // are buffered server-side, so we drop the trailing stroke group here.
+  socket.on('draw:undo', () => {
+    if (!joinedCode) return;
+    const room = rooms.get(joinedCode);
+    if (!room) return;
+    if (room.spectator) {
+      socket.to(joinedCode).emit('draw:undo');
+    } else if (room.strokeHistory.length > 0) {
+      const lastId = room.strokeHistory[room.strokeHistory.length - 1].strokeId;
+      let cut = room.strokeHistory.length;
+      while (cut > 0 && room.strokeHistory[cut - 1].strokeId === lastId) cut -= 1;
+      room.strokeHistory = room.strokeHistory.slice(0, cut);
+    }
+  });
+
   socket.on('game:reveal', () => {
     if (!joinedCode) return;
     const room = rooms.get(joinedCode);

@@ -194,16 +194,40 @@
 
           @if (game.phase() === 'playing') {
             <div class="toolbar">
-              <div class="palette">
-                @for (c of palette; track c) {
+              <div class="palette-area">
+                <div class="palette">
+                  @for (c of palette; track c) {
+                    <button
+                      type="button"
+                      class="swatch"
+                      [class.swatch--active]="color() === c"
+                      [style.background]="c"
+                      (click)="setColor(c)"
+                      [attr.aria-label]="'Color ' + c"
+                    ></button>
+                  }
                   <button
                     type="button"
-                    class="swatch"
-                    [class.swatch--active]="color() === c"
-                    [style.background]="c"
-                    (click)="setColor(c)"
-                    [attr.aria-label]="'Color ' + c"
-                  ></button>
+                    class="swatch swatch--more"
+                    [class.swatch--active]="showExtendedPalette()"
+                    (click)="toggleExtendedPalette()"
+                    [attr.aria-label]="showExtendedPalette() ? 'Hide more colors' : 'Show more colors'"
+                    [attr.aria-expanded]="showExtendedPalette()"
+                  >{{ showExtendedPalette() ? '−' : '+' }}</button>
+                </div>
+                @if (showExtendedPalette()) {
+                  <div class="palette palette--extended">
+                    @for (c of extendedPalette; track c) {
+                      <button
+                        type="button"
+                        class="swatch"
+                        [class.swatch--active]="color() === c"
+                        [style.background]="c"
+                        (click)="setColor(c)"
+                        [attr.aria-label]="'Color ' + c"
+                      ></button>
+                    }
+                  </div>
                 }
               </div>
               <input
@@ -215,6 +239,7 @@
                 class="brush"
                 aria-label="Brush size"
               />
+              <button type="button" class="iconbtn" (click)="undo()" aria-label="Undo last stroke" title="Undo">↶</button>
               <button type="button" class="iconbtn iconbtn--danger" (click)="clear()" aria-label="Clear">⟲</button>
             </div>
           } @else {

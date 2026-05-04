@@ -374,10 +374,22 @@
   flex-wrap: wrap;
 }
 
+.palette-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .palette {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+
+  &--extended {
+    padding-top: 4px;
+    border-top: 1px dashed $border;
+  }
 }
 
 .swatch {
@@ -390,10 +402,22 @@
   cursor: pointer;
   transition: outline-color 0.15s ease, transform 0.05s ease;
   -webkit-tap-highlight-color: transparent;
+  padding: 0;
 
   &--active {
     outline-color: $accent;
     transform: scale(1.08);
+  }
+
+  &--more {
+    background: $accent-soft;
+    color: $accent;
+    font-weight: 800;
+    font-size: 1rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

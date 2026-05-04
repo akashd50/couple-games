@@ -56,8 +56,32 @@ export class RoomComponent implements OnInit {
     '#1e90ff',
   ];
 
+  readonly extendedPalette: readonly string[] = [
+    '#d62828',
+    '#fb8500',
+    '#f9c74f',
+    '#fff59d',
+    '#aed581',
+    '#4caf50',
+    '#006064',
+    '#80deea',
+    '#1565c0',
+    '#000080',
+    '#b39ddb',
+    '#ce93d8',
+    '#f48fb1',
+    '#ff6f61',
+    '#ff8a65',
+    '#ffb4a2',
+    '#a0522d',
+    '#5d4037',
+    '#8d99ae',
+    '#495057',
+  ];
+
   readonly activeTab = signal<CanvasTab>('reference');
   readonly showSpectatorHelp = signal(false);
+  readonly showExtendedPalette = signal(false);
 
   // Visible only on the describer's mirror canvas — hides during non-spectator play.
   readonly mirrorMounted = computed(() => {
@@ -136,6 +160,10 @@ export class RoomComponent implements OnInit {
 
     this.socket.drawClear$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.canvasDir?.clear();
+    });
+
+    this.socket.drawUndo$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.canvasDir?.undo();
     });
 
     this.socket.gameStarted$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ sceneId }) => {
@@ -230,6 +258,15 @@ export class RoomComponent implements OnInit {
   clear(): void {
     this.canvasDir?.clear();
     this.socket.sendClear();
+  }
+
+  undo(): void {
+    if (!this.canvasDir?.undo()) return;
+    this.socket.sendUndo();
+  }
+
+  toggleExtendedPalette(): void {
+    this.showExtendedPalette.update((v) => !v);
   }
 
   reveal(): void {
