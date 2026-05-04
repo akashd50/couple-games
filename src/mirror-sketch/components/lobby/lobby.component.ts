@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { GameService } from '../../services/game.service';
 import { SocketService } from '../../services/socket.service';
 
 @Component({
   selector: 'ms-lobby',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './lobby.component.html',
   styleUrl: './lobby.component.scss',

@@ -1,0 +1,24 @@
+<button
+  type="button"
+  class="settings__toggle"
+  [class.settings__toggle--open]="open()"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+  aria-label="Settings"
+>
+  <span aria-hidden="true">⚙</span>
+</button>
+
+@if (open()) {
+  <div class="settings__panel" role="menu">
+    <div class="settings__title">Settings</div>
+    <label class="settings__row">
+      <span class="settings__label">Dark mode</span>
+      <input
+        type="checkbox"
+        [checked]="themeService.theme() === 'dark'"
+        (change)="onDarkToggle($event)"
+      />
+    </label>
+  </div>
+}

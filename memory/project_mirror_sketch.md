@@ -21,13 +21,16 @@ Mirror Sketch is the first game in the couple-games repo. Two players join a roo
   - `models/game.types.ts` — `Role`, `Player`, `RoomState`, `DrawStroke`, `Scene`, `AckResponse`
   - `data/scenes.ts` — 5 inline-SVG reference scenes. `getRandomScene()` / `getSceneById()`
   - `styles/_shared.scss` — design tokens + `@mixin button-primary` / `@mixin button-ghost`
-- Routes in `src/app/app.routes.ts`: `/` → `/mirror-sketch`, `/mirror-sketch` (lobby), `/mirror-sketch/room/:code` (room). Lazy-loaded standalone components.
+- Routes in `src/app/app.routes.ts`: `/` → `HomeComponent` (game list, in `src/home/`), `/mirror-sketch` (lobby), `/mirror-sketch/room/:code` (room). All lazy-loaded standalone components. `**` falls back to `/`.
+- `src/home/home.component.{ts,html,scss}` — landing page with a card grid; only Mirror Sketch listed for now. To add a game, append to `games` array in `home.component.ts`.
+- `src/shared/services/theme.service.ts` — light/dark theme. Reads/writes `localStorage['couple-games:theme']`, falls back to `prefers-color-scheme`. `effect()` in constructor sets `data-theme` attribute on `<html>`. App component injects it so the effect fires on boot.
+- `src/shared/components/settings-menu/` — fixed top-right gear (`<app-settings-menu />`, mounted once in `src/app/app.html`, `position: fixed; z-index: 100`). Currently just a Dark mode toggle. Closes on outside click via `@HostListener('document:click')`. Room topbar has `padding-right: 52px` to keep player dots clear of the gear.
 
 ### Socket.io event protocol
 Client → server (with ack):
 - `room:create {}` → `{ ok, code, you, state }`
 - `room:join { code }` → same shape
-- `role:choose { role: 'drawer' | 'describer' }` → `{ ok }`
+- `role:choose { role: 'drawer' | 'describer' }` → `{ ok }` — server auto-swaps: if the partner already has the requested role and the requester also has a (different) role, the partner is given the requester's old role so the room stays balanced. If the requester has no role yet, no swap; both can transiently end up with the same role and `bothChose` (distinct-role check) keeps Start disabled until resolved.
 - `room:settings { spectator }` → `{ ok }` (describer-only — surprise mode toggle)
 - `game:start { sceneId }` → `{ ok }` (server validates both roles picked)
 
@@ -66,7 +69,9 @@ Both roles share a single `.board` container (`aspect-ratio: 1/1`, `position: re
 ### UI conventions
 - Mobile-first. `100dvh` on root containers, `touch-action: none` on canvas, `viewport-fit=cover` + `user-scalable=no` in `index.html`.
 - Describer view stacks vertically below 720px, side-by-side above. Drawer toolbar wraps with palette + brush range + clear.
-- Color-scheme is light-only. Accent `#7a5cff`, danger `#d6336c`, ok `#2ec27e`. Tokens in `styles/_shared.scss`
+- **Themed via CSS custom properties.** Tokens (`--bg`, `--panel`, `--ink`, `--muted`, `--accent`, `--accent-soft`, `--accent-shadow`, `--border`, `--field-bg`, `--canvas-bg`, `--dot-off`, `--shadow`, `--error-bg`, etc.) are defined in `src/styles.scss` under `:root` (light) and `[data-theme='dark']`. `mirror-sketch/styles/_shared.scss` exposes them as SCSS aliases (`$bg: var(--bg)` etc.) so existing `background: $bg` usage maps cleanly to `var(...)`. To theme a new color, add it to both blocks in `styles.scss` and (optionally) alias it in `_shared.scss`.
+- In dark mode the canvas becomes `#2a2a35` (gray). Brush palette is theme-independent: a fixed array `[black '#000000', white '#ffffff', purple, pink, yellow, green, blue]` on `RoomComponent.palette` (plain readonly array, not signal). Default `color()` is `'#000000'`. Swatch border uses `$border` (not `$panel`) so pure-black/white swatches stay visible on the matching themed panel.
+- Reference scene SVGs in `data/scenes.ts` have hardcoded backgrounds (e.g. `#fffdf6`) and intentionally stay bright in both themes.
 
 ### Known limitations
 - No persistence: server restart drops all rooms.

@@ -23,7 +23,9 @@ export class GameService {
   readonly bothJoined = computed(() => (this._state()?.players.length ?? 0) >= 2);
   readonly bothChose = computed(() => {
     const players = this._state()?.players ?? [];
-    return players.length === 2 && players.every((p) => p.role !== null);
+    if (players.length !== 2) return false;
+    const roles = players.map((p) => p.role);
+    return roles[0] !== null && roles[1] !== null && roles[0] !== roles[1];
   });
   readonly spectator = computed<boolean>(() => this._state()?.spectator ?? true);
   readonly currentScene = computed<Scene | null>(() => getSceneById(this._sceneId()));

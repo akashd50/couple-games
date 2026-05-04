@@ -35,7 +35,7 @@
               type="button"
               class="role"
               [class.role--mine]="myRoleIs('describer')"
-              [disabled]="busy() || (isRoleTaken('describer') && !myRoleIs('describer'))"
+              [disabled]="busy()"
               (click)="chooseRole('describer')"
             >
               <span class="role__emoji">🗣️</span>
@@ -47,7 +47,7 @@
               type="button"
               class="role"
               [class.role--mine]="myRoleIs('drawer')"
-              [disabled]="busy() || (isRoleTaken('drawer') && !myRoleIs('drawer'))"
+              [disabled]="busy()"
               (click)="chooseRole('drawer')"
             >
               <span class="role__emoji">✏️</span>

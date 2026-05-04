@@ -5,7 +5,7 @@
   flex: 1;
   min-height: 100%;
   width: 100%;
-  background: linear-gradient(180deg, #fdf7ff 0%, #f1eaff 100%);
+  background: linear-gradient(180deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 100%);
 }
 
 .lobby {
@@ -19,6 +19,20 @@
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
+  position: relative;
+
+  &__back {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    color: $accent;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.4rem 0.6rem;
+    border-radius: 10px;
+    background: $accent-soft;
+  }
 
   &__header {
     text-align: center;
@@ -73,7 +87,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: #e6e3f1;
+    background: $border;
   }
 }
 
@@ -92,7 +106,7 @@
 
   &__input {
     appearance: none;
-    border: 2px solid #e6e3f1;
+    border: 2px solid $border;
     border-radius: $radius;
     padding: 0.9rem 1rem;
     font-size: 1.4rem;
@@ -100,7 +114,7 @@
     letter-spacing: 0.5em;
     text-align: center;
     text-transform: uppercase;
-    background: #fafafe;
+    background: $field-bg;
     color: $ink;
     outline: none;
     transition: border-color 0.15s ease;
@@ -112,7 +126,7 @@
 .error {
   margin: 0;
   padding: 0.6rem 0.8rem;
-  background: rgba(214, 51, 108, 0.08);
+  background: $error-bg;
   color: $danger;
   border-radius: 10px;
   font-size: 0.9rem;

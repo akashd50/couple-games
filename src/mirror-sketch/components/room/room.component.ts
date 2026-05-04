@@ -43,8 +43,18 @@ export class RoomComponent implements OnInit {
   readonly busy = signal(false);
   readonly errorMsg = signal<string | null>(null);
   readonly revealed = signal(false);
-  readonly color = signal('#1c1d28');
+  readonly color = signal('#000000');
   readonly brushSize = signal(5);
+
+  readonly palette: readonly string[] = [
+    '#000000',
+    '#ffffff',
+    '#7a5cff',
+    '#d6336c',
+    '#ffb703',
+    '#2ec27e',
+    '#1e90ff',
+  ];
 
   readonly activeTab = signal<CanvasTab>('reference');
   readonly showSpectatorHelp = signal(false);
@@ -66,8 +76,6 @@ export class RoomComponent implements OnInit {
     if (phase === 'playing' && role === 'describer' && this.game.spectator()) return true;
     return false;
   });
-
-  readonly palette: readonly string[] = ['#1c1d28', '#7a5cff', '#d6336c', '#ffb703', '#2ec27e', '#1e90ff'];
 
   // Coalesce intermediate move events to ~30Hz so a free-tier tunnel (ngrok)
   // doesn't get hammered by 60-120Hz pointer rates. start/end always flush.
@@ -257,12 +265,6 @@ export class RoomComponent implements OnInit {
     const code = this.game.roomCode();
     if (!code) return;
     void navigator.clipboard?.writeText(code);
-  }
-
-  isRoleTaken(role: Role): boolean {
-    const state = this.game.state();
-    if (!state) return false;
-    return state.players.some((p) => p.id !== this.game.myId() && p.role === role);
   }
 
   myRoleIs(role: Role): boolean {

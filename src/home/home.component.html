@@ -1,0 +1,23 @@
+<section class="home">
+  <header class="home__header">
+    <h1>Couple Games</h1>
+    <p>Pick a game to play together.</p>
+  </header>
+
+  <div class="home__grid">
+    @for (game of games; track game.route) {
+      <a [routerLink]="game.route" class="game-card">
+        <div class="game-card__icon" [style.background]="game.accent + '22'" [style.color]="game.accent">
+          {{ game.emoji }}
+        </div>
+        <h2 class="game-card__title">{{ game.title }}</h2>
+        <p class="game-card__tagline">{{ game.tagline }}</p>
+        <span class="game-card__cta">Play →</span>
+      </a>
+    }
+  </div>
+
+  <footer class="home__footer">
+    <p>Best with two phones — one game per session.</p>
+  </footer>
+</section>

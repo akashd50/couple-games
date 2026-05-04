@@ -5,7 +5,7 @@
   flex: 1;
   min-height: 100%;
   width: 100%;
-  background: #fbf8ff;
+  background: $bg;
 }
 
 .room {
@@ -24,6 +24,7 @@
     align-items: center;
     gap: 0.6rem;
     padding: 0.4rem 0.2rem;
+    padding-right: 52px; // reserve space for the fixed settings gear
   }
 }
 
@@ -44,7 +45,7 @@
   -webkit-tap-highlight-color: transparent;
 
   &--danger {
-    background: rgba(214, 51, 108, 0.12);
+    background: $error-bg-strong;
     color: $danger;
   }
 }
@@ -83,7 +84,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #d8d2ee;
+    background: $dot-off;
 
     &--me { background: $accent; }
     &--on { background: $ok; }
@@ -96,7 +97,7 @@
   font-size: 0.9rem;
 
   &--error {
-    background: rgba(214, 51, 108, 0.1);
+    background: $error-bg;
     color: $danger;
   }
 }
@@ -178,8 +179,8 @@
 .role {
   flex: 1 1 140px;
   appearance: none;
-  border: 2px solid #e6e3f1;
-  background: #fafafe;
+  border: 2px solid $border;
+  background: $field-bg;
   border-radius: 18px;
   padding: 1rem;
   display: flex;
@@ -213,8 +214,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #fafafe;
-  border: 1px solid #e6e3f1;
+  background: $field-bg;
+  border: 1px solid $border;
   border-radius: 14px;
   padding: 0.6rem 0.8rem;
   flex-wrap: wrap;
@@ -331,7 +332,7 @@
 
   &__art {
     flex: 1;
-    background: #fff;
+    background: $panel;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -348,7 +349,7 @@
     width: 100%;
     height: 100%;
     display: block;
-    background: #fff;
+    background: $canvas-bg;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -384,7 +385,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid $border;
   outline: 2px solid transparent;
   cursor: pointer;
   transition: outline-color 0.15s ease, transform 0.05s ease;

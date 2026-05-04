@@ -92,11 +92,15 @@ io.on('connection', (socket) => {
     if (role !== 'drawer' && role !== 'describer') {
       return ack?.({ ok: false, error: 'Invalid role' });
     }
-    if (room.players.some((p) => p.id !== socket.id && p.role === role)) {
-      return ack?.({ ok: false, error: 'Role already taken' });
-    }
     const me = room.players.find((p) => p.id === socket.id);
-    if (me) me.role = role;
+    if (!me) return ack?.({ ok: false, error: 'Not in this room' });
+    // Auto-swap: if the partner already has this role and I have a role to give
+    // back, hand them my old role so the room stays balanced (one of each).
+    const other = room.players.find((p) => p.id !== socket.id);
+    if (other && other.role === role && me.role !== null) {
+      other.role = me.role;
+    }
+    me.role = role;
     ack?.({ ok: true });
     broadcastRoom(joinedCode);
   });

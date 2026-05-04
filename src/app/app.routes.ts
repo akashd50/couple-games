@@ -1,7 +1,11 @@
 import { Routes } from '@angular/router';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'mirror-sketch' },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('../home/home.component').then((m) => m.HomeComponent),
+  },
   {
     path: 'mirror-sketch',
     loadComponent: () =>
@@ -12,5 +16,5 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../mirror-sketch/components/room/room.component').then((m) => m.RoomComponent),
   },
-  { path: '**', redirectTo: 'mirror-sketch' },
+  { path: '**', redirectTo: '' },
 ];
