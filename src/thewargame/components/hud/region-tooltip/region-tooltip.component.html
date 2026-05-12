@@ -1,0 +1,30 @@
+@if (hovered(); as r) {
+  @if (transform(); as t) {
+    <div class="tooltip" [style.transform]="t">
+      <div class="tooltip__head">
+        <span class="tooltip__name">{{ r.name }}</span>
+        <span class="tooltip__country">{{ r.country }}</span>
+      </div>
+      @if (stats(); as s) {
+        <dl class="tooltip__stats">
+          <div class="tooltip__stat">
+            <dt>Population</dt>
+            <dd>{{ s.population }}</dd>
+          </div>
+          <div class="tooltip__stat">
+            <dt>Oil</dt>
+            <dd>{{ s.oil }}</dd>
+          </div>
+          <div class="tooltip__stat">
+            <dt>Gold</dt>
+            <dd>{{ s.gold }}</dd>
+          </div>
+          <div class="tooltip__stat">
+            <dt>Stability</dt>
+            <dd>{{ s.stability }}%</dd>
+          </div>
+        </dl>
+      }
+    </div>
+  }
+}

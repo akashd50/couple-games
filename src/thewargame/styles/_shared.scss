@@ -1,0 +1,26 @@
+// Shared design tokens for The War Game.
+// Tokens are CSS custom properties (defined in src/styles.scss) so they
+// can be themed at runtime via [data-theme='dark'] on the document root.
+$bg: var(--bg);
+$panel: var(--panel);
+$ink: var(--ink);
+$muted: var(--muted);
+$accent: var(--accent);
+$accent-soft: var(--accent-soft);
+$accent-shadow: var(--accent-shadow);
+$border: var(--border);
+$field-bg: var(--field-bg);
+$shadow: var(--shadow);
+
+$wg-ocean: var(--wg-ocean);
+$wg-land: var(--wg-land);
+$wg-land-foreign: var(--wg-land-foreign);
+$wg-border: var(--wg-border);
+$wg-border-subdivision: var(--wg-border-subdivision);
+$wg-hover: var(--wg-hover);
+$wg-selected: var(--wg-selected);
+$wg-friendly: var(--wg-friendly);
+$wg-hostile: var(--wg-hostile);
+$wg-fog: var(--wg-fog);
+
+$radius: 12px;

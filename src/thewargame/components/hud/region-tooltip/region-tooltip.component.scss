@@ -1,0 +1,65 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 0.55rem 0.7rem;
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: $radius;
+  box-shadow: $shadow;
+  color: $ink;
+  font-size: 0.85rem;
+  line-height: 1.25;
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+
+  &__name {
+    font-weight: 600;
+  }
+
+  &__country {
+    color: $muted;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 0.75rem;
+    margin: 0;
+  }
+
+  &__stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+
+    dt {
+      color: $muted;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}

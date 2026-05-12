@@ -26,5 +26,12 @@ export class HomeComponent {
       route: '/mirror-sketch',
       accent: '#7a5cff',
     },
+    {
+      title: 'The War Game',
+      tagline: 'Run a nation. Trade, build, spy, strike. Solo.',
+      emoji: '🌐',
+      route: '/thewargame',
+      accent: '#d6336c',
+    },
   ];
 }

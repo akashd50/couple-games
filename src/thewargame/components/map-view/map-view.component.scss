@@ -1,0 +1,22 @@
+@use '../../styles/shared' as *;
+
+:host {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: $wg-ocean;
+  overflow: hidden;
+}
+
+.map-view__host {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}

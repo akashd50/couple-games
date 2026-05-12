@@ -16,5 +16,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('../mirror-sketch/components/room/room.component').then((m) => m.RoomComponent),
   },
+  {
+    path: 'thewargame',
+    loadComponent: () =>
+      import('../thewargame/components/shell/shell.component').then((m) => m.ShellComponent),
+  },
   { path: '**', redirectTo: '' },
 ];

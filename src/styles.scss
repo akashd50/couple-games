@@ -21,6 +21,18 @@
   --error-bg: rgba(214, 51, 108, 0.1);
   --error-bg-strong: rgba(214, 51, 108, 0.12);
   --primary-disabled: #c9c2e3;
+
+  /* The War Game palette */
+  --wg-ocean: #cfe2f3;
+  --wg-land: #e8e2d3;
+  --wg-land-foreign: #ddd6c4;
+  --wg-border: #7c8493;
+  --wg-border-subdivision: #a8a89c;
+  --wg-hover: #b9a4ff;
+  --wg-selected: #7a5cff;
+  --wg-friendly: #2ec27e;
+  --wg-hostile: #d6336c;
+  --wg-fog: rgba(15, 15, 30, 0.35);
 }
 
 [data-theme='dark'] {
@@ -45,6 +57,18 @@
   --error-bg: rgba(255, 107, 155, 0.12);
   --error-bg-strong: rgba(255, 107, 155, 0.18);
   --primary-disabled: #3d3d55;
+
+  /* The War Game palette */
+  --wg-ocean: #131c2a;
+  --wg-land: #2a2e3d;
+  --wg-land-foreign: #20232f;
+  --wg-border: #4a516b;
+  --wg-border-subdivision: #393d52;
+  --wg-hover: #9d85ff;
+  --wg-selected: #c9b8ff;
+  --wg-friendly: #4dd99a;
+  --wg-hostile: #ff6b9b;
+  --wg-fog: rgba(0, 0, 0, 0.55);
 }
 
 html,
