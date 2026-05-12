@@ -15,7 +15,6 @@ import { RegionTooltipComponent } from '../hud/region-tooltip/region-tooltip.com
   standalone: true,
   imports: [RegionTooltipComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [MapService],
   templateUrl: './map-view.component.html',
   styleUrl: './map-view.component.scss',
 })

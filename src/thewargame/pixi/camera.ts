@@ -9,6 +9,15 @@ import { WORLD_HEIGHT, WORLD_WIDTH } from './projection';
 const MIN_USER_SCALE = 0.5;
 const MAX_USER_SCALE = 32;
 
+export interface CameraState {
+  /** User zoom multiplier; 1 = world fits the canvas. */
+  readonly userScale: number;
+  /** Actual container scale (fit × user). */
+  readonly effectiveScale: number;
+  readonly offsetX: number;
+  readonly offsetY: number;
+}
+
 export interface CameraInput {
   /** The Pixi container the camera transforms. */
   readonly target: Container;
@@ -16,6 +25,8 @@ export interface CameraInput {
   readonly host: HTMLElement;
   /** Returns current canvas size in CSS pixels. */
   readonly getViewport: () => { width: number; height: number };
+  /** Notified whenever scale or offset changes. */
+  readonly onChange?: (state: CameraState) => void;
 }
 
 export class Camera {
@@ -73,6 +84,12 @@ export class Camera {
     const centerX = (width - WORLD_WIDTH * s) / 2;
     const centerY = (height - WORLD_HEIGHT * s) / 2;
     target.position.set(centerX + this.offsetX, centerY + this.offsetY);
+    this.input.onChange?.({
+      userScale: this.userScale,
+      effectiveScale: s,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
+    });
   }
 
   /** Convert canvas-local pixel coords to world coords. */

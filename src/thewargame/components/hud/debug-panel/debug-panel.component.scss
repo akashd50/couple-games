@@ -1,0 +1,108 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: block;
+}
+
+.debug {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: $ink;
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  &__title {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: $muted;
+  }
+
+  &__status {
+    font-size: 0.7rem;
+    color: $muted;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    border: 1px solid $border;
+
+    &.is-ready {
+      color: $accent;
+      border-color: $accent-soft;
+      background: $accent-soft;
+    }
+  }
+
+  &__section {
+    margin: 0 0 0.6rem;
+    padding: 0.5rem 0.6rem;
+    background: $field-bg;
+    border: 1px solid $border;
+    border-radius: 8px;
+  }
+
+  &__h {
+    margin: 0 0 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $muted;
+    font-weight: 600;
+
+    small {
+      margin-left: 0.3rem;
+      color: $muted;
+      font-size: 0.7em;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+  }
+
+  &__kv {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem 0.6rem;
+    margin: 0;
+
+    > div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    dt {
+      color: $muted;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      word-break: break-word;
+    }
+  }
+
+  &__tier {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    color: $accent;
+  }
+
+  &__mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.72rem;
+  }
+
+  &__empty {
+    margin: 0;
+    color: $muted;
+    font-style: italic;
+  }
+}

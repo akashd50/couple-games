@@ -1,12 +1,19 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Application, Container, Graphics } from 'pixi.js';
-import { Camera } from '../pixi/camera';
+import { Camera, type CameraState } from '../pixi/camera';
 import { MapRenderer, type MapPalette } from '../pixi/map-renderer';
 import { pickRegion } from '../pixi/hit-test';
-import type { Region } from '../models/geo.types';
+import type { Region, RegionIndex } from '../models/geo.types';
 import { GeoService } from './geo.service';
 
 const CLICK_TOLERANCE_PX = 6;
+
+// userScale thresholds for the "what does hover/click select?" tiers.
+// userScale 1 == world fits canvas. Tune to taste.
+const SUBDIVISION_TIER_SCALE = 3;
+// const CITY_TIER_SCALE = 12; // reserved for future city-block tier.
+
+export type HighlightTier = 'country' | 'subdivision' | 'city';
 
 @Injectable()
 export class MapService {
@@ -16,6 +23,16 @@ export class MapService {
   readonly hovered = signal<Region | null>(null);
   readonly selected = signal<Region | null>(null);
   readonly pointerScreen = signal<{ x: number; y: number } | null>(null);
+  readonly pointerWorld = signal<{ x: number; y: number } | null>(null);
+  readonly viewport = signal<{ width: number; height: number } | null>(null);
+  readonly cameraState = signal<CameraState | null>(null);
+
+  readonly highlightTier = computed<HighlightTier>(() => {
+    const s = this.cameraState();
+    if (!s) return 'country';
+    if (s.userScale >= SUBDIVISION_TIER_SCALE) return 'subdivision';
+    return 'country';
+  });
 
   private app: Application | null = null;
   private host: HTMLElement | null = null;
@@ -33,7 +50,9 @@ export class MapService {
   private camera: Camera | null = null;
   private renderer: MapRenderer | null = null;
 
-  // Subdivisions tested first so a state wins over its parent country.
+  private regionIndex: RegionIndex | null = null;
+  // Subdivisions tested first so a state wins over its parent country; the
+  // tier check then promotes the hit to the parent country when zoomed out.
   private hitTestList: Region[] = [];
 
   // Drag detection state for click vs pan disambiguation.
@@ -95,15 +114,21 @@ export class MapService {
         width: app.canvas.clientWidth || app.renderer.width / app.renderer.resolution,
         height: app.canvas.clientHeight || app.renderer.height / app.renderer.resolution,
       }),
+      onChange: (state) => {
+        this.cameraState.set(state);
+        this.rePickHovered();
+      },
     });
     this.camera.attach();
 
     this.drawOcean();
+    this.updateViewport();
 
     this.resizeObserver = new ResizeObserver(() => {
       this.app?.resize();
       this.drawOcean();
       this.camera?.apply();
+      this.updateViewport();
     });
     this.resizeObserver.observe(host);
 
@@ -120,6 +145,7 @@ export class MapService {
 
     const index = await this.geo.load();
     if (!this.app) return; // destroyed mid-load
+    this.regionIndex = index;
     this.renderer.setRegions(index.countries, index.subdivisions);
     this.hitTestList = [...index.subdivisions, ...index.countries];
 
@@ -155,10 +181,14 @@ export class MapService {
     this.hoverLayer = null;
     this.selectionLayer = null;
     this.renderer = null;
+    this.regionIndex = null;
     this.hitTestList = [];
     this.hovered.set(null);
     this.selected.set(null);
     this.pointerScreen.set(null);
+    this.pointerWorld.set(null);
+    this.viewport.set(null);
+    this.cameraState.set(null);
     this.pointerDownAt = null;
     this.pointerMoved = false;
     this.ready.set(false);
@@ -183,7 +213,8 @@ export class MapService {
     const sy = e.clientY - rect.top;
     this.pointerScreen.set({ x: sx, y: sy });
     const world = this.camera.screenToWorld(sx, sy);
-    const region = pickRegion(world.x, world.y, this.hitTestList);
+    this.pointerWorld.set(world);
+    const region = this.adjustToTier(pickRegion(world.x, world.y, this.hitTestList));
     if (region !== this.hovered()) {
       this.hovered.set(region);
       this.renderer.setHovered(region);
@@ -206,6 +237,7 @@ export class MapService {
 
   private onPointerLeave = (): void => {
     this.pointerScreen.set(null);
+    this.pointerWorld.set(null);
     this.pointerDownAt = null;
     this.pointerMoved = false;
     if (this.hovered() !== null) {
@@ -213,6 +245,38 @@ export class MapService {
       this.renderer?.setHovered(null);
     }
   };
+
+  /** Promote/demote a raw hit to the current zoom tier. */
+  private adjustToTier(r: Region | null): Region | null {
+    if (!r) return null;
+    if (this.highlightTier() === 'country' && r.kind === 'subdivision' && this.regionIndex) {
+      return this.regionIndex.byId.get(r.country) ?? r;
+    }
+    return r;
+  }
+
+  /** Re-run the hit test against the last cursor position; called when the
+   *  zoom tier may have changed so hover snaps to country vs subdivision. */
+  private rePickHovered(): void {
+    if (!this.camera || !this.renderer) return;
+    const p = this.pointerScreen();
+    if (!p) return;
+    const world = this.camera.screenToWorld(p.x, p.y);
+    this.pointerWorld.set(world);
+    const region = this.adjustToTier(pickRegion(world.x, world.y, this.hitTestList));
+    if (region !== this.hovered()) {
+      this.hovered.set(region);
+      this.renderer.setHovered(region);
+    }
+  }
+
+  private updateViewport(): void {
+    if (!this.app) return;
+    this.viewport.set({
+      width: this.app.canvas.clientWidth || 0,
+      height: this.app.canvas.clientHeight || 0,
+    });
+  }
 
   private drawOcean(): void {
     if (!this.app || !this.oceanRect) return;

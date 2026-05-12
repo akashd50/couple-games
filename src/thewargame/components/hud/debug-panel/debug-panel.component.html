@@ -1,0 +1,105 @@
+@if (enabled) {
+  <div class="debug">
+    <header class="debug__head">
+      <span class="debug__title">Debug</span>
+      <span class="debug__status" [class.is-ready]="ready()">{{
+        ready() ? 'ready' : 'loading'
+      }}</span>
+    </header>
+
+    <section class="debug__section">
+      <h3 class="debug__h">View</h3>
+      <dl class="debug__kv">
+        @if (viewport(); as v) {
+          <div><dt>Canvas</dt><dd>{{ v.width }}×{{ v.height }}</dd></div>
+        }
+        @if (camera(); as c) {
+          <div><dt>User zoom</dt><dd>{{ c.userScale.toFixed(2) }}×</dd></div>
+          <div><dt>Effective</dt><dd>{{ c.effectiveScale.toFixed(3) }}</dd></div>
+          <div><dt>Offset</dt><dd>{{ c.offsetX.toFixed(0) }}, {{ c.offsetY.toFixed(0) }}</dd></div>
+        }
+        <div><dt>Tier</dt><dd class="debug__tier">{{ tier() }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="debug__section">
+      <h3 class="debug__h">Cursor</h3>
+      <dl class="debug__kv">
+        @if (pointerScreen(); as s) {
+          <div><dt>Screen</dt><dd>{{ s.x.toFixed(0) }}, {{ s.y.toFixed(0) }}</dd></div>
+        } @else {
+          <div><dt>Screen</dt><dd>—</dd></div>
+        }
+        @if (pointerWorld(); as w) {
+          <div><dt>World</dt><dd>{{ w.x.toFixed(1) }}, {{ w.y.toFixed(1) }}</dd></div>
+        }
+        @if (pointerGeo(); as g) {
+          <div>
+            <dt>Lon / Lat</dt>
+            <dd>{{ g.lon.toFixed(3) }}°, {{ g.lat.toFixed(3) }}°</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="debug__section">
+      <h3 class="debug__h">Hovered</h3>
+      @if (hovered(); as r) {
+        <dl class="debug__kv">
+          <div><dt>Id</dt><dd>{{ r.id }}</dd></div>
+          <div><dt>Name</dt><dd>{{ r.name }}</dd></div>
+          <div><dt>Country</dt><dd>{{ r.country }}</dd></div>
+          <div><dt>Kind</dt><dd>{{ r.kind }}</dd></div>
+          @if (r.postal) {
+            <div><dt>Postal</dt><dd>{{ r.postal }}</dd></div>
+          }
+          <div><dt>BBox</dt><dd class="debug__mono">{{ formatBBox(r) }}</dd></div>
+        </dl>
+      } @else {
+        <p class="debug__empty">No region under cursor.</p>
+      }
+    </section>
+
+    <section class="debug__section">
+      <h3 class="debug__h">Selected</h3>
+      @if (selected(); as r) {
+        <dl class="debug__kv">
+          <div><dt>Id</dt><dd>{{ r.id }}</dd></div>
+          <div><dt>Name</dt><dd>{{ r.name }}</dd></div>
+          <div><dt>Country</dt><dd>{{ r.country }}</dd></div>
+          <div><dt>Kind</dt><dd>{{ r.kind }}</dd></div>
+        </dl>
+      } @else {
+        <p class="debug__empty">Click a region to select.</p>
+      }
+    </section>
+
+    @if (hoveredResources(); as s) {
+      <section class="debug__section">
+        <h3 class="debug__h">Resources <small>(hovered, stub)</small></h3>
+        <dl class="debug__kv">
+          <div><dt>Population</dt><dd>{{ s.population }}</dd></div>
+          <div><dt>Oil</dt><dd>{{ s.oil }}</dd></div>
+          <div><dt>Gold</dt><dd>{{ s.gold }}</dd></div>
+          <div><dt>Stability</dt><dd>{{ s.stability }}%</dd></div>
+        </dl>
+      </section>
+    }
+
+    @if (relations(); as rel) {
+      <section class="debug__section">
+        <h3 class="debug__h">Relations <small>(stub)</small></h3>
+        <dl class="debug__kv">
+          <div>
+            <dt>Allies</dt>
+            <dd>{{ rel.allies.length ? rel.allies.join(', ') : '—' }}</dd>
+          </div>
+          <div>
+            <dt>Hostiles</dt>
+            <dd>{{ rel.hostiles.length ? rel.hostiles.join(', ') : '—' }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+  </div>
+}
