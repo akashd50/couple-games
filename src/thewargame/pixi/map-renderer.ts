@@ -2,13 +2,13 @@ import { Container, Graphics } from 'pixi.js';
 import type { Region } from '../models/geo.types';
 
 export interface MapPalette {
-  ocean: number;
-  land: number;
-  landForeign: number;
-  border: number;
-  borderSubdivision: number;
-  hover: number;
-  selected: number;
+    ocean: number;
+    land: number;
+    landForeign: number;
+    border: number;
+    borderSubdivision: number;
+    hover: number;
+    selected: number;
 }
 
 export interface MapLayers {
@@ -53,7 +53,7 @@ export class MapRenderer {
   setSelected(region: Region | null): void {
     this.layers.selection.removeChildren();
     if (!region) return;
-    const g = drawRegionOutline(region, this.palette.selected, 1.6);
+    const g = drawRegionOutline(region, this.palette.selected, 2);
     this.layers.selection.addChild(g);
   }
 
@@ -112,7 +112,7 @@ function drawRegionOutline(region: Region, stroke: number, strokeWidth: number):
   for (const polygon of region.polygons) {
     for (const ring of polygon) {
       drawRing(g, ring);
-      g.stroke({ color: stroke, width: strokeWidth, alpha: 1 });
+      g.stroke({ color: stroke, width: strokeWidth, alpha: 1, pixelLine: true });
     }
   }
   return g;

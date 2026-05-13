@@ -136,9 +136,10 @@ Goal: clock runs, ticks emit, resources accumulate, news ticker reflects events.
    - Per region: yield = `baseYield(resource) * efficiency(hubLevel) * stabilityFactor`.
    - National totals are computed via `computed()` over `regions`.
    - Market prices: random walk bounded by scarcity (`price *= 1 ± noise * (1 − stockRatio)`). Cap per-tick delta.
-4. **News ticker.** `NewsService` exposes `events$` (capped to last 50). `ResourceService`, `CombatService`, etc. push entries. Component renders a scrolling marquee with type-icons.
+4. **News ticker.** `NewsService` exposes `events$` (capped to last 50). `ResourceService`, `CombatService`, etc. push entries. Component renders a scrolling marquee with type-icons. Also keep a history of past news that can be expanded and read. Maybe a popup.
 5. **Speed controls.** A small reactive form in `clock-bar` writes to `ClockService.setSpeed`. Keyboard: `Space`=pause, `1`/`2`/`3`=speeds.
-6. **Determinism.** All randomness flows through `RngService` (seeded mulberry32). Seed is part of the save.
+6. **Determinism.** All randomness flows through `RngService` (seeded mulberry32). Seed is part of the save. 
+7. Also create a mock AI's for other different countries (Currenly only Canada, so that the governments of those countries can adapt throughout the game and do various things depending on player choices)
 
 **Acceptance:** Start a new game, press play, watch the date advance at 1×/5×/20×, see Oil/Gold counters tick up, see periodic "market jitter" news entries.
 
