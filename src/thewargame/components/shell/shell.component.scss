@@ -72,25 +72,10 @@
     }
   }
 
-  &__map-area {
-    position: relative;
-    display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    overflow: hidden;
-    min-height: 0;
-  }
-
   &__map {
     display: block;
     min-height: 0;
     min-width: 0;
-    overflow: hidden;
-  }
-
-  &__drawer {
-    display: block;
-    padding: 0.4rem 0.6rem 0.5rem;
-    max-height: 45vh;
     overflow: hidden;
   }
 

@@ -47,6 +47,104 @@
             @case ('dev') {
                 <wg-debug-panel class="shell__debug"/>
             }
+            @case ('build') {
+                @if (buildRegionState(); as state) {
+                    <section class="sp__section">
+                        <div class="sp__build-head">
+                            <div class="sp__build-title">
+                                <span class="sp__build-name">{{ buildRegionName() }}</span>
+                                <span class="sp__build-sub">{{ state.id }}</span>
+                            </div>
+                            <button type="button" class="sp__chip" (click)="clearRegionSelection()">Deselect</button>
+                        </div>
+                        <dl class="sp__kv">
+                            <div>
+                                <dt>Population</dt>
+                                <dd>{{ state.population | number: '1.1-1' }}M</dd>
+                            </div>
+                            <div>
+                                <dt>Stability</dt>
+                                <dd>{{ state.stability | number: '1.0-0' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Slots</dt>
+                                <dd>{{ state.hubs.length }} / {{ state.slots }}</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <section class="sp__section">
+                        <h3 class="sp__h">Build Slots</h3>
+                        <ul class="sp__slots">
+                            @for (row of slotRows(); track row.index) {
+                                <li class="sp__slot"
+                                    [class.is-empty]="!row.hub && !row.pendingLabel"
+                                    [class.is-pending]="row.pendingLabel && !row.hub">
+                                    @if (row.hub; as hub) {
+                                        <span class="sp__slot-chip">{{ hubShort(hub) }}</span>
+                                        <div class="sp__slot-body">
+                                            <div class="sp__slot-name">
+                                                {{ hubName(hub) }}
+                                                <span class="sp__slot-lv">L{{ hub.level }}</span>
+                                            </div>
+                                            @if (pendingUpgradeLevel(hub); as plv) {
+                                                <div class="sp__slot-meta">Upgrading to L{{ plv }}…</div>
+                                            } @else if (hub.level < hubMaxLevel(hub)) {
+                                                <button type="button" class="sp__slot-action"
+                                                        (click)="openUpgrade(hub)">
+                                                    Upgrade to L{{ hub.level + 1 }} ·
+                                                    ${{ upgradeCost(hub) }} · {{ upgradeDays(hub) }}d
+                                                </button>
+                                            } @else {
+                                                <div class="sp__slot-meta">Max level.</div>
+                                            }
+                                        </div>
+                                    } @else if (row.pendingLabel) {
+                                        <span class="sp__slot-chip is-pending">…</span>
+                                        <div class="sp__slot-body">
+                                            <div class="sp__slot-name">{{ row.pendingLabel }}</div>
+                                        </div>
+                                    } @else {
+                                        <span class="sp__slot-chip is-empty">+</span>
+                                        <div class="sp__slot-body">
+                                            <div class="sp__slot-name">Empty slot #{{ row.index + 1 }}</div>
+                                            <button type="button" class="sp__slot-action"
+                                                    (click)="openBuild(row.index)">
+                                                Build…
+                                            </button>
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </section>
+
+                    <section class="sp__section">
+                        <h3 class="sp__h">Yields <small>per day</small></h3>
+                        <table class="sp__table">
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>Base</th>
+                                <th>Effective</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of yieldRows(); track row.key) {
+                                    <tr>
+                                        <th scope="row">{{ row.label }}</th>
+                                        <td class="num">{{ row.base }}</td>
+                                        <td class="num">{{ row.effective }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <p class="sp__hint">Effective yield = base × stability × hub bonuses.</p>
+                    </section>
+                } @else {
+                    <p class="sp__hint">Zoom into the map and click one of your states to build hubs.</p>
+                }
+            }
             @case ('resources') {
                 <section class="sp__section">
                     <h3 class="sp__h">Treasury</h3>

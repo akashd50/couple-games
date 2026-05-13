@@ -6,27 +6,24 @@ import {
     OnInit,
     effect,
     inject,
-    isDevMode,
 } from '@angular/core';
-import {RouterLink} from '@angular/router';
-import {MapViewComponent} from '../map-view/map-view.component';
-import {DebugPanelComponent} from '../hud/debug-panel/debug-panel.component';
-import {ClockBarComponent} from '../hud/clock-bar/clock-bar.component';
-import {NewsTickerComponent} from '../hud/news-ticker/news-ticker.component';
-import {SidePanelComponent} from '../hud/side-panel/side-panel.component';
-import {RegionDrawerComponent} from '../hud/region-drawer/region-drawer.component';
-import {BuildDialogComponent} from '../dialogs/build-dialog/build-dialog.component';
-import {TechTreeDialogComponent} from '../dialogs/tech-tree-dialog/tech-tree-dialog.component';
-import {ClockService, formatGameDate} from '../../services/clock.service';
-import {AiService} from '../../services/ai.service';
-import {ConstructionService} from '../../services/construction.service';
-import {DialogsService} from '../../services/dialogs.service';
-import {GameService} from '../../services/game.service';
-import {IntelService} from '../../services/intel.service';
-import {MapService, type SlotInput} from '../../services/map.service';
-import {NewsService} from '../../services/news.service';
-import {ResearchService} from '../../services/research.service';
-import {ResourceService} from '../../services/resource.service';
+import { RouterLink } from '@angular/router';
+import { MapViewComponent } from '../map-view/map-view.component';
+import { ClockBarComponent } from '../hud/clock-bar/clock-bar.component';
+import { NewsTickerComponent } from '../hud/news-ticker/news-ticker.component';
+import { SidePanelComponent } from '../hud/side-panel/side-panel.component';
+import { BuildDialogComponent } from '../dialogs/build-dialog/build-dialog.component';
+import { TechTreeDialogComponent } from '../dialogs/tech-tree-dialog/tech-tree-dialog.component';
+import { ClockService, formatGameDate } from '../../services/clock.service';
+import { AiService } from '../../services/ai.service';
+import { ConstructionService } from '../../services/construction.service';
+import { DialogsService } from '../../services/dialogs.service';
+import { GameService } from '../../services/game.service';
+import { IntelService } from '../../services/intel.service';
+import { MapService, type SlotInput } from '../../services/map.service';
+import { NewsService } from '../../services/news.service';
+import { ResearchService } from '../../services/research.service';
+import { ResourceService } from '../../services/resource.service';
 
 @Component({
     selector: 'wg-shell',
@@ -37,7 +34,6 @@ import {ResourceService} from '../../services/resource.service';
         ClockBarComponent,
         NewsTickerComponent,
         SidePanelComponent,
-        RegionDrawerComponent,
         BuildDialogComponent,
         TechTreeDialogComponent,
     ],
