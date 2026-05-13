@@ -1,0 +1,110 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.clock-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+
+  &__date {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: $ink;
+    font-size: 0.95rem;
+  }
+
+  &__date-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  &__money {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.25rem 0.6rem;
+    background: $field-bg;
+    border: 1px solid $border;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  &__money-label {
+    color: $muted;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  &__money-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    color: $ink;
+  }
+
+  &__money-rate {
+    color: var(--ok);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+
+    &.is-negative {
+      color: var(--danger);
+    }
+  }
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: auto;
+  }
+
+  &__btn {
+    appearance: none;
+    border: 1px solid $border;
+    background: $panel;
+    color: $ink;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.35rem 0.6rem;
+    min-width: 2.4rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+
+    &:hover:not(.is-active) {
+      background: $accent-soft;
+      color: $accent;
+      border-color: $accent-soft;
+    }
+
+    &.is-active {
+      background: $accent;
+      color: white;
+      border-color: $accent;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $accent;
+      outline-offset: 2px;
+    }
+  }
+
+  @media (max-width: 720px) {
+    gap: 0.5rem;
+
+    &__money-label {
+      display: none;
+    }
+  }
+}

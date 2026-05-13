@@ -62,4 +62,12 @@
       font-variant-numeric: tabular-nums;
     }
   }
+
+  &__note {
+    margin-top: 0.4rem;
+    color: $muted;
+    font-size: 0.72rem;
+    font-style: italic;
+    letter-spacing: 0.03em;
+  }
 }

@@ -1,0 +1,236 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  min-width: 0;
+
+  &:hover:not(:disabled) {
+    background: $accent-soft;
+    color: $accent;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $accent;
+    outline-offset: 2px;
+  }
+
+  &:disabled,
+  &.is-empty {
+    cursor: default;
+    color: $muted;
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    border: 1px solid $border;
+    background: $field-bg;
+    color: $accent;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+
+    &[data-category='market'] {
+      color: var(--ok);
+    }
+    &[data-category='diplomacy'] {
+      color: $accent;
+    }
+    &[data-category='combat'] {
+      color: var(--danger);
+    }
+    &[data-category='intel'] {
+      color: var(--ok);
+    }
+    &[data-category='system'] {
+      color: $muted;
+    }
+  }
+
+  &__date {
+    color: $muted;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  &__headline {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__chevron {
+    color: $muted;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  &__empty {
+    color: $muted;
+    font-style: italic;
+  }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+
+  &__panel {
+    background: $panel;
+    border: 1px solid $border;
+    border-radius: $radius;
+    width: min(620px, 100%);
+    max-height: min(80dvh, 720px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: $shadow;
+    overflow: hidden;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $border;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+    flex: 1;
+  }
+
+  &__close {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: $muted;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+
+    &:hover {
+      background: $accent-soft;
+      color: $accent;
+    }
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0.5rem 0;
+    list-style: none;
+    overflow: auto;
+    min-height: 0;
+  }
+
+  &__item {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid $border;
+
+    &:last-child {
+      border-bottom: 0;
+    }
+
+    &[data-severity='warning'] {
+      background: rgba(214, 51, 108, 0.06);
+    }
+    &[data-severity='critical'] {
+      background: var(--error-bg);
+    }
+  }
+
+  &__icon {
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid $border;
+    background: $field-bg;
+    color: $accent;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+
+    &[data-category='market'] {
+      color: var(--ok);
+    }
+    &[data-category='diplomacy'] {
+      color: $accent;
+    }
+    &[data-category='combat'] {
+      color: var(--danger);
+    }
+    &[data-category='intel'] {
+      color: var(--ok);
+    }
+    &[data-category='system'] {
+      color: $muted;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  &__date {
+    color: $muted;
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  &__headline {
+    font-size: 0.88rem;
+    word-break: break-word;
+  }
+
+  &__detail {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    color: $muted;
+  }
+}

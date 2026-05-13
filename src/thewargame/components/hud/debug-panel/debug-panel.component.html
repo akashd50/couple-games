@@ -8,6 +8,14 @@
     </header>
 
     <section class="debug__section">
+      <h3 class="debug__h">Clock</h3>
+      <dl class="debug__kv">
+        <div><dt>Day</dt><dd>{{ day() }}</dd></div>
+        <div><dt>Speed</dt><dd>{{ speedLabel() }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="debug__section">
       <h3 class="debug__h">View</h3>
       <dl class="debug__kv">
         @if (viewport(); as v) {
@@ -54,11 +62,26 @@
             <div><dt>Postal</dt><dd>{{ r.postal }}</dd></div>
           }
           <div><dt>BBox</dt><dd class="debug__mono">{{ formatBBox(r) }}</dd></div>
+          @if (hoveredState(); as s) {
+            <div><dt>Population</dt><dd>{{ s.population.toFixed(1) }}M</dd></div>
+            <div><dt>Stability</dt><dd>{{ s.stability.toFixed(0) }}%</dd></div>
+          }
         </dl>
       } @else {
         <p class="debug__empty">No region under cursor.</p>
       }
     </section>
+
+    @if (hoveredYields(); as rows) {
+      <section class="debug__section">
+        <h3 class="debug__h">Yields <small>(per day)</small></h3>
+        <dl class="debug__kv">
+          @for (row of rows; track row.key) {
+            <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+          }
+        </dl>
+      </section>
+    }
 
     <section class="debug__section">
       <h3 class="debug__h">Selected</h3>
@@ -74,30 +97,42 @@
       }
     </section>
 
-    @if (hoveredResources(); as s) {
+    <section class="debug__section">
+      <h3 class="debug__h">Market <small>(prices)</small></h3>
+      <dl class="debug__kv">
+        @for (row of priceRows(); track row.key) {
+          <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+        }
+      </dl>
+    </section>
+
+    @if (playerNation(); as me) {
       <section class="debug__section">
-        <h3 class="debug__h">Resources <small>(hovered, stub)</small></h3>
+        <h3 class="debug__h">{{ me.name }} <small>(player)</small></h3>
         <dl class="debug__kv">
-          <div><dt>Population</dt><dd>{{ s.population }}</dd></div>
-          <div><dt>Oil</dt><dd>{{ s.oil }}</dd></div>
-          <div><dt>Gold</dt><dd>{{ s.gold }}</dd></div>
-          <div><dt>Stability</dt><dd>{{ s.stability }}%</dd></div>
+          <div><dt>Treasury</dt><dd>{{ formatMoney(me) }}</dd></div>
+          <div><dt>Regions</dt><dd>{{ me.regionIds.length }}</dd></div>
         </dl>
+        @if (playerStockpiles(); as rows) {
+          <dl class="debug__kv debug__kv--sub">
+            @for (row of rows; track row.key) {
+              <div><dt>{{ row.label }}</dt><dd>{{ row.value }}</dd></div>
+            }
+          </dl>
+        }
       </section>
     }
 
-    @if (relations(); as rel) {
+    @if (playerRelations().length) {
       <section class="debug__section">
-        <h3 class="debug__h">Relations <small>(stub)</small></h3>
+        <h3 class="debug__h">Relations</h3>
         <dl class="debug__kv">
-          <div>
-            <dt>Allies</dt>
-            <dd>{{ rel.allies.length ? rel.allies.join(', ') : '—' }}</dd>
-          </div>
-          <div>
-            <dt>Hostiles</dt>
-            <dd>{{ rel.hostiles.length ? rel.hostiles.join(', ') : '—' }}</dd>
-          </div>
+          @for (row of playerRelations(); track row.id) {
+            <div>
+              <dt>{{ row.id }}</dt>
+              <dd>{{ row.value.toFixed(1) }}</dd>
+            </div>
+          }
         </dl>
       </section>
     }

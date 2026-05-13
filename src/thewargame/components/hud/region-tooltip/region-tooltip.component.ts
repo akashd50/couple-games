@@ -1,11 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { MapService } from '../../../services/map.service';
+import { GameService } from '../../../services/game.service';
+import { ResourceService } from '../../../services/resource.service';
+import type { Region } from '../../../models/geo.types';
+import type { RegionState } from '../../../models/game.types';
 
-interface StubStats {
+interface RegionStats {
   readonly population: string;
-  readonly oil: number;
-  readonly gold: number;
+  readonly oil: string;
+  readonly gold: string;
   readonly stability: number;
+  readonly scope: 'subdivision' | 'country';
 }
 
 @Component({
@@ -17,6 +22,8 @@ interface StubStats {
 })
 export class RegionTooltipComponent {
   private readonly map = inject(MapService);
+  private readonly game = inject(GameService);
+  private readonly resources = inject(ResourceService);
 
   readonly hovered = this.map.hovered;
   readonly pointer = this.map.pointerScreen;
@@ -27,23 +34,68 @@ export class RegionTooltipComponent {
     return `translate(${p.x + 14}px, ${p.y + 14}px)`;
   });
 
-  readonly stats = computed<StubStats | null>(() => {
+  readonly stats = computed<RegionStats | null>(() => {
     const r = this.hovered();
     if (!r) return null;
-    const h = hashCode(r.id);
-    return {
-      population: `${(Math.abs(h % 28) + 0.4).toFixed(1)}M`,
-      oil: Math.abs((h >>> 4) % 100),
-      gold: Math.abs((h >>> 8) % 100),
-      stability: 55 + Math.abs((h >>> 12) % 45),
-    };
+    return this.buildStats(r);
   });
+
+  private buildStats(r: Region): RegionStats | null {
+    if (r.kind === 'subdivision') {
+      const state = this.game.getRegion(r.id);
+      if (!state) return null;
+      return this.statsFromRegion(state, 'subdivision');
+    }
+    // Country tier: aggregate owned subdivisions if this country is a tracked nation.
+    const nation = this.game.getNation(r.id);
+    if (!nation) return null;
+    const owned: RegionState[] = [];
+    for (const id of nation.regionIds) {
+      const s = this.game.getRegion(id);
+      if (s) owned.push(s);
+    }
+    if (owned.length === 0) return null;
+    const aggregate = aggregateRegions(owned);
+    let oil = 0;
+    let gold = 0;
+    for (const s of owned) {
+      oil += this.resources.yieldFor(s, 'oil');
+      gold += this.resources.yieldFor(s, 'gold');
+    }
+    return {
+      population: `${aggregate.population.toFixed(1)}M`,
+      oil: oil.toFixed(1),
+      gold: gold.toFixed(2),
+      stability: Math.round(aggregate.stability),
+      scope: 'country',
+    };
+  }
+
+  private statsFromRegion(s: RegionState, scope: 'subdivision' | 'country'): RegionStats {
+    const oil = this.resources.yieldFor(s, 'oil');
+    const gold = this.resources.yieldFor(s, 'gold');
+    return {
+      population: `${s.population.toFixed(1)}M`,
+      oil: oil.toFixed(2),
+      gold: gold.toFixed(3),
+      stability: Math.round(s.stability),
+      scope,
+    };
+  }
 }
 
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+function aggregateRegions(regions: ReadonlyArray<RegionState>): {
+  readonly population: number;
+  readonly stability: number;
+} {
+  let pop = 0;
+  let stab = 0;
+  for (const r of regions) {
+    pop += r.population;
+    stab += r.stability;
   }
-  return h;
+  return {
+    population: pop,
+    stability: regions.length ? stab / regions.length : 0,
+  };
 }

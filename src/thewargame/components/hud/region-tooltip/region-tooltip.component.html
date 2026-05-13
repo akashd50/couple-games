@@ -12,11 +12,11 @@
             <dd>{{ s.population }}</dd>
           </div>
           <div class="tooltip__stat">
-            <dt>Oil</dt>
+            <dt>Oil / day</dt>
             <dd>{{ s.oil }}</dd>
           </div>
           <div class="tooltip__stat">
-            <dt>Gold</dt>
+            <dt>Gold / day</dt>
             <dd>{{ s.gold }}</dd>
           </div>
           <div class="tooltip__stat">
@@ -24,6 +24,11 @@
             <dd>{{ s.stability }}%</dd>
           </div>
         </dl>
+        @if (s.scope === 'country') {
+          <div class="tooltip__note">National aggregate</div>
+        }
+      } @else {
+        <div class="tooltip__note">No simulation data.</div>
       }
     </div>
   }

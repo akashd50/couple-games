@@ -2,7 +2,7 @@
   <header class="shell__topbar">
     <a routerLink="/" class="shell__back" aria-label="Back to home">←</a>
     <div class="shell__title">The War Game</div>
-    <div class="shell__clock" aria-label="Game date">— — —</div>
+    <wg-clock-bar class="shell__clock" />
   </header>
 
   <main class="shell__main">
@@ -13,6 +13,6 @@
   </main>
 
   <footer class="shell__ticker" aria-label="News ticker">
-    <span class="shell__ticker-text">No events yet.</span>
+    <wg-news-ticker />
   </footer>
 </div>

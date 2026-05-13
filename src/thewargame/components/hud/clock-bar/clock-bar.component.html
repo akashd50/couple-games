@@ -1,0 +1,45 @@
+<div class="clock-bar">
+  <div class="clock-bar__date" aria-label="Game date">
+    <span class="clock-bar__date-value">{{ dateLabel() }}</span>
+  </div>
+
+  <div class="clock-bar__money" aria-label="Treasury">
+    <span class="clock-bar__money-label">Treasury</span>
+    <span class="clock-bar__money-value">{{ moneyLabel() }}</span>
+    <span
+      class="clock-bar__money-rate"
+      [class.is-negative]="dailyIncome() < 0"
+    >
+      {{ incomeLabel() }}
+    </span>
+  </div>
+
+  <div class="clock-bar__controls" role="group" aria-label="Time controls">
+    <button
+      type="button"
+      class="clock-bar__btn"
+      [class.is-active]="paused()"
+      (click)="togglePause()"
+      [attr.aria-pressed]="paused()"
+      [title]="paused() ? 'Resume (Space)' : 'Pause (Space)'"
+    >
+      @if (paused()) {
+        ▶
+      } @else {
+        ❚❚
+      }
+    </button>
+    @for (s of speeds; track s.value) {
+      <button
+        type="button"
+        class="clock-bar__btn"
+        [class.is-active]="!paused() && currentSpeed() === s.value"
+        (click)="setSpeed(s.value)"
+        [attr.aria-pressed]="!paused() && currentSpeed() === s.value"
+        [title]="s.hint"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+</div>

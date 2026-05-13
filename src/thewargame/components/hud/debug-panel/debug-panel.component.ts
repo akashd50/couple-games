@@ -1,34 +1,23 @@
 import { ChangeDetectionStrategy, Component, computed, inject, isDevMode } from '@angular/core';
 import { MapService } from '../../../services/map.service';
+import { GameService } from '../../../services/game.service';
+import { ResourceService } from '../../../services/resource.service';
+import { ClockService } from '../../../services/clock.service';
 import { worldToGeo } from '../../../pixi/projection';
+import { RESOURCE_KINDS, RESOURCE_LABELS } from '../../../models/game.types';
 import type { Region } from '../../../models/geo.types';
+import type { Nation, RegionState, ResourceKind } from '../../../models/game.types';
 
-interface ResourceStub {
-  readonly population: string;
-  readonly oil: number;
-  readonly gold: number;
-  readonly stability: number;
+interface ResourceRow {
+  readonly key: ResourceKind;
+  readonly label: string;
+  readonly value: string;
 }
 
-interface RelationStub {
-  readonly allies: ReadonlyArray<string>;
-  readonly hostiles: ReadonlyArray<string>;
+interface RelationRow {
+  readonly id: string;
+  readonly value: number;
 }
-
-const RELATION_POOL = [
-  'USA',
-  'CAN',
-  'GBR',
-  'FRA',
-  'DEU',
-  'RUS',
-  'CHN',
-  'JPN',
-  'BRA',
-  'IND',
-  'MEX',
-  'AUS',
-];
 
 @Component({
   selector: 'wg-debug-panel',
@@ -39,6 +28,9 @@ const RELATION_POOL = [
 })
 export class DebugPanelComponent {
   private readonly map = inject(MapService);
+  private readonly game = inject(GameService);
+  private readonly resources = inject(ResourceService);
+  private readonly clock = inject(ClockService);
 
   readonly enabled = isDevMode();
 
@@ -51,51 +43,75 @@ export class DebugPanelComponent {
   readonly hovered = this.map.hovered;
   readonly selected = this.map.selected;
 
+  readonly day = this.clock.day;
+  readonly speed = this.clock.speed;
+  readonly paused = this.clock.paused;
+
+  readonly playerNation = this.game.playerNation;
+  readonly foreignNations = this.game.foreignNations;
+  readonly prices = this.resources.prices;
+
   readonly pointerGeo = computed(() => {
     const w = this.pointerWorld();
     if (!w) return null;
     return worldToGeo(w.x, w.y);
   });
 
-  readonly hoveredResources = computed(() => stubResources(this.hovered()));
-  readonly selectedResources = computed(() => stubResources(this.selected()));
-  readonly relations = computed(() => stubRelations(this.hovered() ?? this.selected()));
+  readonly hoveredState = computed(() => this.regionStateFor(this.hovered()));
+  readonly selectedState = computed(() => this.regionStateFor(this.selected()));
+
+  readonly hoveredYields = computed<ResourceRow[] | null>(() => {
+    const s = this.hoveredState();
+    if (!s) return null;
+    return RESOURCE_KINDS.map((k) => ({
+      key: k,
+      label: RESOURCE_LABELS[k],
+      value: this.resources.yieldFor(s, k).toFixed(3),
+    }));
+  });
+
+  readonly playerStockpiles = computed<ResourceRow[] | null>(() => {
+    const n = this.playerNation();
+    if (!n) return null;
+    return RESOURCE_KINDS.map((k) => ({
+      key: k,
+      label: RESOURCE_LABELS[k],
+      value: n.stockpiles[k].toFixed(1),
+    }));
+  });
+
+  readonly priceRows = computed<ResourceRow[]>(() =>
+    RESOURCE_KINDS.map((k) => ({
+      key: k,
+      label: RESOURCE_LABELS[k],
+      value: `$${this.prices()[k].toFixed(2)}`,
+    })),
+  );
+
+  readonly playerRelations = computed<RelationRow[]>(() => {
+    const me = this.playerNation();
+    if (!me) return [];
+    return Object.entries(me.relations).map(([id, value]) => ({ id, value }));
+  });
+
+  speedLabel(): string {
+    return this.paused() ? 'paused' : `${this.speed()}×`;
+  }
 
   formatBBox(r: Region | null): string {
     if (!r) return '—';
     const { minX, minY, maxX, maxY } = r.bbox;
     return `${minX.toFixed(0)},${minY.toFixed(0)} → ${maxX.toFixed(0)},${maxY.toFixed(0)}`;
   }
-}
 
-function stubResources(r: Region | null): ResourceStub | null {
-  if (!r) return null;
-  const h = hashCode(r.id);
-  return {
-    population: `${(Math.abs(h % 28) + 0.4).toFixed(1)}M`,
-    oil: Math.abs((h >>> 4) % 100),
-    gold: Math.abs((h >>> 8) % 100),
-    stability: 55 + Math.abs((h >>> 12) % 45),
-  };
-}
-
-function stubRelations(r: Region | null): RelationStub | null {
-  if (!r) return null;
-  const h = hashCode(r.id);
-  const pick = (shift: number) => RELATION_POOL[Math.abs(h >>> shift) % RELATION_POOL.length];
-  const allies = unique([pick(0), pick(3)]).filter((c) => c !== r.country);
-  const hostiles = unique([pick(6), pick(9)]).filter((c) => c !== r.country && !allies.includes(c));
-  return { allies, hostiles };
-}
-
-function unique<T>(arr: ReadonlyArray<T>): T[] {
-  return Array.from(new Set(arr));
-}
-
-function hashCode(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  formatMoney(n: Nation | null): string {
+    if (!n) return '—';
+    return `$${n.money.toFixed(0)}`;
   }
-  return h;
+
+  private regionStateFor(r: Region | null): RegionState | null {
+    if (!r) return null;
+    if (r.kind !== 'subdivision') return null;
+    return this.game.getRegion(r.id);
+  }
 }

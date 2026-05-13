@@ -1,0 +1,47 @@
+<button
+  type="button"
+  class="ticker"
+  [class.is-empty]="!hasEvents()"
+  [disabled]="!hasEvents()"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+  aria-label="Expand news history"
+>
+  @if (latest(); as e) {
+    <span class="ticker__icon" [attr.data-category]="e.category">{{ iconFor(e.category) }}</span>
+    <span class="ticker__date">{{ e.date }}</span>
+    <span class="ticker__headline">{{ e.headline }}</span>
+  } @else {
+    <span class="ticker__empty">No events yet.</span>
+  }
+  @if (hasEvents()) {
+    <span class="ticker__chevron" aria-hidden="true">▾</span>
+  }
+</button>
+
+@if (open()) {
+  <div class="overlay" (click)="close()">
+    <div class="overlay__panel" (click)="$event.stopPropagation()" role="dialog" aria-label="News history">
+      <header class="overlay__head">
+        <h2 class="overlay__title">News History</h2>
+        <button type="button" class="overlay__close" (click)="close()" aria-label="Close">✕</button>
+      </header>
+      <ol class="overlay__list">
+        @for (e of events(); track trackEvent($index, e)) {
+          <li class="overlay__item" [attr.data-severity]="e.severity">
+            <span class="overlay__icon" [attr.data-category]="e.category">{{ iconFor(e.category) }}</span>
+            <div class="overlay__body">
+              <div class="overlay__row">
+                <span class="overlay__date">{{ e.date }}</span>
+                <span class="overlay__headline">{{ e.headline }}</span>
+              </div>
+              @if (e.detail) {
+                <p class="overlay__detail">{{ e.detail }}</p>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+    </div>
+  </div>
+}
