@@ -1,0 +1,200 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: contents;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  &__panel {
+    background: $panel;
+    border: 1px solid $border;
+    border-radius: $radius;
+    box-shadow: $shadow;
+    width: min(820px, 100%);
+    max-height: min(80dvh, 720px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $border;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  &__sub {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: $muted;
+  }
+
+  &__money {
+    margin-left: auto;
+    background: $field-bg;
+    border: 1px solid $border;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__close {
+    appearance: none;
+    background: transparent;
+    border: 1px solid $border;
+    color: $muted;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+
+    &:hover {
+      background: $accent-soft;
+      color: $accent;
+      border-color: $accent-soft;
+    }
+  }
+
+  &__body {
+    padding: 0.85rem;
+    overflow: auto;
+    min-height: 0;
+  }
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: $muted;
+  font-size: 0.85em;
+  margin-left: 0.4rem;
+}
+
+.catalog {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.65rem;
+}
+
+.card {
+  background: $field-bg;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  &.is-disabled {
+    opacity: 0.55;
+  }
+
+  &__name {
+    margin: 0;
+    font-size: 0.92rem;
+  }
+
+  &__desc {
+    margin: 0;
+    font-size: 0.78rem;
+    color: $muted;
+  }
+
+  &__costs {
+    display: flex;
+    gap: 0.6rem;
+    margin: 0;
+    font-size: 0.78rem;
+
+    > div {
+      display: flex;
+      gap: 0.3rem;
+      align-items: baseline;
+    }
+
+    dt {
+      color: $muted;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+  }
+
+  &__res,
+  &__bonus {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+
+    li {
+      padding: 0.1rem 0.4rem;
+      border: 1px solid $border;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      background: $panel;
+    }
+  }
+
+  &__bonus li {
+    color: var(--ok);
+    border-color: var(--ok);
+  }
+
+  &__warn {
+    margin: 0;
+    color: var(--danger);
+    font-size: 0.72rem;
+  }
+
+  &__btn {
+    margin-top: auto;
+    appearance: none;
+    border: 1px solid $accent;
+    background: $accent;
+    color: white;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.55rem;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.05);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      background: $field-bg;
+      color: $muted;
+      border-color: $border;
+    }
+  }
+}

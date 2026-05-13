@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { BALANCE, BASE_PRICES, PRICE_BOUNDS, cloneBag } from '../data/balance';
+import { hubYieldMultiplier } from '../data/hubs';
 import { RESOURCE_KINDS, RESOURCE_LABELS } from '../models/game.types';
 import type { RegionState, ResourceBag, ResourceKind } from '../models/game.types';
 import type { TickEvent } from './clock.service';
@@ -18,16 +19,19 @@ export class ResourceService {
   /** Next day on or after which a jitter news entry is allowed. */
   private nextJitterDay = 0;
 
-  /** Per-resource, per-day stability-adjusted yield. */
+  /** Per-resource, per-day stability-adjusted yield including hub bonuses. */
   yieldFor(region: RegionState, resource: ResourceKind): number {
-    return region.baseYields[resource] * stabilityFactor(region.stability);
+    const base = region.baseYields[resource] * stabilityFactor(region.stability);
+    return base * hubYieldMultiplier(region.hubs, resource);
   }
 
-  /** Total per-day stability-adjusted yield bag. */
+  /** Total per-day stability-adjusted yield bag including hub bonuses. */
   yieldBag(region: RegionState): ResourceBag {
     const f = stabilityFactor(region.stability);
     const out = {} as ResourceBag;
-    for (const k of RESOURCE_KINDS) out[k] = region.baseYields[k] * f;
+    for (const k of RESOURCE_KINDS) {
+      out[k] = region.baseYields[k] * f * hubYieldMultiplier(region.hubs, k);
+    }
     return out;
   }
 

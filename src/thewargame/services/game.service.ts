@@ -1,15 +1,22 @@
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { BALANCE, emptyBag } from '../data/balance';
+import { BALANCE, bagCovers, emptyBag, subBag } from '../data/balance';
 import { NATION_SEEDS, PLAYER_NATION_ID, buildNation } from '../data/nations';
 import { seedRegionState } from '../data/regions-seed';
 import { RESOURCE_KINDS } from '../models/game.types';
-import type { Nation, NationId, RegionId, RegionState, ResourceBag } from '../models/game.types';
+import type {
+  Hub,
+  Nation,
+  NationId,
+  RegionId,
+  RegionState,
+  ResourceBag,
+} from '../models/game.types';
 import type { Region } from '../models/geo.types';
 import { ClockService } from './clock.service';
 import type { TickEvent } from './clock.service';
 import { GeoService } from './geo.service';
-import { ResourceService, stabilityFactor } from './resource.service';
+import { ResourceService } from './resource.service';
 import { RngService } from './rng.service';
 
 const DEFAULT_SEED = 0xc0ffee;
@@ -24,7 +31,6 @@ export class GameService implements OnDestroy {
   readonly ready = signal(false);
   readonly playerNationId = signal<NationId>(PLAYER_NATION_ID);
 
-  /** Source-of-truth maps. Mutated through update() so signal consumers re-run. */
   readonly nations = signal<ReadonlyMap<NationId, Nation>>(new Map());
   readonly regions = signal<ReadonlyMap<RegionId, RegionState>>(new Map());
 
@@ -37,7 +43,18 @@ export class GameService implements OnDestroy {
     return [...this.nations().values()].filter((n) => n.id !== me);
   });
 
-  /** Player's per-day net income at current market prices, gross of upkeep. */
+  readonly playerRegions = computed<ReadonlyArray<RegionState>>(() => {
+    const me = this.playerNation();
+    if (!me) return [];
+    const out: RegionState[] = [];
+    const regions = this.regions();
+    for (const id of me.regionIds) {
+      const r = regions.get(id);
+      if (r) out.push(r);
+    }
+    return out;
+  });
+
   readonly playerDailyIncome = computed(() => {
     const me = this.playerNation();
     if (!me) return 0;
@@ -51,7 +68,6 @@ export class GameService implements OnDestroy {
     return income - BALANCE.baseUpkeep;
   });
 
-  /** Player's per-day yield bag (raw resources produced, before market). */
   readonly playerDailyYield = computed<ResourceBag>(() => {
     const me = this.playerNation();
     const out = emptyBag();
@@ -60,8 +76,7 @@ export class GameService implements OnDestroy {
     for (const id of me.regionIds) {
       const r = regions.get(id);
       if (!r) continue;
-      const f = stabilityFactor(r.stability);
-      for (const k of RESOURCE_KINDS) out[k] += r.baseYields[k] * f;
+      for (const k of RESOURCE_KINDS) out[k] += this.resources.yieldFor(r, k);
     }
     return out;
   });
@@ -95,7 +110,10 @@ export class GameService implements OnDestroy {
     return this.nations().get(id) ?? null;
   }
 
-  /** Update a single nation immutably and republish the nations map. */
+  zeroBag(): ResourceBag {
+    return emptyBag();
+  }
+
   updateNation(id: NationId, mut: (n: Nation) => Nation): void {
     const map = this.nations();
     const current = map.get(id);
@@ -105,13 +123,45 @@ export class GameService implements OnDestroy {
     this.nations.set(next);
   }
 
-  /** Used by AI to nudge a relation. Clamps to [-100, 100]. */
+  updateRegion(id: RegionId, mut: (r: RegionState) => RegionState): void {
+    const map = this.regions();
+    const current = map.get(id);
+    if (!current) return;
+    const next = new Map(map);
+    next.set(id, mut(current));
+    this.regions.set(next);
+  }
+
   adjustRelation(from: NationId, to: NationId, delta: number): void {
     this.updateNation(from, (n) => {
       const current = n.relations[to] ?? 0;
       const next = Math.max(-100, Math.min(100, current + delta));
       return { ...n, relations: { ...n.relations, [to]: next } };
     });
+  }
+
+  spendForPlayer(money: number, resources: ResourceBag): boolean {
+    const me = this.playerNation();
+    if (!me) return false;
+    if (me.money < money) return false;
+    if (!bagCovers(me.stockpiles, resources)) return false;
+    this.updateNation(me.id, (n) => ({
+      ...n,
+      money: n.money - money,
+      stockpiles: subBag(n.stockpiles, resources),
+    }));
+    return true;
+  }
+
+  addHub(regionId: RegionId, hub: Hub): void {
+    this.updateRegion(regionId, (r) => ({ ...r, hubs: [...r.hubs, hub] }));
+  }
+
+  upgradeHub(regionId: RegionId, hubId: string, newLevel: number): void {
+    this.updateRegion(regionId, (r) => ({
+      ...r,
+      hubs: r.hubs.map((h) => (h.id === hubId ? { ...h, level: newLevel } : h)),
+    }));
   }
 
   private bootstrapFromGeo(subdivisions: ReadonlyArray<Region>): void {
@@ -141,11 +191,16 @@ export class GameService implements OnDestroy {
     this.nations.set(nations);
   }
 
+  /**
+   * Per-tick fan-out. See memory/project_thewargame_sim_architecture.md for
+   * the documented order: market → production. Construction/Research/Intel
+   * each subscribe to clock.tick$ from their own init() called by
+   * ShellComponent AFTER this service's init() resolves, so they land after
+   * the production pass. AI subscribes last.
+   */
   private onTick(tick: TickEvent): void {
-    // 1. Advance market prices first so revenue uses post-tick prices.
     this.resources.advance(tick);
 
-    // 2. Apply per-region production to each owner nation, immutably.
     const map = this.nations();
     const regionMap = this.regions();
     const nextNations = new Map<NationId, Nation>();

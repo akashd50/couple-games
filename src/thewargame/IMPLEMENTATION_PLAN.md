@@ -151,11 +151,13 @@ Goal: usable HUD for building, researching, and seeing what the empire is doing.
    - **Top bar:** date, speed, national money, alert badge.
    - **Right side panel** (collapsible drawer below 720 px): tabbed — Resources, Agencies, Tech, Military.
    - **Bottom:** news ticker.
-   - **Region drawer:** opens when a region is selected; lists hubs, build slots, garrison, stability.
+   - **Region drawer:** opens when a region is selected; lists hubs, build slots, garrison, stability. Each region/province/state should have specific number of unit slots (i.e. things can be built) which depend on the area of the region and/or the population of the region. 
+   - Building of some specific resources also depends on the availability of resources in the region for ex a coal mine can only be built in a region with coal. Other factors would determine the building speed and the resource generation is the stability in region. Less than 50 (to be decided) would result in efficiency and stuff decreasing the more it goes down.
+   - The building slots should be scattered in each state as + symbol little circles which can be clicked to build something.
 2. **Build flow.**
    - In a selected region, click an empty slot → opens `build-dialog` with hub catalog (Intel Agency, Research Lab, Defense Plant, Mine, Refinery).
-   - Show cost (money + resources) and effect summary. Confirm queues a build via `ConstructionService` (real-time days to complete).
-   - Existing hubs show an "Upgrade to L{n+1}" button.
+   - Show cost (money + resources) and effect summary. Confirm queues a build via `ConstructionService` (real-time days to complete). Once completed, for now it could just show the name in a circle which (can be changed in the future to add an special icon for each building type)
+   - Existing hubs show an "Upgrade to L{n+1}" button, would cost money + resources + time. 
 3. **Research.**
    - `tech-tree-dialog` renders nodes as a SVG-in-Angular graph. Click a node, allocate research points generated per tick by Research Lab levels. Locked branches are dimmed.
 4. **Agencies tab** drives `IntelService` (MVP stub: a single "Intel Coverage" % per foreign region; spend money to push it up).

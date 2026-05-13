@@ -1,0 +1,79 @@
+@if (open()) {
+  <div class="overlay" (click)="close()">
+    <div class="overlay__panel" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Tech tree">
+      <header class="overlay__head">
+        <div>
+          <h2 class="overlay__title">Tech Tree</h2>
+          <p class="overlay__sub">Spend research points to unlock new doctrines.</p>
+        </div>
+        <span class="overlay__points">RP {{ points() | number: '1.0-0' }}</span>
+        <button type="button" class="overlay__close" (click)="close()" aria-label="Close">✕</button>
+      </header>
+
+      <div class="overlay__body">
+        <div class="tree">
+          <svg class="tree__svg" [attr.viewBox]="viewBox()" preserveAspectRatio="xMidYMid meet">
+            @for (e of edges(); track e.id) {
+              <line
+                class="tree__edge"
+                [class.is-active]="e.active"
+                [attr.x1]="e.x1"
+                [attr.y1]="e.y1"
+                [attr.x2]="e.x2"
+                [attr.y2]="e.y2"
+              />
+            }
+            @for (n of nodes(); track n.node.id) {
+              <g
+                class="tree__node"
+                [class.is-unlocked]="n.unlocked"
+                [class.is-ready]="!n.unlocked && n.canUnlock.ok"
+                [class.is-locked]="!n.unlocked && !n.canUnlock.ok"
+                [class.is-selected]="selectedNodeId() === n.node.id"
+                [attr.transform]="'translate(' + n.x + ',' + n.y + ')'"
+                (click)="selectNode(n.node.id)"
+              >
+                <rect class="tree__rect" [attr.width]="nodeW" [attr.height]="nodeH" rx="10" ry="10" />
+                <text class="tree__title" x="14" y="26">{{ n.node.name }}</text>
+                <text class="tree__meta" x="14" y="46">{{ n.node.branch }}</text>
+                <text class="tree__cost" x="14" y="74">
+                  @if (n.unlocked) {
+                    ✓ Unlocked
+                  } @else {
+                    {{ n.node.cost }} RP
+                  }
+                </text>
+              </g>
+            }
+          </svg>
+        </div>
+
+        @if (selectedNode(); as sel) {
+          <aside class="detail">
+            <h3 class="detail__name">{{ sel.node.name }}</h3>
+            <p class="detail__branch">{{ sel.node.branch }} branch · {{ sel.node.cost }} RP</p>
+            <p class="detail__desc">{{ sel.node.description }}</p>
+            @if (sel.node.prerequisites.length) {
+              <p class="detail__prereq">
+                Prerequisites: {{ sel.node.prerequisites.join(', ') }}
+              </p>
+            }
+            @if (sel.unlocked) {
+              <p class="detail__ok">Already unlocked.</p>
+            } @else if (sel.canUnlock.ok) {
+              <button type="button" class="detail__btn" (click)="unlock()">
+                Unlock for {{ sel.node.cost }} RP
+              </button>
+            } @else {
+              <p class="detail__warn">{{ sel.canUnlock.reason }}</p>
+            }
+          </aside>
+        } @else {
+          <aside class="detail detail--hint">
+            <p>Click a node to read its effect and unlock it.</p>
+          </aside>
+        }
+      </div>
+    </div>
+  </div>
+}

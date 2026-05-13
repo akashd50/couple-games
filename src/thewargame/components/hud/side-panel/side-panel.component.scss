@@ -1,0 +1,286 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.sp {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0.6rem;
+
+  &__search {
+    position: relative;
+  }
+
+  &__search-input {
+    width: 100%;
+    appearance: none;
+    background: $field-bg;
+    border: 1px solid $border;
+    color: $ink;
+    font: inherit;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+
+    &:focus {
+      outline: 2px solid $accent;
+      outline-offset: 1px;
+    }
+  }
+
+  &__results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 4;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: $panel;
+    border: 1px solid $border;
+    border-radius: 8px;
+    box-shadow: $shadow;
+    max-height: 240px;
+    overflow: auto;
+  }
+
+  &__result {
+    width: 100%;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    font-size: 0.85rem;
+    padding: 0.35rem 0.6rem;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+
+    &:hover {
+      background: $accent-soft;
+      color: $accent;
+    }
+  }
+
+  &__result-meta {
+    color: $muted;
+    font-size: 0.72rem;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  &__tab {
+    appearance: none;
+    border: 1px solid $border;
+    background: $panel;
+    color: $ink;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+    cursor: pointer;
+
+    &:hover:not(.is-active) {
+      background: $accent-soft;
+      color: $accent;
+      border-color: $accent-soft;
+    }
+
+    &.is-active {
+      background: $accent;
+      color: white;
+      border-color: $accent;
+    }
+  }
+
+  &__body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  &__section {
+    background: $field-bg;
+    border: 1px solid $border;
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+  }
+
+  &__h {
+    margin: 0 0 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $muted;
+    font-weight: 600;
+
+    small {
+      margin-left: 0.3rem;
+      color: $muted;
+      font-size: 0.7em;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+  }
+
+  &__kv {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+    font-size: 0.8rem;
+
+    > div {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    dt {
+      color: $muted;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+
+      &.is-negative {
+        color: var(--danger);
+      }
+    }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+
+    th,
+    td {
+      padding: 0.18rem 0.3rem;
+      text-align: left;
+    }
+
+    th {
+      color: $muted;
+      font-weight: 500;
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+
+    > li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    &--agencies > li {
+      flex-wrap: wrap;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid $border;
+
+      &:last-child { border-bottom: 0; }
+      &.is-focused { background: $accent-soft; border-radius: 6px; }
+    }
+  }
+
+  &__list-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  &__list-meta {
+    color: $muted; font-size: 0.72rem; font-variant-numeric: tabular-nums;
+    &.is-ok { color: var(--ok); }
+  }
+
+  &__focus {
+    flex: 1; appearance: none; background: transparent; border: 0; color: inherit;
+    font: inherit; font-size: 0.78rem; padding: 0.2rem 0.3rem; cursor: pointer;
+    display: flex; align-items: center; gap: 0.4rem; border-radius: 4px;
+    &:hover { color: $accent; }
+  }
+
+  &__focus-dot {
+    display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 999px;
+    background: $border;
+    &.is-on { background: $accent; }
+  }
+
+  &__buttons { display: flex; gap: 0.25rem; margin-left: 0.4rem; }
+
+  &__chip {
+    appearance: none;
+    border: 1px solid $border;
+    background: $panel;
+    color: $ink;
+    font: inherit;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    cursor: pointer;
+
+    &:hover {
+      background: $accent-soft;
+      color: $accent;
+      border-color: $accent-soft;
+    }
+  }
+
+  &__btn {
+    appearance: none;
+    border: 1px solid $accent;
+    background: $accent;
+    color: white;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 0.45rem;
+
+    &:hover {
+      filter: brightness(1.05);
+    }
+  }
+
+  &__hint {
+    color: $muted;
+    font-size: 0.75rem;
+    margin: 0;
+  }
+}

@@ -1,0 +1,199 @@
+<div class="sp">
+    <div class="sp__search">
+        <input
+            #searchInput
+            [formControl]="searchControl"
+            type="search"
+            class="sp__search-input"
+            placeholder="Search regions (/)"
+            autocomplete="off"
+            aria-label="Search regions"
+        />
+        @if (searchResults().length) {
+            <ul class="sp__results" role="listbox">
+                @for (r of searchResults(); track r.id) {
+                    <li>
+                        <button
+                                type="button"
+                                class="sp__result"
+                                (click)="pickSearchResult(r)"
+                        >
+                            <span class="sp__result-name">{{ r.name }}</span>
+                            <span class="sp__result-meta">{{ r.hubCount }}/{{ r.slots }} slots</span>
+                        </button>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <nav class="sp__tabs" role="tablist">
+        @for (t of tabs; track t.id) {
+            <button
+                    type="button"
+                    role="tab"
+                    class="sp__tab"
+                    [class.is-active]="activeTab() === t.id"
+                    [attr.aria-selected]="activeTab() === t.id"
+                    (click)="setTab(t.id)"
+            >
+                {{ t.label }}
+            </button>
+        }
+    </nav>
+
+    <div class="sp__body">
+        @switch (activeTab()) {
+            @case ('dev') {
+                <wg-debug-panel class="shell__debug"/>
+            }
+            @case ('resources') {
+                <section class="sp__section">
+                    <h3 class="sp__h">Treasury</h3>
+                    @if (playerNation(); as me) {
+                        <dl class="sp__kv">
+                            <div>
+                                <dt>Cash</dt>
+                                <dd>${{ me.money | number: '1.0-0' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Net / day</dt>
+                                <dd [class.is-negative]="playerDailyIncome() < 0">
+                                    {{ playerDailyIncome() >= 0 ? '+' : '−' }}
+                                    ${{ playerDailyIncome() | number: '1.0-0' }}
+                                </dd>
+                            </div>
+                        </dl>
+                    }
+                </section>
+
+                <section class="sp__section">
+                    <h3 class="sp__h">Resources <small>stockpile · yield · market</small></h3>
+                    <table class="sp__table">
+                        <tbody>
+                            @for (row of resourceRows(); track row.key) {
+                                <tr>
+                                    <th scope="row">{{ row.label }}</th>
+                                    <td class="num">{{ row.stockpile }}</td>
+                                    <td class="num">{{ row.yield }}</td>
+                                    <td class="num">{{ row.price }}</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </section>
+
+                @if (playerOrders().length) {
+                    <section class="sp__section">
+                        <h3 class="sp__h">Construction <small>{{ playerOrders().length }} active</small></h3>
+                        <ul class="sp__list">
+                            @for (o of playerOrders(); track o.id) {
+                                <li>
+                                    <span class="sp__list-main">{{ hubShortLabel(o.hubKind) }} L{{ o.targetLevel }}
+                                        · {{ o.regionId }}</span>
+                                    <span class="sp__list-meta">ETA {{ o.completionDay - o.startDay }}d</span>
+                                </li>
+                            }
+                        </ul>
+                    </section>
+                }
+            }
+            @case ('agencies') {
+                <section class="sp__section">
+                    <h3 class="sp__h">Foreign Coverage</h3>
+                    <p class="sp__hint">
+                        Tap a region to focus passive intel; tap +$200 / +$1k to push coverage.
+                    </p>
+                    <ul class="sp__list sp__list--agencies">
+                        @for (a of agencyRows(); track a.id) {
+                            <li [class.is-focused]="a.focused">
+                                <button type="button" class="sp__focus" (click)="setIntelFocus(a.id)">
+                                    <span class="sp__focus-dot" [class.is-on]="a.focused"></span>
+                                    <span class="sp__list-main">{{ a.name }}</span>
+                                    <span class="sp__list-meta">{{ a.coverage | number: '1.0-0' }}%</span>
+                                </button>
+                                <div class="sp__buttons">
+                                    <button type="button" class="sp__chip" (click)="spendIntel(a.id, 200)">+$200
+                                    </button>
+                                    <button type="button" class="sp__chip" (click)="spendIntel(a.id, 1000)">+$1k
+                                    </button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+            @case ('tech') {
+                <section class="sp__section">
+                    <h3 class="sp__h">Research</h3>
+                    <dl class="sp__kv">
+                        <div>
+                            <dt>Points</dt>
+                            <dd>{{ researchPoints() | number: '1.0-0' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Rate / day</dt>
+                            <dd>{{ researchRate() | number: '1.1-1' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Unlocked</dt>
+                            <dd>{{ unlockedTech().size }} / {{ availableTech().length }}</dd>
+                        </div>
+                    </dl>
+                    <button type="button" class="sp__btn" (click)="openTechTree()">
+                        Open Tech Tree
+                    </button>
+                </section>
+
+                <section class="sp__section">
+                    <h3 class="sp__h">Quick Status</h3>
+                    <ul class="sp__list">
+                        @for (t of availableTech(); track t.node.id) {
+                            <li>
+                                <span class="sp__list-main">{{ t.node.name }}</span>
+                                @if (t.unlocked) {
+                                    <span class="sp__list-meta is-ok">unlocked</span>
+                                } @else if (t.can.ok) {
+                                    <span class="sp__list-meta">ready</span>
+                                } @else {
+                                    <span class="sp__list-meta">{{ t.can.reason }}</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+            @case ('military') {
+                <section class="sp__section">
+                    <h3 class="sp__h">Capacity</h3>
+                    <dl class="sp__kv">
+                        <div>
+                            <dt>Regions</dt>
+                            <dd>{{ playerRegions().length }}</dd>
+                        </div>
+                        <div>
+                            <dt>Slots</dt>
+                            <dd>{{ totalSlots().filled }} / {{ totalSlots().total }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="sp__section">
+                    <h3 class="sp__h">Hubs by Type</h3>
+                    @if (hubSummaryRows().length) {
+                        <ul class="sp__list">
+                            @for (row of hubSummaryRows(); track row.kind) {
+                                <li>
+                                    <span class="sp__list-main">{{ row.label }}</span>
+                                    <span class="sp__list-meta">{{ row.count }}× · ΣL{{ row.totalLevel }}</span>
+                                </li>
+                            }
+                        </ul>
+                    } @else {
+                        <p class="sp__hint">No hubs built yet. Zoom into a state and click a + slot.</p>
+                    }
+                </section>
+            }
+        }
+    </div>
+</div>

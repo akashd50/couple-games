@@ -1,0 +1,87 @@
+@if (regionState(); as state) {
+  <div class="drawer" role="dialog" aria-label="Region command">
+    <header class="drawer__head">
+      <div class="drawer__title">
+        <span class="drawer__name">{{ regionName() }}</span>
+        <span class="drawer__sub">{{ state.id }}</span>
+      </div>
+      <div class="drawer__stats">
+        <div><dt>Pop</dt><dd>{{ state.population | number: '1.1-1' }}M</dd></div>
+        <div><dt>Stab</dt><dd>{{ state.stability | number: '1.0-0' }}</dd></div>
+        <div><dt>Slots</dt><dd>{{ state.hubs.length }} / {{ state.slots }}</dd></div>
+      </div>
+      <button type="button" class="drawer__close" (click)="close()" aria-label="Close">✕</button>
+    </header>
+
+    <div class="drawer__body">
+      <section class="drawer__col">
+        <h3 class="drawer__h">Build Slots</h3>
+        <ul class="drawer__slots">
+          @for (row of slotRows(); track row.index) {
+            <li>
+              @if (row.hub; as hub) {
+                <div class="drawer__slot is-filled">
+                  <span class="drawer__chip">{{ hubShort(hub) }}</span>
+                  <div class="drawer__slot-body">
+                    <div class="drawer__slot-name">{{ hubName(hub) }} <span class="drawer__lv">L{{ hub.level }}</span></div>
+                    @if (pendingUpgradeLevel(hub); as plv) {
+                      <div class="drawer__slot-meta">Upgrading to L{{ plv }}…</div>
+                    } @else if (hub.level < hubMaxLevel(hub)) {
+                      <button type="button" class="drawer__btn" (click)="openUpgrade(hub)">
+                        Upgrade to L{{ hub.level + 1 }} · ${{ upgradeCost(hub) }} · {{ upgradeDays(hub) }}d
+                      </button>
+                    } @else {
+                      <div class="drawer__slot-meta">Max level reached.</div>
+                    }
+                  </div>
+                </div>
+              } @else if (row.pendingLabel) {
+                <div class="drawer__slot is-pending">
+                  <span class="drawer__chip is-pending">…</span>
+                  <div class="drawer__slot-body">
+                    <div class="drawer__slot-name">{{ row.pendingLabel }}</div>
+                  </div>
+                </div>
+              } @else {
+                <div class="drawer__slot is-empty">
+                  <span class="drawer__chip is-empty">+</span>
+                  <div class="drawer__slot-body">
+                    <div class="drawer__slot-name">Empty slot #{{ row.index + 1 }}</div>
+                    <button type="button" class="drawer__btn" (click)="openBuild(row.index)">
+                      Build…
+                    </button>
+                  </div>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+
+      <section class="drawer__col">
+        <h3 class="drawer__h">Yields <small>(per day)</small></h3>
+        <table class="drawer__table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Base</th>
+              <th>Effective</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of yieldRows(); track row.key) {
+              <tr>
+                <th scope="row">{{ row.label }}</th>
+                <td class="num">{{ row.base }}</td>
+                <td class="num">{{ row.effective }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <p class="drawer__hint">
+          Effective yield = base × stability × hub bonuses.
+        </p>
+      </section>
+    </div>
+  </div>
+}

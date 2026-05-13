@@ -2,7 +2,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Application, Container, Graphics } from 'pixi.js';
 import { Camera, type CameraState } from '../pixi/camera';
 import { MapRenderer, type MapPalette } from '../pixi/map-renderer';
+import { BuildSlotsRenderer, type SlotPosition } from '../pixi/build-slots';
 import { pickRegion } from '../pixi/hit-test';
+import type { RegionState } from '../models/game.types';
 import type { Region, RegionIndex } from '../models/geo.types';
 import { GeoService } from './geo.service';
 
@@ -12,6 +14,19 @@ const CLICK_TOLERANCE_PX = 6;
 // userScale 1 == world fits canvas. Tune to taste.
 const SUBDIVISION_TIER_SCALE = 3;
 // const CITY_TIER_SCALE = 12; // reserved for future city-block tier.
+
+/** Slot hit-test radius in CSS pixels — generous so slots are tappable. */
+const SLOT_HIT_RADIUS_PX = 14;
+
+export interface SlotInput {
+  readonly state: RegionState;
+  readonly pendingSlotIndices: ReadonlySet<number>;
+}
+
+export interface SlotPick {
+  readonly regionId: string;
+  readonly slotIndex: number;
+}
 
 export type HighlightTier = 'country' | 'subdivision' | 'city';
 
@@ -34,6 +49,9 @@ export class MapService {
     return 'country';
   });
 
+  /** Last slot the user clicked. The UI clears this back to null after handling. */
+  readonly slotPicked = signal<SlotPick | null>(null);
+
   private app: Application | null = null;
   private host: HTMLElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
@@ -44,11 +62,14 @@ export class MapService {
   private oceanRect: Graphics | null = null;
   private countryLayer: Container | null = null;
   private subdivisionLayer: Container | null = null;
+  private slotLayer: Container | null = null;
   private hoverLayer: Container | null = null;
   private selectionLayer: Container | null = null;
 
   private camera: Camera | null = null;
   private renderer: MapRenderer | null = null;
+  private slotsRenderer: BuildSlotsRenderer | null = null;
+  private slotInput: ReadonlyArray<SlotInput> = [];
 
   private regionIndex: RegionIndex | null = null;
   // Subdivisions tested first so a state wins over its parent country; the
@@ -90,10 +111,12 @@ export class MapService {
 
     this.countryLayer = makeLayer('countries');
     this.subdivisionLayer = makeLayer('subdivisions');
+    this.slotLayer = makeLayer('slots');
     this.hoverLayer = makeLayer('hover');
     this.selectionLayer = makeLayer('selection');
     this.worldRoot.addChild(this.countryLayer);
     this.worldRoot.addChild(this.subdivisionLayer);
+    this.worldRoot.addChild(this.slotLayer);
     this.worldRoot.addChild(this.hoverLayer);
     this.worldRoot.addChild(this.selectionLayer);
 
@@ -106,6 +129,8 @@ export class MapService {
       },
       palette,
     );
+    this.slotsRenderer = new BuildSlotsRenderer(this.slotLayer, slotPalette(palette));
+    this.slotsRenderer.setVisible(false);
 
     this.camera = new Camera({
       target: this.worldRoot,
@@ -116,6 +141,7 @@ export class MapService {
       }),
       onChange: (state) => {
         this.cameraState.set(state);
+        this.updateSlotVisibility();
         this.rePickHovered();
       },
     });
@@ -168,6 +194,9 @@ export class MapService {
     this.camera?.detach();
     this.camera = null;
 
+    this.slotsRenderer?.destroy();
+    this.slotsRenderer = null;
+
     if (this.app) {
       this.app.destroy(true, { children: true, texture: true });
       this.app = null;
@@ -178,20 +207,71 @@ export class MapService {
     this.oceanRect = null;
     this.countryLayer = null;
     this.subdivisionLayer = null;
+    this.slotLayer = null;
     this.hoverLayer = null;
     this.selectionLayer = null;
     this.renderer = null;
     this.regionIndex = null;
     this.hitTestList = [];
+    this.slotInput = [];
     this.hovered.set(null);
     this.selected.set(null);
     this.pointerScreen.set(null);
     this.pointerWorld.set(null);
     this.viewport.set(null);
     this.cameraState.set(null);
+    this.slotPicked.set(null);
     this.pointerDownAt = null;
     this.pointerMoved = false;
     this.ready.set(false);
+  }
+
+  /**
+   * Push the current player-owned regions (with hubs) plus per-slot pending
+   * indicators. Called from ShellComponent via an effect() so the map updates
+   * when GameService / ConstructionService state changes.
+   */
+  setSlotData(input: ReadonlyArray<SlotInput>): void {
+    this.slotInput = input;
+    if (!this.slotsRenderer || !this.regionIndex) return;
+    const enriched: Array<{
+      state: RegionState;
+      region: Region;
+      pendingSlotIndices: ReadonlySet<number>;
+    }> = [];
+    for (const it of input) {
+      const region = this.regionIndex.byId.get(it.state.id);
+      if (!region) continue;
+      enriched.push({ state: it.state, region, pendingSlotIndices: it.pendingSlotIndices });
+    }
+    this.slotsRenderer.setRegions(enriched);
+    this.updateSlotVisibility();
+  }
+
+  /** Clear the slotPicked signal once the consumer has handled the pick. */
+  clearSlotPicked(): void {
+    this.slotPicked.set(null);
+  }
+
+  /** Look up a Region by id (subdivision or country). */
+  getRegion(id: string): Region | null {
+    return this.regionIndex?.byId.get(id) ?? null;
+  }
+
+  /** Select a region by id, mirroring a click. */
+  selectRegionById(id: string): boolean {
+    const region = this.regionIndex?.byId.get(id);
+    if (!region) return false;
+    this.selected.set(region);
+    this.renderer?.setSelected(region);
+    return true;
+  }
+
+  /** Clear the selection (and the Pixi ring). */
+  clearSelection(): void {
+    if (this.selected() === null) return;
+    this.selected.set(null);
+    this.renderer?.setSelected(null);
   }
 
   private onPointerDown = (e: PointerEvent): void => {
@@ -222,18 +302,59 @@ export class MapService {
   };
 
   private onPointerUp = (e: PointerEvent): void => {
+    void e;
     const wasDown = this.pointerDownAt !== null;
     const moved = this.pointerMoved;
     this.pointerDownAt = null;
     this.pointerMoved = false;
     if (!wasDown || moved) return;
-    // Treat as click: select whatever is under the pointer now.
+    // Before the standard region-select click, see if a build slot was hit.
+    const slot = this.pickSlotAtPointer();
+    if (slot) {
+      this.slotPicked.set({ regionId: slot.regionId, slotIndex: slot.slotIndex });
+      // Make sure the corresponding region is selected so the drawer matches.
+      const region = this.regionIndex?.byId.get(slot.regionId) ?? null;
+      if (region && region !== this.selected()) {
+        this.selected.set(region);
+        this.renderer?.setSelected(region);
+      }
+      return;
+    }
+    // Otherwise, treat as a normal click: select whatever is under the pointer.
     const r = this.hovered();
     if (r !== this.selected()) {
       this.selected.set(r);
       this.renderer?.setSelected(r);
     }
   };
+
+  private pickSlotAtPointer(): SlotPosition | null {
+    if (!this.slotsRenderer || !this.camera) return null;
+    if (this.highlightTier() !== 'subdivision') return null;
+    const world = this.pointerWorld();
+    if (!world) return null;
+    const cam = this.cameraState();
+    if (!cam) return null;
+    const radiusWorld = SLOT_HIT_RADIUS_PX / cam.effectiveScale;
+    const r2 = radiusWorld * radiusWorld;
+    let best: SlotPosition | null = null;
+    let bestDist = r2;
+    for (const p of this.slotsRenderer.positions()) {
+      const dx = p.x - world.x;
+      const dy = p.y - world.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= bestDist) {
+        best = p;
+        bestDist = d2;
+      }
+    }
+    return best;
+  }
+
+  private updateSlotVisibility(): void {
+    if (!this.slotsRenderer) return;
+    this.slotsRenderer.setVisible(this.highlightTier() === 'subdivision');
+  }
 
   private onPointerLeave = (): void => {
     this.pointerScreen.set(null);
@@ -293,6 +414,7 @@ export class MapService {
     this.renderer.setPalette(palette);
     this.renderer.setHovered(this.hovered());
     this.renderer.setSelected(this.selected());
+    this.slotsRenderer?.setPalette(slotPalette(palette));
   }
 
   private readPalette(): MapPalette {
@@ -316,6 +438,14 @@ function makeLayer(label: string): Container {
   c.label = label;
   c.eventMode = 'none';
   return c;
+}
+
+function slotPalette(p: MapPalette): { empty: number; occupied: number; pending: number } {
+  return {
+    empty: p.hover,
+    occupied: p.selected,
+    pending: p.borderSubdivision,
+  };
 }
 
 function parseCssColor(value: string): number | null {

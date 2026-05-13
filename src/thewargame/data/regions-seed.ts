@@ -1,5 +1,5 @@
 import type { RegionState, ResourceBag, ResourceKind } from '../models/game.types';
-import { emptyBag } from './balance';
+import { BALANCE, emptyBag } from './balance';
 
 /**
  * Procedural seed for region simulation state.
@@ -17,6 +17,7 @@ export function seedRegionState(id: string, country: string): RegionState {
   const population = +(0.4 + r(0, 280) / 10).toFixed(1); // 0.4 .. 28.4M
   const stability = 55 + r(7, 45); // 55..99
   const baseYields = synthesizeYields(h);
+  const slots = slotsForPopulation(population);
 
   return {
     id,
@@ -24,6 +25,8 @@ export function seedRegionState(id: string, country: string): RegionState {
     baseYields,
     population,
     stability,
+    slots,
+    hubs: [],
   };
 }
 
@@ -53,6 +56,12 @@ function scaleFor(k: ResourceKind): number {
     case 'rare':
       return 0.5;
   }
+}
+
+function slotsForPopulation(pop: number): number {
+  // 0.4M → 2, 5M → 3, 15M → 5, 30M → 8. Bounded.
+  const raw = 2 + Math.floor(pop / 5);
+  return Math.max(BALANCE.minSlotsPerRegion, Math.min(BALANCE.maxSlotsPerRegion, raw));
 }
 
 function hash(s: string): number {

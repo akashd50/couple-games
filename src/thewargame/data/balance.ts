@@ -19,6 +19,15 @@ export const BALANCE = {
   baseUpkeep: 2,
   /** Stability multiplier curve: stability of 100 == 1.0×, 0 == 0.4×. */
   minStabilityFactor: 0.4,
+  /** Slot count bounds per region. */
+  minSlotsPerRegion: 2,
+  maxSlotsPerRegion: 8,
+  /** Intel: money spent per +1% coverage on a foreign region. */
+  intelCostPer1Pct: 80,
+  /** Intel: starting coverage % vs foreign regions. */
+  intelStartingCoverage: 5,
+  /** Tech research-point allocation: minimum points held before unlocking. */
+  minPointsToCommitTech: 0,
 };
 
 export const BASE_PRICES: ResourceBag = {
@@ -48,4 +57,26 @@ export function emptyBag(): ResourceBag {
 
 export function cloneBag(b: ResourceBag): ResourceBag {
   return { ...b };
+}
+
+export function addBag(a: ResourceBag, b: ResourceBag): ResourceBag {
+  const out = emptyBag();
+  for (const k of RESOURCE_KINDS) out[k] = a[k] + b[k];
+  return out;
+}
+
+export function subBag(a: ResourceBag, b: ResourceBag): ResourceBag {
+  const out = emptyBag();
+  for (const k of RESOURCE_KINDS) out[k] = a[k] - b[k];
+  return out;
+}
+
+export function bagCovers(have: ResourceBag, need: ResourceBag): boolean {
+  for (const k of RESOURCE_KINDS) if (have[k] < need[k]) return false;
+  return true;
+}
+
+export function bagIsZero(b: ResourceBag): boolean {
+  for (const k of RESOURCE_KINDS) if (b[k] !== 0) return false;
+  return true;
 }

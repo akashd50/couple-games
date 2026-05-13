@@ -25,7 +25,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem 1rem;
-    padding-right: 56px; // keep clear of the global settings gear
+    padding-right: 56px;
     background: $panel;
     border-bottom: 1px solid $border;
     box-shadow: $shadow;
@@ -72,6 +72,14 @@
     }
   }
 
+  &__map-area {
+    position: relative;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+    min-height: 0;
+  }
+
   &__map {
     display: block;
     min-height: 0;
@@ -79,17 +87,39 @@
     overflow: hidden;
   }
 
+  &__drawer {
+    display: block;
+    padding: 0.4rem 0.6rem 0.5rem;
+    max-height: 45vh;
+    overflow: hidden;
+  }
+
   &__side {
     border-left: 1px solid $border;
     background: $panel;
-    padding: 1rem;
+    padding: 0.85rem;
     overflow: auto;
     min-height: 0;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 
     @media (max-width: 720px) {
       display: none;
     }
+  }
+
+  &__panel {
+    display: block;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__debug {
+    display: block;
+    border-top: 1px dashed $border;
+    padding-top: 0.5rem;
   }
 
   &__ticker {

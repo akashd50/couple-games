@@ -6,13 +6,22 @@
   </header>
 
   <main class="shell__main">
-    <wg-map-view class="shell__map" />
+    <div class="shell__map-area">
+      <wg-map-view class="shell__map" />
+      <wg-region-drawer class="shell__drawer" />
+    </div>
     <aside class="shell__side" aria-label="Command panel">
-      <wg-debug-panel />
+      <wg-side-panel class="shell__panel" />
+      <!--@if (isDev) {
+        <wg-debug-panel class="shell__debug" />
+      }-->
     </aside>
   </main>
 
   <footer class="shell__ticker" aria-label="News ticker">
     <wg-news-ticker />
   </footer>
+
+  <wg-build-dialog />
+  <wg-tech-tree-dialog />
 </div>
