@@ -340,14 +340,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 5px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     background: $accent;
     color: white;
     font-weight: 700;
     font-size: 0.68rem;
     flex-shrink: 0;
+    position: relative;
 
     &.is-empty {
       background: $accent-soft;
@@ -356,11 +357,41 @@
     }
 
     &.is-pending {
-      background: transparent;
-      color: $muted;
-      border: 1px dashed $border;
-      font-size: 1rem;
+      background: $accent-soft;
+      color: $accent;
+      border: 1px dashed $accent;
     }
+
+    &--icon {
+      // Icon variant uses currentColor stroke from HubIcon (white on filled chip).
+    }
+  }
+
+  &__ring {
+    position: absolute;
+    inset: -3px;
+    width: calc(100% + 6px);
+    height: calc(100% + 6px);
+    pointer-events: none;
+    transform: rotate(-90deg);
+  }
+
+  &__ring-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 2;
+  }
+
+  &__ring-fill {
+    fill: none;
+    stroke: $accent;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke-dasharray 200ms linear;
+  }
+
+  &__slot-chip.is-pending &__ring-track {
+    stroke: rgba(0, 0, 0, 0.1);
   }
 
   &__slot-body {
@@ -401,6 +432,65 @@
     border-radius: 5px;
     cursor: pointer;
 
-    &:hover { filter: brightness(1.05); }
+    &:hover:not(:disabled) { filter: brightness(1.05); }
+
+    &:disabled {
+      cursor: not-allowed;
+      background: $field-bg;
+      color: $muted;
+      border-color: $border;
+    }
   }
+
+  &__has-tip {
+    position: relative;
+    display: inline-block;
+
+    &:hover .sp__tooltip,
+    &:focus-within .sp__tooltip {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(0, 0);
+    }
+  }
+
+  &__tooltip {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    z-index: 5;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0.5rem 0.6rem;
+    background: $panel;
+    color: $ink;
+    border: 1px solid $border;
+    border-radius: 8px;
+    box-shadow: $shadow;
+    font-size: 0.72rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(0, 4px);
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
+  &__tooltip-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  &__tooltip-k { color: $muted; }
+  &__tooltip-v { font-variant-numeric: tabular-nums; }
+  &__tooltip-delta { color: var(--ok); font-weight: 600; margin-left: 0.3rem; }
+  &__tooltip-sub {
+    color: $muted;
+    text-transform: uppercase;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+  }
+  &__tooltip-div { height: 1px; background: $border; margin: 0.2rem 0; display: block; }
+  &__tooltip-warn { color: var(--danger); font-size: 0.7rem; }
 }

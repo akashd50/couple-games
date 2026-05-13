@@ -110,6 +110,23 @@
     opacity: 0.55;
   }
 
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: $accent-soft;
+    color: $accent;
+  }
+
   &__name {
     margin: 0;
     font-size: 0.92rem;

@@ -3,13 +3,7 @@
     <div class="overlay__panel" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Build">
       <header class="overlay__head">
         <div>
-          <h2 class="overlay__title">
-            @if (upgradeTarget()) {
-              Upgrade Hub
-            } @else {
-              Build Hub
-            }
-          </h2>
+          <h2 class="overlay__title">Build Hub</h2>
           <p class="overlay__sub">{{ regionName() }} <span class="mono">{{ s.regionId }}</span></p>
         </div>
         <span class="overlay__money">Treasury ${{ playerMoney() | number: '1.0-0' }}</span>
@@ -17,89 +11,57 @@
       </header>
 
       <div class="overlay__body">
-        @if (upgradeTarget()) {
-          @if (upgradeEntry(); as entry) {
-            <article class="card" [class.is-disabled]="!isAffordable(entry)">
-              <h3 class="card__name">{{ entry.name }}</h3>
-              <p class="card__desc">{{ entry.description }}</p>
-              <dl class="card__costs">
-                <div><dt>Cost</dt><dd>${{ entry.moneyCost | number: '1.0-0' }}</dd></div>
-                <div><dt>Time</dt><dd>{{ entry.days }} days</dd></div>
-              </dl>
-              @if (entry.resourceCost.any) {
-                <ul class="card__res">
-                  @for (r of entry.resourceCost.rows; track r.key) {
-                    <li>{{ r.label }} {{ r.value }}</li>
-                  }
-                </ul>
-              }
-              @if (entry.bonuses.length) {
-                <ul class="card__bonus">
-                  @for (b of entry.bonuses; track b.resource) {
-                    <li>{{ b.label }} {{ b.perLevel }} / level</li>
-                  }
-                </ul>
-              }
-              <button
-                type="button"
-                class="card__btn"
-                [disabled]="!isAffordable(entry)"
-                (click)="confirmBuild(entry)"
+        <ul class="catalog">
+          @for (entry of catalogEntries(); track entry.kind) {
+            <li>
+              <article
+                class="card"
+                [class.is-disabled]="!entry.eligible || !isAffordable(entry)"
               >
-                Queue Upgrade
-              </button>
-            </article>
-          }
-        } @else {
-          <ul class="catalog">
-            @for (entry of catalogEntries(); track entry.kind) {
-              <li>
-                <article
-                  class="card"
-                  [class.is-disabled]="!entry.eligible || !isAffordable(entry)"
-                >
+                <header class="card__head">
+                  <span class="card__icon"><wg-hub-icon [kind]="entry.kind" [size]="24"/></span>
                   <h3 class="card__name">{{ entry.name }}</h3>
-                  <p class="card__desc">{{ entry.description }}</p>
-                  <dl class="card__costs">
-                    <div><dt>Cost</dt><dd>${{ entry.moneyCost | number: '1.0-0' }}</dd></div>
-                    <div><dt>Time</dt><dd>{{ entry.days }} days</dd></div>
-                  </dl>
-                  @if (entry.resourceCost.any) {
-                    <ul class="card__res">
-                      @for (r of entry.resourceCost.rows; track r.key) {
-                        <li>{{ r.label }} {{ r.value }}</li>
-                      }
-                    </ul>
-                  }
-                  @if (entry.bonuses.length) {
-                    <ul class="card__bonus">
-                      @for (b of entry.bonuses; track b.resource) {
-                        <li>{{ b.label }} {{ b.perLevel }} / level</li>
-                      }
-                    </ul>
-                  }
-                  @if (!entry.eligible) {
-                    <p class="card__warn">{{ entry.reason }}</p>
-                  }
-                  <button
-                    type="button"
-                    class="card__btn"
-                    [disabled]="!entry.eligible || !isAffordable(entry)"
-                    (click)="confirmBuild(entry)"
-                  >
-                    @if (!entry.eligible) {
-                      Unavailable
-                    } @else if (!isAffordable(entry)) {
-                      Can't afford
-                    } @else {
-                      Build
+                </header>
+                <p class="card__desc">{{ entry.description }}</p>
+                <dl class="card__costs">
+                  <div><dt>Cost</dt><dd>${{ entry.moneyCost | number: '1.0-0' }}</dd></div>
+                  <div><dt>Time</dt><dd>{{ entry.days }} days</dd></div>
+                </dl>
+                @if (entry.resourceCost.any) {
+                  <ul class="card__res">
+                    @for (r of entry.resourceCost.rows; track r.key) {
+                      <li>{{ r.label }} {{ r.value }}</li>
                     }
-                  </button>
-                </article>
-              </li>
-            }
-          </ul>
-        }
+                  </ul>
+                }
+                @if (entry.bonuses.length) {
+                  <ul class="card__bonus">
+                    @for (b of entry.bonuses; track b.resource) {
+                      <li>{{ b.label }} {{ b.perLevel }} / level</li>
+                    }
+                  </ul>
+                }
+                @if (!entry.eligible) {
+                  <p class="card__warn">{{ entry.reason }}</p>
+                }
+                <button
+                  type="button"
+                  class="card__btn"
+                  [disabled]="!entry.eligible || !isAffordable(entry)"
+                  (click)="confirmBuild(entry)"
+                >
+                  @if (!entry.eligible) {
+                    Unavailable
+                  } @else if (!isAffordable(entry)) {
+                    Can't afford
+                  } @else {
+                    Build
+                  }
+                </button>
+              </article>
+            </li>
+          }
+        </ul>
       </div>
     </div>
   </div>

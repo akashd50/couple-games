@@ -78,31 +78,89 @@
                         <ul class="sp__slots">
                             @for (row of slotRows(); track row.index) {
                                 <li class="sp__slot"
-                                    [class.is-empty]="!row.hub && !row.pendingLabel"
-                                    [class.is-pending]="row.pendingLabel && !row.hub">
+                                    [class.is-empty]="!row.hub && !row.pending"
+                                    [class.is-pending]="row.pending && !row.hub">
                                     @if (row.hub; as hub) {
-                                        <span class="sp__slot-chip">{{ hubShort(hub) }}</span>
+                                        <span class="sp__slot-chip sp__slot-chip--icon">
+                                            <wg-hub-icon [kind]="hubKind(hub)" [size]="20"/>
+                                            @if (row.pending; as p) {
+                                                <svg class="sp__ring" viewBox="0 0 32 32" aria-hidden="true">
+                                                    <circle class="sp__ring-track" cx="16" cy="16" r="14"/>
+                                                    <circle class="sp__ring-fill" cx="16" cy="16" r="14"
+                                                            [attr.stroke-dasharray]="ringStroke(14, p.progress)"/>
+                                                </svg>
+                                            }
+                                        </span>
                                         <div class="sp__slot-body">
                                             <div class="sp__slot-name">
                                                 {{ hubName(hub) }}
                                                 <span class="sp__slot-lv">L{{ hub.level }}</span>
                                             </div>
-                                            @if (pendingUpgradeLevel(hub); as plv) {
-                                                <div class="sp__slot-meta">Upgrading to L{{ plv }}…</div>
+                                            @if (row.pending; as p) {
+                                                <div class="sp__slot-meta">Upgrading to L{{ p.targetLevel }} · ETA {{ p.etaDays }}d</div>
                                             } @else if (hub.level < hubMaxLevel(hub)) {
-                                                <button type="button" class="sp__slot-action"
-                                                        (click)="openUpgrade(hub)">
-                                                    Upgrade to L{{ hub.level + 1 }} ·
-                                                    ${{ upgradeCost(hub) }} · {{ upgradeDays(hub) }}d
-                                                </button>
+                                                @let tip = upgradeTooltip(hub);
+                                                <span class="sp__has-tip">
+                                                    <button type="button" class="sp__slot-action"
+                                                            [disabled]="!tip.affordable"
+                                                            (click)="queueUpgrade(hub)">
+                                                        Upgrade to L{{ hub.level + 1 }} ·
+                                                        ${{ upgradeCost(hub) }} · {{ upgradeDays(hub) }}d
+                                                    </button>
+                                                    <span class="sp__tooltip" role="tooltip">
+                                                        <span class="sp__tooltip-row">
+                                                            <span class="sp__tooltip-k">Cost</span>
+                                                            <span class="sp__tooltip-v">${{ tip.money }}</span>
+                                                        </span>
+                                                        <span class="sp__tooltip-row">
+                                                            <span class="sp__tooltip-k">Time</span>
+                                                            <span class="sp__tooltip-v">{{ tip.days }} days</span>
+                                                        </span>
+                                                        @if (tip.resourceCost.length) {
+                                                            <span class="sp__tooltip-div"></span>
+                                                            <span class="sp__tooltip-sub">Resource cost</span>
+                                                            @for (r of tip.resourceCost; track r.key) {
+                                                                <span class="sp__tooltip-row">
+                                                                    <span class="sp__tooltip-k">{{ r.label }}</span>
+                                                                    <span class="sp__tooltip-v">{{ r.value }}</span>
+                                                                </span>
+                                                            }
+                                                        }
+                                                        @if (tip.deltas.length) {
+                                                            <span class="sp__tooltip-div"></span>
+                                                            <span class="sp__tooltip-sub">Yield / day</span>
+                                                            @for (d of tip.deltas; track d.key) {
+                                                                <span class="sp__tooltip-row">
+                                                                    <span class="sp__tooltip-k">{{ d.label }}</span>
+                                                                    <span class="sp__tooltip-v">
+                                                                        {{ d.current }} → {{ d.next }}
+                                                                        <span class="sp__tooltip-delta">{{ d.delta }}</span>
+                                                                    </span>
+                                                                </span>
+                                                            }
+                                                        }
+                                                        @if (!tip.affordable) {
+                                                            <span class="sp__tooltip-div"></span>
+                                                            <span class="sp__tooltip-warn">Insufficient funds or resources.</span>
+                                                        }
+                                                    </span>
+                                                </span>
                                             } @else {
                                                 <div class="sp__slot-meta">Max level.</div>
                                             }
                                         </div>
-                                    } @else if (row.pendingLabel) {
-                                        <span class="sp__slot-chip is-pending">…</span>
+                                    } @else if (row.pending; as p) {
+                                        <span class="sp__slot-chip sp__slot-chip--icon is-pending">
+                                            <wg-hub-icon [kind]="p.kind" [size]="20"/>
+                                            <svg class="sp__ring" viewBox="0 0 32 32" aria-hidden="true">
+                                                <circle class="sp__ring-track" cx="16" cy="16" r="14"/>
+                                                <circle class="sp__ring-fill" cx="16" cy="16" r="14"
+                                                        [attr.stroke-dasharray]="ringStroke(14, p.progress)"/>
+                                            </svg>
+                                        </span>
                                         <div class="sp__slot-body">
-                                            <div class="sp__slot-name">{{ row.pendingLabel }}</div>
+                                            <div class="sp__slot-name">Building… L{{ p.targetLevel }}</div>
+                                            <div class="sp__slot-meta">ETA {{ p.etaDays }}d</div>
                                         </div>
                                     } @else {
                                         <span class="sp__slot-chip is-empty">+</span>

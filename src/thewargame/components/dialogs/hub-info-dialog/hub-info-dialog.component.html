@@ -1,0 +1,116 @@
+@if (state(); as s) {
+  @if (hub(); as h) {
+    <div class="overlay" (click)="close()">
+      <div
+        class="overlay__panel"
+        (click)="$event.stopPropagation()"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hub info"
+      >
+        <header class="overlay__head">
+          <span class="overlay__icon">
+            <wg-hub-icon [kind]="h.kind" [size]="28" />
+          </span>
+          <div class="overlay__heading">
+            <h2 class="overlay__title">{{ hubName() }} <span class="overlay__lv">L{{ h.level }}</span></h2>
+            <p class="overlay__sub">
+              {{ regionName() }}
+              <span class="mono">{{ s.regionId }}</span>
+              · slot #{{ h.slotIndex + 1 }}
+            </p>
+          </div>
+          <span class="overlay__money">Treasury ${{ playerMoney() | number: '1.0-0' }}</span>
+          <button type="button" class="overlay__close" (click)="close()" aria-label="Close">✕</button>
+        </header>
+
+        <div class="overlay__body">
+          <p class="info__desc">{{ hubDescription() }}</p>
+
+          @if (currentContributions().length) {
+            <section class="info__section">
+              <h3 class="info__h">Current contribution</h3>
+              <ul class="info__chips">
+                @for (c of currentContributions(); track c.key) {
+                  <li>{{ c.label }} {{ c.pct }}</li>
+                }
+              </ul>
+            </section>
+          }
+
+          @if (pendingOrder(); as order) {
+            <section class="info__section info__section--pending">
+              <h3 class="info__h">Upgrade in progress</h3>
+              <p class="info__pending">
+                Building → L{{ order.targetLevel }} ·
+                ETA {{ order.completionDay - clockDay() }}d
+              </p>
+            </section>
+          }
+
+          <section class="info__section">
+            <h3 class="info__h">Upgrade</h3>
+            @if (upgradePlan(); as plan) {
+              @if (plan.atMax) {
+                <p class="info__hint">Already at max level (L{{ h.level }}).</p>
+              } @else if (plan.pendingLevel) {
+                <button type="button" class="info__btn" disabled>
+                  Upgrading to L{{ plan.pendingLevel }}…
+                </button>
+              } @else {
+                <div class="info__upgrade">
+                  <button
+                    type="button"
+                    class="info__btn"
+                    [disabled]="!plan.affordable"
+                    (click)="upgrade()"
+                  >
+                    Upgrade to L{{ plan.targetLevel }}
+                    <span class="info__btn-meta">${{ plan.money | number: '1.0-0' }} · {{ plan.days }}d</span>
+                    <div class="tooltip" role="tooltip">
+                      <div class="tooltip__row">
+                        <span class="tooltip__k">Cost</span>
+                        <span class="tooltip__v">${{ plan.money | number: '1.0-0' }}</span>
+                      </div>
+                      <div class="tooltip__row">
+                        <span class="tooltip__k">Time</span>
+                        <span class="tooltip__v">{{ plan.days }} days</span>
+                      </div>
+                      @if (plan.resourceCost.length) {
+                        <div class="tooltip__divider"></div>
+                        <div class="tooltip__sub">Resource cost</div>
+                        @for (r of plan.resourceCost; track r.key) {
+                          <div class="tooltip__row">
+                            <span class="tooltip__k">{{ r.label }}</span>
+                            <span class="tooltip__v">{{ r.value }}</span>
+                          </div>
+                        }
+                      }
+                      @if (plan.deltas.length) {
+                        <div class="tooltip__divider"></div>
+                        <div class="tooltip__sub">Yield (per day)</div>
+                        @for (d of plan.deltas; track d.key) {
+                          <div class="tooltip__row">
+                            <span class="tooltip__k">{{ d.label }}</span>
+                            <span class="tooltip__v">
+                              {{ d.current }} → {{ d.next }}
+                              <span class="tooltip__delta">{{ d.delta }}</span>
+                            </span>
+                          </div>
+                        }
+                      }
+                      @if (!plan.affordable) {
+                        <div class="tooltip__divider"></div>
+                        <div class="tooltip__warn">Insufficient funds or resources.</div>
+                      }
+                    </div>
+                  </button>
+                </div>
+              }
+            }
+          </section>
+        </div>
+      </div>
+    </div>
+  }
+}

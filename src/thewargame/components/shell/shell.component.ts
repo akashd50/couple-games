@@ -21,9 +21,11 @@ import { DialogsService } from '../../services/dialogs.service';
 import { GameService } from '../../services/game.service';
 import { IntelService } from '../../services/intel.service';
 import { MapService, type SlotInput } from '../../services/map.service';
+import type { PendingSlotInfo } from '../../pixi/build-slots';
 import { NewsService } from '../../services/news.service';
 import { ResearchService } from '../../services/research.service';
 import { ResourceService } from '../../services/resource.service';
+import { HubInfoDialogComponent } from '../dialogs/hub-info-dialog/hub-info-dialog.component';
 
 @Component({
     selector: 'wg-shell',
@@ -35,6 +37,7 @@ import { ResourceService } from '../../services/resource.service';
         NewsTickerComponent,
         SidePanelComponent,
         BuildDialogComponent,
+        HubInfoDialogComponent,
         TechTreeDialogComponent,
     ],
     providers: [
@@ -65,31 +68,46 @@ export class ShellComponent implements OnInit, OnDestroy {
     private readonly dialogs = inject(DialogsService);
 
     constructor() {
-        // Sync player regions + pending build orders → map slot indicators.
-        // Reads map.ready() so the effect re-runs once Pixi has loaded geo.
+        // Sync player regions + pending build orders → map slot indicators
+        // (kind + progress). Re-runs each tick (via clock.day signal) so the
+        // arc grows smoothly as construction advances.
         effect(() => {
             const mapReady = this.map.ready();
             const playerRegions = this.game.playerRegions();
             const orders = this.construction.orders();
+            const currentDay = this.clock.day();
             if (!mapReady) return;
-            const pendingByRegion = new Map<string, Set<number>>();
+            const pendingByRegion = new Map<string, Map<number, PendingSlotInfo>>();
             for (const o of orders) {
-                if (o.slotIndex === undefined) continue;
-                let set = pendingByRegion.get(o.regionId);
-                if (!set) {
-                    set = new Set();
-                    pendingByRegion.set(o.regionId, set);
+                let slotIndex = o.slotIndex;
+                let isUpgrade = false;
+                if (slotIndex === undefined && o.hubId !== undefined) {
+                    const region = this.game.getRegion(o.regionId);
+                    const hub = region?.hubs.find((h) => h.id === o.hubId);
+                    if (!hub) continue;
+                    slotIndex = hub.slotIndex;
+                    isUpgrade = true;
                 }
-                set.add(o.slotIndex);
+                if (slotIndex === undefined) continue;
+                const span = Math.max(1, o.completionDay - o.startDay);
+                const progress = Math.max(0, Math.min(1, (currentDay - o.startDay) / span));
+                let m = pendingByRegion.get(o.regionId);
+                if (!m) {
+                    m = new Map();
+                    pendingByRegion.set(o.regionId, m);
+                }
+                m.set(slotIndex, { kind: o.hubKind, progress, isUpgrade });
             }
             const input: SlotInput[] = playerRegions.map((state) => ({
                 state,
-                pendingSlotIndices: pendingByRegion.get(state.id) ?? new Set(),
+                pendingBySlotIndex: pendingByRegion.get(state.id) ?? new Map(),
             }));
             this.map.setSlotData(input);
         });
 
-        // When the user clicks a build slot on the map, open the build dialog.
+        // When the user clicks a build slot on the map: built hub → info modal;
+        // empty + idle → build catalog; pending (slot or hub being upgraded) →
+        // suppressed (the progress arc is already telling them the story).
         effect(() => {
             const pick = this.map.slotPicked();
             if (!pick) return;
@@ -99,8 +117,25 @@ export class ShellComponent implements OnInit, OnDestroy {
                 return;
             }
             const occupied = state.hubs.find((h) => h.slotIndex === pick.slotIndex);
+            const orders = this.construction.ordersFor(state.id);
+            const slotPending = orders.some(
+                (o) => o.slotIndex === pick.slotIndex,
+            );
+            const hubPending = occupied
+                ? orders.some((o) => o.hubId === occupied.id)
+                : false;
+            if (slotPending) {
+                this.map.clearSlotPicked();
+                return;
+            }
             if (occupied) {
-                this.dialogs.openUpgrade(state.id, occupied.id);
+                if (hubPending) {
+                    // Still show the info modal so the user can see the building's
+                    // stats; the dialog renders the upgrade pending banner itself.
+                    this.dialogs.openHubInfo(state.id, occupied.id);
+                } else {
+                    this.dialogs.openHubInfo(state.id, occupied.id);
+                }
             } else {
                 this.dialogs.openNewBuild(state.id, pick.slotIndex);
             }

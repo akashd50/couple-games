@@ -1,0 +1,286 @@
+@use '../../../styles/shared' as *;
+
+:host {
+  display: contents;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+
+  &__panel {
+    background: $panel;
+    border: 1px solid $border;
+    border-radius: $radius;
+    box-shadow: $shadow;
+    width: min(560px, 100%);
+    max-height: min(80dvh, 720px);
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $border;
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: $accent-soft;
+    color: $accent;
+    flex-shrink: 0;
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  &__lv {
+    color: $muted;
+    font-weight: 500;
+    margin-left: 0.35rem;
+  }
+
+  &__sub {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: $muted;
+  }
+
+  &__money {
+    margin-left: auto;
+    background: $field-bg;
+    border: 1px solid $border;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__close {
+    appearance: none;
+    background: transparent;
+    border: 1px solid $border;
+    color: $muted;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+
+    &:hover {
+      background: $accent-soft;
+      color: $accent;
+      border-color: $accent-soft;
+    }
+  }
+
+  &__body {
+    padding: 0.9rem;
+    overflow: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: $muted;
+  font-size: 0.85em;
+  margin-left: 0.4rem;
+}
+
+.info {
+  &__desc {
+    margin: 0;
+    color: $muted;
+    font-size: 0.85rem;
+  }
+
+  &__section {
+    background: $field-bg;
+    border: 1px solid $border;
+    border-radius: 8px;
+    padding: 0.55rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    &--pending {
+      border-color: $accent-soft;
+    }
+  }
+
+  &__h {
+    margin: 0;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: $muted;
+    font-weight: 600;
+  }
+
+  &__chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+
+    li {
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--ok);
+      color: var(--ok);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      background: $panel;
+    }
+  }
+
+  &__pending {
+    margin: 0;
+    font-size: 0.82rem;
+    color: $accent;
+  }
+
+  &__hint {
+    margin: 0;
+    color: $muted;
+    font-size: 0.78rem;
+  }
+
+  &__upgrade {
+    position: relative;
+  }
+
+  &__btn {
+    position: relative;
+    appearance: none;
+    border: 1px solid $accent;
+    background: $accent;
+    color: white;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.45rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    min-width: 180px;
+
+    &:hover:not(:disabled) {
+      filter: brightness(1.05);
+    }
+
+    &:hover:not(:disabled) .tooltip,
+    &:focus-visible:not(:disabled) .tooltip {
+      opacity: 1;
+      transform: translateX(0.6rem) translateY(0);
+      pointer-events: auto;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      background: $field-bg;
+      color: $muted;
+      border-color: $border;
+    }
+  }
+
+  &__btn-meta {
+    font-size: 0.72rem;
+    opacity: 0.9;
+    font-weight: 500;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: 240px;
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: 8px;
+  box-shadow: $shadow;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.75rem;
+  color: $ink;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0.3rem) translateY(0.2rem);
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  &__k {
+    color: $muted;
+  }
+
+  &__v {
+    font-variant-numeric: tabular-nums;
+    color: $ink;
+  }
+
+  &__delta {
+    color: var(--ok);
+    margin-left: 0.3rem;
+    font-weight: 600;
+  }
+
+  &__sub {
+    color: $muted;
+    text-transform: uppercase;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    margin-top: 0.1rem;
+  }
+
+  &__divider {
+    height: 1px;
+    background: $border;
+    margin: 0.2rem 0;
+  }
+
+  &__warn {
+    color: var(--danger);
+    font-size: 0.72rem;
+  }
+}

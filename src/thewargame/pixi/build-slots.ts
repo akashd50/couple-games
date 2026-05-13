@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
-import type { RegionState } from '../models/game.types';
+import { drawHubGlyph } from '../data/hub-icons';
+import type { Hub, HubKind, RegionState } from '../models/game.types';
 import type { Region } from '../models/geo.types';
 import { pointInRegion } from './hit-test';
 
@@ -12,17 +13,26 @@ export interface SlotPosition {
   readonly slotIndex: number;
 }
 
+export interface PendingSlotInfo {
+  readonly kind: HubKind;
+  /** 0..1 build progress (start → completion). */
+  readonly progress: number;
+  /** True if upgrading an existing hub (vs. new build on an empty slot). */
+  readonly isUpgrade: boolean;
+}
+
 export interface SlotsRendererPalette {
   readonly empty: number;
   readonly occupied: number;
   readonly pending: number;
+  readonly progress: number;
 }
 
-interface RegionSlotsInput {
+export interface RegionSlotsInput {
   readonly state: RegionState;
   readonly region: Region;
-  /** Slot indices that currently have an order pending. */
-  readonly pendingSlotIndices: ReadonlySet<number>;
+  /** Pending build/upgrade orders keyed by slotIndex. */
+  readonly pendingBySlotIndex: ReadonlyMap<number, PendingSlotInfo>;
 }
 
 /**
@@ -140,13 +150,12 @@ export class BuildSlotsRenderer {
     for (const it of this.regionsInput) {
       const key = `${it.state.id}:${it.state.slots}`;
       const positions = this.slotsCache.get(key) ?? [];
-      const filledIndices = new Set<number>();
-      for (const h of it.state.hubs) filledIndices.add(h.slotIndex);
+      const hubBySlot = new Map<number, Hub>();
+      for (const h of it.state.hubs) hubBySlot.set(h.slotIndex, h);
       for (const pos of positions) {
-        const occupied = filledIndices.has(pos.slotIndex);
-        const pending = !occupied && it.pendingSlotIndices.has(pos.slotIndex);
-        const color = occupied ? this.palette.occupied : pending ? this.palette.pending : this.palette.empty;
-        const g = drawSlot(pos.x, pos.y, color, occupied);
+        const hub = hubBySlot.get(pos.slotIndex) ?? null;
+        const pending = it.pendingBySlotIndex.get(pos.slotIndex) ?? null;
+        const g = drawSlot(pos.x, pos.y, hub, pending, this.palette);
         this.container.addChild(g);
         out.push(pos);
       }
@@ -155,20 +164,59 @@ export class BuildSlotsRenderer {
   }
 }
 
-function drawSlot(x: number, y: number, color: number, filled: boolean): Graphics {
+function drawSlot(
+  x: number,
+  y: number,
+  hub: Hub | null,
+  pending: PendingSlotInfo | null,
+  palette: SlotsRendererPalette,
+): Graphics {
   // Radius in world units; visible at subdivision zoom (~scale 3+).
-  const r = 1.5;
+  const r = 1.7;
   const g = new Graphics();
-  g.circle(x, y, r).fill({ color, alpha: filled ? 1 : 0.85 });
+  const occupied = hub !== null;
+  const newBuildPending = !occupied && pending !== null;
+
+  const baseColor = occupied ? palette.occupied : newBuildPending ? palette.pending : palette.empty;
+  const baseAlpha = occupied ? 1 : 0.85;
+  g.circle(x, y, r).fill({ color: baseColor, alpha: baseAlpha });
   g.stroke({ color: 0xffffff, width: 0.2, alpha: 0.9, pixelLine: true });
-  // Plus marker inside (only visible when empty).
-  if (!filled) {
+
+  if (occupied) {
+    drawHubGlyph(g, hub.kind, x, y, r * 0.72, 0xffffff);
+  } else if (newBuildPending && pending) {
+    drawHubGlyph(g, pending.kind, x, y, r * 0.72, 0xffffff);
+  } else {
+    // Empty: small plus marker.
     const m = r * 0.55;
     g.moveTo(x - m, y).lineTo(x + m, y);
     g.moveTo(x, y - m).lineTo(x, y + m);
     g.stroke({ color: 0xffffff, width: 0.35, alpha: 1, pixelLine: true });
   }
+
+  if (pending) {
+    drawProgressArc(g, x, y, r + 0.55, pending.progress, palette.progress);
+  }
   return g;
+}
+
+function drawProgressArc(
+  g: Graphics,
+  cx: number,
+  cy: number,
+  radius: number,
+  progress: number,
+  color: number,
+): void {
+  const clamped = Math.max(0, Math.min(1, progress));
+  // Faint full-circle backdrop.
+  g.circle(cx, cy, radius);
+  g.stroke({ color: 0xffffff, width: 0.25, alpha: 0.35, pixelLine: true });
+  if (clamped <= 0) return;
+  const start = -Math.PI / 2;
+  const end = start + Math.PI * 2 * clamped;
+  g.arc(cx, cy, radius, start, end);
+  g.stroke({ color, width: 0.5, alpha: 1, pixelLine: true });
 }
 
 function hashSeed(s: string): number {

@@ -11,9 +11,10 @@ import {
 } from '@angular/core';
 import {DecimalPipe} from '@angular/common';
 import {ReactiveFormsModule, FormControl} from '@angular/forms';
-import {buildDays, buildMoneyCost, hubSpec} from '../../../data/hubs';
+import {buildDays, buildMoneyCost, buildResourceCost, hubSpec} from '../../../data/hubs';
 import {RESOURCE_KINDS, RESOURCE_LABELS} from '../../../models/game.types';
-import type {Hub, HubKind, RegionState, ResourceKind} from '../../../models/game.types';
+import type {Hub, HubKind, RegionState, ResourceBag, ResourceKind} from '../../../models/game.types';
+import {ClockService} from '../../../services/clock.service';
 import {ConstructionService} from '../../../services/construction.service';
 import {DialogsService} from '../../../services/dialogs.service';
 import {GameService} from '../../../services/game.service';
@@ -22,6 +23,7 @@ import {MapService} from '../../../services/map.service';
 import {ResearchService} from '../../../services/research.service';
 import {ResourceService} from '../../../services/resource.service';
 import {DebugPanelComponent} from "../debug-panel/debug-panel.component";
+import {HubIconComponent} from "../hub-icon/hub-icon.component";
 
 type Tab = 'resources' | 'build' | 'agencies' | 'tech' | 'military' | 'dev';
 
@@ -65,10 +67,32 @@ interface HubSummaryRow {
     readonly totalLevel: number;
 }
 
+interface PendingSlotMeta {
+    readonly kind: HubKind;
+    readonly targetLevel: number;
+    readonly progress: number;
+    readonly etaDays: number;
+    readonly isUpgrade: boolean;
+}
+
 interface SlotRow {
     readonly index: number;
     readonly hub: Hub | null;
-    readonly pendingLabel: string | null;
+    readonly pending: PendingSlotMeta | null;
+}
+
+interface ResCostChip {
+    readonly key: ResourceKind;
+    readonly label: string;
+    readonly value: string;
+}
+
+interface UpgradeTooltip {
+    readonly money: number;
+    readonly days: number;
+    readonly resourceCost: ReadonlyArray<ResCostChip>;
+    readonly deltas: ReadonlyArray<{ key: ResourceKind; label: string; current: string; next: string; delta: string }>;
+    readonly affordable: boolean;
 }
 
 interface YieldRow {
@@ -81,7 +105,7 @@ interface YieldRow {
 @Component({
     selector: 'wg-side-panel',
     standalone: true,
-    imports: [DecimalPipe, ReactiveFormsModule, DebugPanelComponent],
+    imports: [DecimalPipe, ReactiveFormsModule, DebugPanelComponent, HubIconComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './side-panel.component.html',
     styleUrl: './side-panel.component.scss',
@@ -94,6 +118,7 @@ export class SidePanelComponent {
     private readonly intel = inject(IntelService);
     private readonly map = inject(MapService);
     private readonly dialogs = inject(DialogsService);
+    private readonly clock = inject(ClockService);
 
     readonly tabs = isDevMode() ? [DEV_TAB, ...TABS] : TABS;
     readonly activeTab = signal<Tab>('resources');
@@ -222,34 +247,40 @@ export class SidePanelComponent {
 
     readonly buildRegionName = computed<string>(() => this.selectedRegion()?.name ?? '—');
 
-    readonly pendingUpgrades = computed<ReadonlyMap<string, number>>(() => {
-        const state = this.buildRegionState();
-        if (!state) return new Map();
-        const out = new Map<string, number>();
-        for (const o of this.construction.ordersFor(state.id)) {
-            if (o.hubId !== undefined) out.set(o.hubId, o.targetLevel);
-        }
-        return out;
-    });
-
     readonly slotRows = computed<SlotRow[]>(() => {
         const state = this.buildRegionState();
         if (!state) return [];
         const orders = this.construction.ordersFor(state.id);
-        const pendingByIdx = new Map<number, string>();
-        for (const o of orders) {
-            if (o.slotIndex !== undefined) {
-                pendingByIdx.set(o.slotIndex, `${hubSpec(o.hubKind).short} L${o.targetLevel} pending`);
-            }
-        }
+        const day = this.clock.day();
         const hubBySlot = new Map<number, Hub>();
         for (const h of state.hubs) hubBySlot.set(h.slotIndex, h);
+        const pendingBySlot = new Map<number, PendingSlotMeta>();
+        for (const o of orders) {
+            let slotIndex = o.slotIndex;
+            let isUpgrade = false;
+            if (slotIndex === undefined && o.hubId !== undefined) {
+                const h = state.hubs.find((x) => x.id === o.hubId);
+                if (!h) continue;
+                slotIndex = h.slotIndex;
+                isUpgrade = true;
+            }
+            if (slotIndex === undefined) continue;
+            const span = Math.max(1, o.completionDay - o.startDay);
+            const progress = Math.max(0, Math.min(1, (day - o.startDay) / span));
+            pendingBySlot.set(slotIndex, {
+                kind: o.hubKind,
+                targetLevel: o.targetLevel,
+                progress,
+                etaDays: Math.max(0, o.completionDay - day),
+                isUpgrade,
+            });
+        }
         const rows: SlotRow[] = [];
         for (let i = 0; i < state.slots; i++) {
             rows.push({
                 index: i,
                 hub: hubBySlot.get(i) ?? null,
-                pendingLabel: pendingByIdx.get(i) ?? null,
+                pending: pendingBySlot.get(i) ?? null,
             });
         }
         return rows;
@@ -307,20 +338,80 @@ export class SidePanelComponent {
         return buildDays(hub.kind, hub.level + 1);
     }
 
-    pendingUpgradeLevel(hub: Hub): number | null {
-        return this.pendingUpgrades().get(hub.id) ?? null;
-    }
-
     openBuild(slotIndex: number): void {
         const state = this.buildRegionState();
         if (!state) return;
         this.dialogs.openNewBuild(state.id, slotIndex);
     }
 
-    openUpgrade(hub: Hub): void {
+    /** Queue an upgrade directly — no modal; the hover tooltip shows details. */
+    queueUpgrade(hub: Hub): void {
         const state = this.buildRegionState();
         if (!state) return;
-        this.dialogs.openUpgrade(state.id, hub.id);
+        this.construction.upgrade(state, hub, this.clock.day(), this.clock.date());
+    }
+
+    /** Hub kind icon helper for occupied slot rows. */
+    hubKind(hub: Hub): HubKind {
+        return hub.kind;
+    }
+
+    upgradeTooltip(hub: Hub): UpgradeTooltip {
+        const state = this.buildRegionState();
+        const target = hub.level + 1;
+        const moneyCost = buildMoneyCost(hub.kind, target);
+        const resourceBag = buildResourceCost(hub.kind, target);
+        const resourceCost: ResCostChip[] = [];
+        for (const k of RESOURCE_KINDS) {
+            if (resourceBag[k] > 0) {
+                resourceCost.push({key: k, label: RESOURCE_LABELS[k], value: resourceBag[k].toFixed(1)});
+            }
+        }
+        const deltas: Array<{ key: ResourceKind; label: string; current: string; next: string; delta: string }> = [];
+        if (state) {
+            const spec = hubSpec(hub.kind);
+            for (const k of RESOURCE_KINDS) {
+                const v = spec.yieldBonusPerLevel[k];
+                if (!v) continue;
+                const current = this.resources.yieldFor(state, k);
+                const simulated: RegionState = {
+                    ...state,
+                    hubs: state.hubs.map((h) => (h.id === hub.id ? {...h, level: target} : h)),
+                };
+                const next = this.resources.yieldFor(simulated, k);
+                deltas.push({
+                    key: k,
+                    label: RESOURCE_LABELS[k],
+                    current: current.toFixed(2),
+                    next: next.toFixed(2),
+                    delta: `+${(next - current).toFixed(2)}`,
+                });
+            }
+        }
+        return {
+            money: moneyCost,
+            days: buildDays(hub.kind, target),
+            resourceCost,
+            deltas,
+            affordable: this.canAfford(moneyCost, resourceBag),
+        };
+    }
+
+    private canAfford(money: number, cost: ResourceBag): boolean {
+        const me = this.playerNation();
+        if (!me) return false;
+        if (me.money < money) return false;
+        for (const k of RESOURCE_KINDS) {
+            if ((cost[k] ?? 0) > me.stockpiles[k]) return false;
+        }
+        return true;
+    }
+
+    /** Stroke-dasharray length for a progress ring of given radius. */
+    ringStroke(radius: number, progress: number): string {
+        const c = 2 * Math.PI * radius;
+        const filled = c * Math.max(0, Math.min(1, progress));
+        return `${filled} ${c}`;
     }
 
     clearRegionSelection(): void {

@@ -10,7 +10,6 @@ import {
 } from '../../../data/hubs';
 import { RESOURCE_KINDS, RESOURCE_LABELS } from '../../../models/game.types';
 import type {
-  Hub,
   HubKind,
   RegionState,
   ResourceBag,
@@ -21,6 +20,7 @@ import { ConstructionService } from '../../../services/construction.service';
 import { DialogsService } from '../../../services/dialogs.service';
 import { GameService } from '../../../services/game.service';
 import { MapService } from '../../../services/map.service';
+import { HubIconComponent } from '../../hud/hub-icon/hub-icon.component';
 
 interface ResCostRow {
   readonly key: ResourceKind;
@@ -54,7 +54,7 @@ interface ResourceCost {
 @Component({
   selector: 'wg-build-dialog',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, HubIconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './build-dialog.component.html',
   styleUrl: './build-dialog.component.scss',
@@ -80,13 +80,6 @@ export class BuildDialogComponent {
     return this.map.getRegion(s.regionId)?.name ?? s.regionId;
   });
 
-  readonly upgradeTarget = computed<Hub | null>(() => {
-    const s = this.state();
-    if (!s || !s.hubId) return null;
-    const region = this.region();
-    return region?.hubs.find((h) => h.id === s.hubId) ?? null;
-  });
-
   readonly catalogEntries = computed<CatalogEntry[]>(() => {
     const region = this.region();
     if (!region) return [];
@@ -106,24 +99,6 @@ export class BuildDialogComponent {
     });
   });
 
-  readonly upgradeEntry = computed<CatalogEntry | null>(() => {
-    const hub = this.upgradeTarget();
-    if (!hub) return null;
-    const spec = hubSpec(hub.kind);
-    const target = hub.level + 1;
-    return {
-      kind: hub.kind,
-      name: `${spec.name} → L${target}`,
-      description: spec.description,
-      moneyCost: buildMoneyCost(hub.kind, target),
-      days: buildDays(hub.kind, target),
-      eligible: true,
-      resourceCost: this.formatResourceCost(buildResourceCost(hub.kind, target)),
-      bonuses: this.bonusRowsFor(hub.kind),
-    };
-  });
-
-  /** Money the player has, used to display affordability hints. */
   readonly playerMoney = computed<number>(() => this.game.playerNation()?.money ?? 0);
 
   isAffordable(entry: CatalogEntry): boolean {
@@ -141,22 +116,14 @@ export class BuildDialogComponent {
     const state = this.state();
     const region = this.region();
     if (!state || !region) return;
-    if (state.hubId !== undefined) {
-      // Upgrade flow.
-      const hub = this.upgradeTarget();
-      if (!hub) return;
-      const order = this.construction.upgrade(region, hub, this.clock.day(), this.clock.date());
-      if (order) this.dialogs.closeBuild();
-    } else if (state.slotIndex !== undefined) {
-      const order = this.construction.build(
-        region,
-        entry.kind,
-        state.slotIndex,
-        this.clock.day(),
-        this.clock.date(),
-      );
-      if (order) this.dialogs.closeBuild();
-    }
+    const order = this.construction.build(
+      region,
+      entry.kind,
+      state.slotIndex,
+      this.clock.day(),
+      this.clock.date(),
+    );
+    if (order) this.dialogs.closeBuild();
   }
 
   close(): void {

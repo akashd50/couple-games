@@ -2,7 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Application, Container, Graphics } from 'pixi.js';
 import { Camera, type CameraState } from '../pixi/camera';
 import { MapRenderer, type MapPalette } from '../pixi/map-renderer';
-import { BuildSlotsRenderer, type SlotPosition } from '../pixi/build-slots';
+import { BuildSlotsRenderer, type PendingSlotInfo, type SlotPosition } from '../pixi/build-slots';
 import { pickRegion } from '../pixi/hit-test';
 import type { RegionState } from '../models/game.types';
 import type { Region, RegionIndex } from '../models/geo.types';
@@ -20,7 +20,7 @@ const SLOT_HIT_RADIUS_PX = 14;
 
 export interface SlotInput {
   readonly state: RegionState;
-  readonly pendingSlotIndices: ReadonlySet<number>;
+  readonly pendingBySlotIndex: ReadonlyMap<number, PendingSlotInfo>;
 }
 
 export interface SlotPick {
@@ -237,12 +237,12 @@ export class MapService {
     const enriched: Array<{
       state: RegionState;
       region: Region;
-      pendingSlotIndices: ReadonlySet<number>;
+      pendingBySlotIndex: ReadonlyMap<number, PendingSlotInfo>;
     }> = [];
     for (const it of input) {
       const region = this.regionIndex.byId.get(it.state.id);
       if (!region) continue;
-      enriched.push({ state: it.state, region, pendingSlotIndices: it.pendingSlotIndices });
+      enriched.push({ state: it.state, region, pendingBySlotIndex: it.pendingBySlotIndex });
     }
     this.slotsRenderer.setRegions(enriched);
     this.updateSlotVisibility();
@@ -440,11 +440,17 @@ function makeLayer(label: string): Container {
   return c;
 }
 
-function slotPalette(p: MapPalette): { empty: number; occupied: number; pending: number } {
+function slotPalette(p: MapPalette): {
+  empty: number;
+  occupied: number;
+  pending: number;
+  progress: number;
+} {
   return {
     empty: p.hover,
     occupied: p.selected,
     pending: p.borderSubdivision,
+    progress: p.hover,
   };
 }
 
