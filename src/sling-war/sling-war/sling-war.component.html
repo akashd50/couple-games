@@ -1,0 +1,34 @@
+<div class="sg-shell">
+    <div class="sg-topbar">
+        <a routerLink="/home" class="sg-back-btn">&larr; Back</a>
+        <span class="sg-game-title">Sling War</span>
+        @if (phase()) {
+            <span class="sg-phase">{{ phase() }}</span>
+        }
+        @if (roomCode()) {
+            <span class="sg-room-code">{{ roomCode() }}</span>
+        }
+    </div>
+    <div class="sg-content">
+        @switch (phase()) {
+            @case ('waiting') {
+                <sg-lobby/>
+            }
+            @case ('building') {
+                <sg-building/>
+            }
+            @case ('trivia') {
+                <sg-trivia/>
+            }
+            @case ('battle') {
+                <sg-battle/>
+            }
+            @case ('finished') {
+                <sg-battle/>
+            }
+            @default {
+                <sg-lobby/>
+            }
+        }
+    </div>
+</div>
