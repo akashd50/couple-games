@@ -1,14 +1,15 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, map, Observable, ReplaySubject, shareReplay, Subject } from 'rxjs';
+import { BehaviorSubject, filter, from, map, Observable, shareReplay, tap } from 'rxjs';
 import { SocketService } from '../../../mirror-sketch/services/socket.service';
-import type { RoomState } from '../../../mirror-sketch/models/game.types';
-import { SlingWarGame, SlingWarPhase, SlingWarRoomState } from '../../game.types';
+import { SlingWarGame, SlingWarGamePlayer, SlingWarPhase, SlingWarRoomState } from '../../game.types';
+import { Role } from "../../../mirror-sketch/models/game.types";
 
 @Injectable({providedIn: 'root'})
-export class StateService {
+export class SlingWarStateService {
     private readonly roomStateSubject = new BehaviorSubject<SlingWarRoomState | undefined>(undefined);
     readonly roomState$ = this.roomStateSubject.asObservable().pipe(shareReplay({bufferSize: 1, refCount: true}));
-    private _mySlot: 'p1' | 'p2' | null = null;
+    private _myId: string;
+    private _player: SlingWarGamePlayer;
 
     get phase$(): Observable<SlingWarPhase> {
         return this.roomState$.pipe(map(s => s.game.phase));
@@ -22,17 +23,12 @@ export class StateService {
         return this.roomStateSubject.value?.game;
     }
 
-    get mySlot(): 'p1' | 'p2' | null {
-        return this._mySlot;
-    }
-
-    setMySlot(slot: 'p1' | 'p2'): void {
-        this._mySlot = slot;
+    get player(): SlingWarGamePlayer {
+        return this._player;
     }
 
     readyForBuilding(): void {
-        if (!this._mySlot) return;
-        this.socket.sendGameReady(this._mySlot);
+        this.socket.sendGameReady();
     }
 
     sendLayout(layout: { p1: unknown[]; p2: unknown[] }): void {
@@ -40,17 +36,15 @@ export class StateService {
     }
 
     sendTriviaAsked(): void {
-        if (!this._mySlot) return;
-        this.socket.sendTriviaAsked(this._mySlot);
+        this.socket.sendTriviaAsked();
     }
 
-    awardPoint(toSlot: 'p1' | 'p2'): void {
-        this.socket.sendTriviaAwarded(toSlot);
+    awardPoint(): void {
+        this.socket.sendTriviaAwarded();
     }
 
     readyForBattle(): void {
-        if (!this._mySlot) return;
-        this.socket.sendBattleReady(this._mySlot);
+        this.socket.sendBattleReady();
     }
 
     sendBattleSync(positions: { x: number; y: number; angle: number }[]): void {
@@ -69,7 +63,32 @@ export class StateService {
                 return;
             }
 
+            this._player = roomState.players.find(p => p.id === this._myId);
             this.roomStateSubject.next(roomState);
         });
+    }
+
+    public createRoom(): Observable<SlingWarRoomState> {
+        return from(this.socket.createRoomWithGame()).pipe(
+            filter(f => f.ok && !!f.state),
+            tap(f => this._myId = f.you),
+            map(f => f.state as SlingWarRoomState)
+        );
+    }
+
+    public joinRoom(code: string): Observable<SlingWarRoomState> {
+        return from(this.socket.joinRoomWithGame(code)).pipe(
+            filter(f => f.ok && !!f.state),
+            tap(f => this._myId = f.you),
+            map(f => f.state as SlingWarRoomState)
+        );
+    }
+
+    public selectRole(role: Role): Observable<boolean> {
+        return from(this.socket.chooseRole(role)).pipe(filter(f => f.ok), map(f => f.ok));
+    }
+
+    public readyUp(): void {
+        this.socket.sendGameReady();
     }
 }

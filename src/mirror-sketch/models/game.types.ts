@@ -1,20 +1,8 @@
+import { SlingWarRoomState } from "../../sling-war/game.types";
+import { RoomState } from "../../common-types";
+
 export type Role = 'drawer' | 'describer' | "player1" | "player2";
 
-export interface Player {
-    id: string;
-    role: Role | null;
-}
-
-export interface RoomState {
-    code: string;
-    sceneId: string | null;
-    // Whether the describer wants to watch the live drawing (false = surprise mode).
-    spectator: boolean;
-    players: Player[];
-    // Sling War game state (only present in sling-war rooms).
-    game?: Record<string, unknown>;
-    gameType?: string;
-}
 
 export interface GameStartedPayload {
     sceneId: string | null;
@@ -46,6 +34,6 @@ export interface AckResponse<T = unknown> {
     error?: string;
     code?: string;
     you?: string;
-    state?: RoomState;
+    state?: RoomState | SlingWarRoomState;
     data?: T;
 }

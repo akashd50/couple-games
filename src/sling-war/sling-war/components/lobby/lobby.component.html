@@ -25,21 +25,23 @@
             <div class="sg-code-box">Room: <span class="sg-code-value">{{ roomCode() }}</span></div>
             <p class="sg-invite">Share this code with your opponent</p>
 
-            @if (!mySlot()) {
-                <div class="sg-pick-slot">
-                    <p>Choose your slot:</p>
-                    <button class="sg-btn" (click)="pickSlot('p1')">Player 1 (Left)</button>
-                    <button class="sg-btn" (click)="pickSlot('p2')">Player 2 (Right)</button>
-                </div>
-            }
-
-            @if (mySlot()) {
-                @if (!isReady()) {
-                    <button class="sg-btn sg-btn-ready" (click)="readyUp()">Ready Up!</button>
-                } @else {
-                    <p class="sg-ready-text">You're ready! Waiting for opponent...</p>
-                }
-            }
+            <div class="sg-pick-slot">
+                <p>Choose your slot:</p>
+                <button
+                        class="sg-btn"
+                        [ngClass]="isReady() && player().role === 'player1' ? 'sg-btn-ready' : []"
+                        [disabled]="p1Ready()"
+                        (click)="player().role === 'player1' ? readyUp() : pickSlot('player1')"
+                >{{ isReady() && player().role === 'player1' ? "Ready" : player().role === 'player1' ? "Ready up" : "Select Player 1" }}
+                </button>
+                <button
+                        class="sg-btn"
+                        [ngClass]="isReady() &&player().role === 'player2' ? 'sg-btn-ready' : []"
+                        [disabled]="p2Ready()"
+                        (click)="player().role === 'player2' ? readyUp() : pickSlot('player2')"
+                >{{ isReady() && player().role === 'player2' ? "Ready" : player().role === 'player2' ? "Ready up" : "Select Player 2" }}
+                </button>
+            </div>
         </div>
     }
 </div>

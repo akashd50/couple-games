@@ -33,19 +33,8 @@ function makeDefaultGame(gameType) {
     if (gameType === 'sling-war') {
         return {
             phase: 'waiting',
-            layouts: {p1: [], p2: []},
-            p1Ready: false,
-            p2Ready: false,
-            triviaTurn: 'p1',
+            triviaTurn: 'player1',
             triviaAsked: false,
-            p1Awarded: false,
-            p2Awarded: false,
-            p1Points: 0,
-            p2Points: 0,
-            p1PowerUps: 0,
-            p2PowerUps: 0,
-            p1HeartDestroyed: false,
-            p2HeartDestroyed: false,
             battleActive: false,
             battleResult: null,
         };
@@ -53,12 +42,33 @@ function makeDefaultGame(gameType) {
     return null;
 }
 
+function getPlayer(gameType, p) {
+    let basicPlayer = {
+        id: p.id,
+        role: p.role,
+    };
+
+    if (gameType === "sling-war") {
+        return {
+            ...basicPlayer,
+            ready: p.ready,
+            layout: p.layout,
+            awarded: p.awarded,
+            points: p.points,
+            powerUps: p.powerUps,
+            heartsDestroyed: p.heartsDestroyed,
+        };
+    }
+
+    return basicPlayer;
+}
+
 function publicRoomState(room) {
     return {
         code: room.code,
         sceneId: room.sceneId,
         spectator: room.spectator,
-        players: room.players.map((p) => ({id: p.id, role: p.role})),
+        players: room.players.map((p) => getPlayer(room.gameType, p)),
         game: room.game,
         gameType: room.gameType,
     };
@@ -89,6 +99,7 @@ io.on('connection', (socket) => {
         socket.join(code);
         joinedCode = code;
         ack?.({ok: true, code, you: socket.id, state: publicRoomState(room)});
+        broadcastRoom(code);
     });
 
     socket.on('room:join', (payload, ack) => {
@@ -124,14 +135,20 @@ io.on('connection', (socket) => {
             return ack?.({ok: false, error: 'Invalid role'});
         }
         const me = room.players.find((p) => p.id === socket.id);
-        if (!me) return ack?.({ok: false, error: 'Not in this room'});
+        if (!me) {
+            return ack?.({ok: false, error: 'Not in this room'});
+        }
         // Auto-swap: if the partner already has this role and I have a role to give
         // back, hand them my old role so the room stays balanced (one of each).
-        const other = room.players.find((p) => p.id !== socket.id);
-        if (other && other.role === payload.role && me.role !== null) {
-            other.role = me.role;
+        const other = room.players.find((p) => p.id !== socket.id && p.role === payload.role);
+        if (other) {
+            other.role = me.role !== null ? me.role : null;
+            other.ready = false;
         }
+
         me.role = payload.role;
+        me.ready = false;
+
         ack?.({ok: true});
         broadcastRoom(joinedCode);
     });
@@ -156,16 +173,24 @@ io.on('connection', (socket) => {
     // ─────────────────────────────────────────────
 
     // Player signals ready (during building or battle)
-    socket.on('game:ready', (payload) => {
-        if (!joinedCode) return;
+    socket.on('game:ready', () => {
+        if (!joinedCode) {
+            return;
+        }
+
         const room = rooms.get(joinedCode);
-        if (!room || !room.game) return;
-        const slot = payload?.slot;
-        if (!slot || slot !== 'p1' && slot !== 'p2') return;
-        const key = slot === 'p1' ? 'p1Ready' : 'p2Ready';
-        room.game[key] = true;
-        // If both players ready, transition to building
-        if (room.game.p1Ready && room.game.p2Ready && room.game.phase === 'waiting') {
+        if (!room || !room.game) {
+            return;
+        }
+
+        const currentPlayer = room.players.find((p) => p.id === socket.id);
+        if (currentPlayer === null) {
+            return ack?.({ok: false, error: 'Player not in the room'});
+        }
+
+        currentPlayer.ready = !currentPlayer.ready;
+        // If all players ready, transition to building
+        if (room.players.length === 2 && !room.players.some(p => !p.ready) && room.game.phase === 'waiting') {
             room.game.phase = 'building';
         }
         broadcastRoom(joinedCode);

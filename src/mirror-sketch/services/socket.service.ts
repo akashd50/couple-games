@@ -1,7 +1,8 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
-import { AckResponse, DrawStroke, GameStartedPayload, Role, RoomState } from '../models/game.types';
+import { AckResponse, DrawStroke, GameStartedPayload, Role } from '../models/game.types';
+import { RoomState } from "../../common-types";
 
 // In dev the Angular server runs on a different port from the socket server.
 // Use absolute URL when present, otherwise same origin.
@@ -13,7 +14,7 @@ const SOCKET_URL =
 export class SocketService implements OnDestroy {
     private socket: Socket | null = null;
 
-    private readonly roomStateSubject = new Subject<RoomState>();
+    private readonly roomStateSubject = new ReplaySubject<RoomState>(1);
     private readonly drawStrokeSubject = new Subject<DrawStroke>();
     private readonly drawReplaySubject = new Subject<DrawStroke[]>();
     private readonly drawClearSubject = new Subject<void>();
@@ -126,24 +127,24 @@ export class SocketService implements OnDestroy {
         return this.emitWithAck('room:join', {code, gameType: 'sling-war'});
     }
 
-    sendGameReady(slot: 'p1' | 'p2'): void {
-        this.socket?.emit('game:ready', {slot});
+    sendGameReady(): void {
+        this.socket?.emit('game:ready');
     }
 
     sendGameLayout(layout: { p1: unknown[]; p2: unknown[] }): void {
         this.socket?.emit('game:layout', {layout});
     }
 
-    sendTriviaAsked(slot: 'p1' | 'p2'): void {
-        this.socket?.emit('game:trivia-asked', {slot});
+    sendTriviaAsked(): void {
+        this.socket?.emit('game:trivia-asked');
     }
 
-    sendTriviaAwarded(toSlot: 'p1' | 'p2'): void {
-        this.socket?.emit('game:trivia-awarded', {toSlot});
+    sendTriviaAwarded(): void {
+        this.socket?.emit('game:trivia-awarded');
     }
 
-    sendBattleReady(slot: 'p1' | 'p2'): void {
-        this.socket?.emit('game:battle-ready', {slot});
+    sendBattleReady(): void {
+        this.socket?.emit('game:battle-ready');
     }
 
     sendBattleSync(positions: { x: number; y: number; angle: number }[]): void {

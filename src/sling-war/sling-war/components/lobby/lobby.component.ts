@@ -1,11 +1,19 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import {
+    Component,
+    OnDestroy,
+    OnInit,
+    signal
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SocketService } from "../../../../mirror-sketch/services/socket.service";
-import { RoomState } from "../../../../mirror-sketch/models/game.types";
+import { SlingWarStateService } from "../../services/sling-war-state.service";
+import { SlingWarGamePlayer, SlingWarRoomState } from "../../../game.types";
+import { take } from "rxjs";
+import { NgClass } from "@angular/common";
+import { Role } from "../../../../mirror-sketch/models/game.types";
 
 @Component({
     selector: 'sg-lobby',
-    imports: [FormsModule],
+    imports: [FormsModule, NgClass],
     templateUrl: "lobby.component.html",
     styleUrls: ["./lobby.component.scss"],
     standalone: true,
@@ -13,66 +21,53 @@ import { RoomState } from "../../../../mirror-sketch/models/game.types";
 export class LobbyComponent implements OnDestroy, OnInit {
     joinCode = '';
     roomCode = signal<string | null>(null);
-    mySlot = signal<'p1' | 'p2' | null>(null);
     isReady = signal(false);
+    player = signal<SlingWarGamePlayer>(undefined);
     p1Ready = signal(false);
     p2Ready = signal(false);
 
-    constructor(
-        private socket: SocketService,
-    ) {
-        this.socket.roomState$.subscribe((roomState: RoomState) => {
-            const game = roomState.game;
-            if (!game) return;
-            this.roomCode.set(roomState.code);
-            this.p1Ready.set(!!game['p1Ready']);
-            this.p2Ready.set(!!game['p2Ready']);
-        });
+    constructor(private state: SlingWarStateService) {
     }
 
     ngOnInit(): void {
-        this.socket.connect();
+        this.state.roomState$.subscribe((roomState: SlingWarRoomState) => {
+            const game = roomState.game;
+            const player = this.state.player;
+            if (!game) {
+                return;
+            }
+            this.player.set(player);
+            this.roomCode.set(roomState.code);
+
+            this.isReady.set(player.ready);
+
+            const player1 = roomState.players.find(p => p.role === "player1");
+            const player2 = roomState.players.find(p => p.role === "player2");
+            this.p1Ready.set(!!player1?.ready);
+            this.p2Ready.set(!!player2?.ready);
+        });
     }
 
     ngOnDestroy(): void {
         // cleanup
     }
 
-    async createRoom(): Promise<void> {
-        const res = await this.socket.createRoomWithGame();
-        if (res.ok && res.state) {
-            this.roomCode.set(res.state.code);
-            const game = res.state.game as Record<string, unknown> | null;
-            if (game) {
-                this.p1Ready.set(!!game['p1Ready']);
-                this.p2Ready.set(!!game['p2Ready']);
-            }
-        }
+    createRoom() {
+        this.state.createRoom().pipe(take(1)).subscribe();
     }
 
-    async joinRoom(): Promise<void> {
-        if (this.joinCode.length !== 4) return;
-        const res = await this.socket.joinRoomWithGame(this.joinCode);
-        if (res.ok && res.state) {
-            this.roomCode.set(res.state.code);
-            const game = res.state.game as Record<string, unknown> | null;
-            if (game) {
-                this.p1Ready.set(!!game['p1Ready']);
-                this.p2Ready.set(!!game['p2Ready']);
-            }
+    joinRoom() {
+        if (this.joinCode.length !== 4) {
+            return;
         }
+        this.state.joinRoom(this.joinCode).pipe(take(1)).subscribe();
     }
 
-    pickSlot(slot: 'p1' | 'p2'): void {
-        this.mySlot.set(slot);
-        const role = slot === 'p1' ? 'player1' : 'player2';
-        this.socket.chooseRole(role);
+    pickSlot(role: Role): void {
+        this.state.selectRole(role).subscribe();
     }
 
     readyUp(): void {
-        this.isReady.set(true);
-        if (this.mySlot()) {
-            this.socket.sendGameReady(this.mySlot()!);
-        }
+        this.state.readyUp();
     }
 }
