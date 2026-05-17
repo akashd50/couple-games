@@ -49,50 +49,50 @@ import type { RoomState } from '../../mirror-sketch/models/game.types';
         </div>
     `,
     styles: [`
-      .sg-shell {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        background: var(--sg-bg, #1a1a2e);
-        color: var(--sg-text, #e0e0e0);
-      }
+        .sg-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--sg-bg, #1a1a2e);
+            color: var(--sg-text, #e0e0e0);
+        }
 
-      .sg-topbar {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.5rem 1rem;
-        background: var(--sg-topbar-bg, #16213e);
-        border-bottom: 1px solid var(--sg-border, #0f3460);
-        font-size: 0.875rem;
-      }
+        .sg-topbar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--sg-topbar-bg, #16213e);
+            border-bottom: 1px solid var(--sg-border, #0f3460);
+            font-size: 0.875rem;
+        }
 
-      .sg-back-btn {
-        color: var(--sg-accent, #e94560);
-        text-decoration: none;
-      }
+        .sg-back-btn {
+            color: var(--sg-accent, #e94560);
+            text-decoration: none;
+        }
 
-      .sg-game-title {
-        font-weight: 700;
-        font-size: 1.125rem;
-      }
+        .sg-game-title {
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
 
-      .sg-phase {
-        color: var(--sg-muted, #888);
-      }
+        .sg-phase {
+            color: var(--sg-muted, #888);
+        }
 
-      .sg-room-code {
-        margin-left: auto;
-        font-family: monospace;
-        background: var(--sg-muted, #333);
-        padding: 0.125rem 0.5rem;
-        border-radius: 4px;
-      }
+        .sg-room-code {
+            margin-left: auto;
+            font-family: monospace;
+            background: var(--sg-muted, #333);
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+        }
 
-      .sg-content {
-        flex: 1;
-        overflow: hidden;
-      }
+        .sg-content {
+            flex: 1;
+            overflow: hidden;
+        }
     `],
 })
 export class SlingWarComponent implements OnDestroy {
@@ -107,7 +107,7 @@ export class SlingWarComponent implements OnDestroy {
     ) {
         this.socket.roomState$.subscribe((roomState: RoomState) => {
             if (this.destroy$) return;
-            const game = roomState.__game as Record<string, unknown> | null;
+            const game = roomState.game as Record<string, unknown> | null;
             if (!game) return;
             this.roomCode.set(roomState.code);
             this.state.syncFromRoom(roomState);

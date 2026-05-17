@@ -29,7 +29,7 @@ export class StateService {
     }
 
     syncFromRoom(roomState: RoomState): void {
-        const game = roomState.__game as unknown as SlingWarGame | null;
+        const game = roomState.game as unknown as SlingWarGame | null;
         if (!game) return;
         const old = this._game;
         this._game = game;
