@@ -1,23 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, map, Observable, ReplaySubject, shareReplay, Subject } from 'rxjs';
 import { SocketService } from '../../../mirror-sketch/services/socket.service';
 import type { RoomState } from '../../../mirror-sketch/models/game.types';
-import type { SlingWarGame } from '../../game.types';
+import { SlingWarGame, SlingWarPhase, SlingWarRoomState } from '../../game.types';
 
 @Injectable({providedIn: 'root'})
 export class StateService {
-    private readonly phaseSubject = new Subject<SlingWarGame['phase']>();
-    readonly phase$ = this.phaseSubject.asObservable();
-
-    private _game: SlingWarGame | null = null;
+    private readonly roomStateSubject = new BehaviorSubject<SlingWarRoomState | undefined>(undefined);
+    readonly roomState$ = this.roomStateSubject.asObservable().pipe(shareReplay({bufferSize: 1, refCount: true}));
     private _mySlot: 'p1' | 'p2' | null = null;
 
-    get phase(): SlingWarGame['phase'] | null {
-        return this._game?.phase ?? null;
+    get phase$(): Observable<SlingWarPhase> {
+        return this.roomState$.pipe(map(s => s.game.phase));
     }
 
-    get game(): SlingWarGame | null {
-        return this._game;
+    get game$(): Observable<SlingWarGame> {
+        return this.roomState$.pipe(map(s => s.game));
+    }
+
+    get game(): SlingWarGame {
+        return this.roomStateSubject.value?.game;
     }
 
     get mySlot(): 'p1' | 'p2' | null {
@@ -26,18 +28,6 @@ export class StateService {
 
     setMySlot(slot: 'p1' | 'p2'): void {
         this._mySlot = slot;
-    }
-
-    syncFromRoom(roomState: RoomState): void {
-        const game = roomState.game as unknown as SlingWarGame | null;
-        if (!game) return;
-        const old = this._game;
-        this._game = game;
-        if (!old) {
-            this.phaseSubject.next(game.phase);
-        } else if (old.phase !== game.phase) {
-            this.phaseSubject.next(game.phase);
-        }
     }
 
     readyForBuilding(): void {
@@ -72,6 +62,14 @@ export class StateService {
     }
 
     constructor(private socket: SocketService) {
-        // Already synced via LobbyComponent / SlingWarComponent subscriptions
+        this.socket.connect();
+        this.socket.roomState$.subscribe((roomState: SlingWarRoomState) => {
+            const game = roomState.game;
+            if (!game) {
+                return;
+            }
+
+            this.roomStateSubject.next(roomState);
+        });
     }
 }
