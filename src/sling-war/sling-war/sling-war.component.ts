@@ -26,7 +26,7 @@ export class SlingWarComponent implements OnDestroy, OnInit {
 
     ngOnInit(): void {
         this.subscription = this.state.roomState$.subscribe((roomState: SlingWarRoomState) => {
-            const game = roomState.game;
+            const game = roomState?.game;
             if (!game) return;
             this.roomCode.set(roomState.code);
             this.phase.set(game.phase);

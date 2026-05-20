@@ -48,8 +48,8 @@ export class PhysicsService {
         }
     }
 
-    // Create static blocks from a placement list
-    createBlocks(placements: BlockPlacement[], isStatic: boolean = true): Matter.Body[] {
+    // Create blocks from a placement list
+    createBlocks(placements: BlockPlacement[]): Matter.Body[] {
         if (!this.engine) return [];
         const bodies: Matter.Body[] = [];
         for (const placement of placements) {
@@ -63,7 +63,6 @@ export class PhysicsService {
                     angle: placement.rotation * (Math.PI / 180),
                     friction: blockType.friction,
                     density: blockType.density,
-                    isStatic,
                     render: {fillStyle: blockType.color},
                 },
             );

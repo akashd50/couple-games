@@ -31,11 +31,12 @@ export class LobbyComponent implements OnDestroy, OnInit {
 
     ngOnInit(): void {
         this.state.roomState$.subscribe((roomState: SlingWarRoomState) => {
-            const game = roomState.game;
-            const player = this.state.player;
+            const game = roomState?.game;
             if (!game) {
                 return;
             }
+
+            const player = this.state.player;
             this.player.set(player);
             this.roomCode.set(roomState.code);
 
