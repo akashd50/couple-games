@@ -34,7 +34,7 @@ export interface BlockPlacement {
     rotation: number;
 }
 
-export const BLOCK_KINDS = ['wood', 'stone', 'dynamite'] as const;
+export const BLOCK_KINDS = ['wood', 'wood-vert', 'stone', 'stone-vert', 'dynamite'] as const;
 export type BlockKind = (typeof BLOCK_KINDS)[number];
 
 export interface BlockType {

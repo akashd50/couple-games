@@ -9,7 +9,7 @@ export class PhysicsService {
     private runner: Matter.Runner | null = null;
     private render: Matter.Render | null = null;
 
-    createEngine(element: HTMLCanvasElement): Matter.Engine {
+    createEngine(element: HTMLCanvasElement, canvasWidth: number, canvasHeight: number): Matter.Engine {
         this.engine = Matter.Engine.create({
             gravity: {x: 0, y: 1},
         });
@@ -19,13 +19,18 @@ export class PhysicsService {
             canvas: element,
             engine: this.engine,
             options: {
-                width: 511,
-                height: 511,
-                wireframes: false
-            }
+                width: canvasWidth,
+                height: canvasHeight,
+                wireframes: false,
+                hasBounds: true,
+            },
         });
 
         return this.engine;
+    }
+
+    getRender(): Matter.Render | undefined {
+        return this.render;
     }
 
     getEngine(): Matter.Engine | null {
@@ -49,16 +54,20 @@ export class PhysicsService {
     }
 
     // Create blocks from a placement list
-    createBlocks(placements: BlockPlacement[]): Matter.Body[] {
+    createBlocks(placements: BlockPlacement[], mult: number): Matter.Body[] {
         if (!this.engine) return [];
         const bodies: Matter.Body[] = [];
         for (const placement of placements) {
             const blockType = getBlockType(placement.type);
+            const width = blockType.width * mult;
+            const height = blockType.height * mult;
+
+            console.log(`Placing block dim (${width}, ${height})`);
+
             const body = Matter.Bodies.rectangle(
                 placement.x,
                 placement.y,
-                blockType.width,
-                blockType.height,
+                width, height,
                 {
                     angle: placement.rotation * (Math.PI / 180),
                     friction: blockType.friction,
@@ -70,6 +79,27 @@ export class PhysicsService {
             bodies.push(body);
         }
         return bodies;
+    }
+
+    createBlock(placement: BlockPlacement, mult: number) {
+        const blockType = getBlockType(placement.type);
+        const width = blockType.width * mult;
+        const height = blockType.height * mult;
+
+        console.log(`Placing block dim (${width}, ${height})`);
+
+        const body = Matter.Bodies.rectangle(
+            placement.x,
+            placement.y,
+            width, height,
+            {
+                angle: placement.rotation * (Math.PI / 180),
+                friction: blockType.friction,
+                density: blockType.density,
+                render: {fillStyle: blockType.color},
+            },
+        );
+        Matter.World.add(this.engine.world, body);
     }
 
     // Create the heart object

@@ -2,7 +2,8 @@
     <div class="sg-building-bar">
         <span class="sg-phase-label">{{ phase() }}</span>
         @if (phase() === 'building' && turn()) {
-            <span class="sg-turn-info">{{ turn() === 'p1' && player()?.role === 'player1' ? 'Your' : turn() === 'p1' ? "Opponent's" : turn() === 'p2' && player()?.role === 'player2' ? 'Your' : "Opponent's" }} turn</span>
+            <span class="sg-turn-info">{{ turn() === 'p1' && player()?.role === 'player1' ? 'Your' : turn() === 'p1' ? "Opponent's" : turn() === 'p2' && player()?.role === 'player2' ? 'Your' : "Opponent's" }}
+                turn</span>
         }
         <span class="sg-room-code">{{ roomCode() }}</span>
     </div>
@@ -10,45 +11,35 @@
     <div class="sg-building-body">
         <!-- Block palette -->
         <div class="sg-palette" #palette>
-            <h3 class="sg-palette-title">Blocks</h3>
             @for (block of BLOCK_TYPES; track block.kind) {
                 <div
-                    class="sg-palette-item"
-                    [class.sg-palette-selected]="selectedKind() === block.kind"
-                    [class.sg-palette-disabled]="!canPlace"
-                    (mousedown)="onPaletteClick(block.kind)"
+                        class="sg-palette-item"
+                        [class.sg-palette-selected]="selectedKind() === block.kind"
+                        [class.sg-palette-disabled]="!canPlace || !!selectedKind()"
+                        (mousedown)="onPaletteClick(block.kind);"
                 >
                     <div class="sg-block-preview" [style.background]="block.color"
-                         [style.width]="block.width / 3 + 'px'"
-                         [style.height]="block.height / 3 + 'px'">
+                         [style.width]="selectedBlockWidth() / 3 + 'px'"
+                         [style.height]="selectedBlockHeight() / 3 + 'px'">
                     </div>
-                    <span class="sg-block-label">{{ block.label }}</span>
                 </div>
-            }
-
-            @if (phase() === 'building' && canPlace) {
-                <p class="sg-palette-hint">Click a block, then drag on canvas</p>
-            } @else if (phase() === 'building' && !canPlace && !bothReady) {
-                <p class="sg-palette-waiting">Opponent is building...</p>
             }
         </div>
 
         <!-- Canvas area -->
         <div class="sg-canvas-wrapper" [class.sg-canvas-dragging]="dragging()">
-            <canvas #canvas class="sg-canvas"
-                    (mousedown)="onPointerDown($event)"
-                    (mousemove)="onPointerMove($event)"
-                    (mouseup)="onPointerUp($event)"
-                    (mouseleave)="onPointerCancel()">
-            </canvas>
+            <canvas
+                #canvas
+                class="sg-canvas"
+            ></canvas>
 
             <!-- Drag preview ghost -->
             @if (dragging() && selectedKind()) {
                 <div class="sg-drag-preview"
-                     [style.left.px]="canvasOffsetX + (dragWorldX() - canvasOffsetX) - (getBlockType(selectedKind()!).width / 2) + 60"
-                     [style.top.px]="dragWorldY() - getBlockType(selectedKind()!).height / 2"
-                     [style.width]="getBlockType(selectedKind()!).width + 'px'"
-                     [style.height]="getBlockType(selectedKind()!).height + 'px'"
+                     [style.left.px]="dragWorldX() - (selectedBlockWidth() / 2)"
+                     [style.top.px]="dragWorldY() - (selectedBlockHeight() / 2)"
+                     [style.width]="selectedBlockWidth() + 'px'"
+                     [style.height]="selectedBlockHeight() + 'px'"
                      [style.background]="getBlockType(selectedKind()!).color">
                 </div>
             }

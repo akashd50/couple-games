@@ -26,5 +26,10 @@ export const routes: Routes = [
         loadComponent: () =>
             import('../sling-war/sling-war/sling-war.component').then((m) => m.SlingWarComponent),
     },
+    {
+        path: 'sling-war-building',
+        loadComponent: () =>
+            import('../sling-war/sling-war/components/building/building.component').then((m) => m.BuildingComponent),
+    },
     {path: '**', redirectTo: ''},
 ];
