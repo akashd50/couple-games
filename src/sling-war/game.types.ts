@@ -10,7 +10,6 @@ export interface SlingWarRoomState extends RoomState {
 }
 
 export interface SlingWarGamePlayer extends Player {
-    ready: boolean;
     layout: BlockPlacement[];
     awarded: boolean;
     points: boolean;

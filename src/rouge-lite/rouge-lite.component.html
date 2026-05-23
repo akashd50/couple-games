@@ -1,0 +1,22 @@
+<div class="sg-shell">
+    <div class="sg-topbar">
+        <a routerLink="/home" class="sg-back-btn">&larr; Back</a>
+        <span class="sg-game-title">Rogue-lite</span>
+        @if (phase()) {
+            <span class="sg-phase">{{ phase() }}</span>
+        }
+        @if (roomCode()) {
+            <span class="sg-room-code">{{ roomCode() }}</span>
+        }
+    </div>
+    <div class="sg-content">
+        @switch (phase()) {
+            @case ('waiting') {
+                <common-lobby/>
+            }
+            @default {
+                <common-lobby/>
+            }
+        }
+    </div>
+</div>

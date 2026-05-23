@@ -19,6 +19,15 @@ const io = new Server(server, {
 /** @type {Map<string, Room>} */
 const rooms = new Map();
 
+const GAME_PHASES_MAP = {
+    "sling-war": {
+        "waiting": "building",
+    },
+    "rogue-lite": {
+        "waiting": "playing",
+    },
+}
+
 function makeRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -30,28 +39,33 @@ function makeRoomCode() {
 }
 
 function makeDefaultGame(gameType) {
+    const basicGame = {
+        phase: "waiting",
+    };
+
     if (gameType === 'sling-war') {
         return {
-            phase: 'waiting',
+            ...basicGame,
             triviaTurn: 'player1',
             triviaAsked: false,
             battleActive: false,
             battleResult: null,
         };
     }
-    return null;
+
+    return basicGame;
 }
 
 function getPlayer(gameType, p) {
     let basicPlayer = {
         id: p.id,
         role: p.role,
+        ready: p.ready,
     };
 
     if (gameType === "sling-war") {
         return {
             ...basicPlayer,
-            ready: p.ready,
             layout: p.layout,
             awarded: p.awarded,
             points: p.points,
@@ -168,9 +182,6 @@ io.on('connection', (socket) => {
         broadcastRoom(joinedCode);
     });
 
-    // ─────────────────────────────────────────────
-    // Sling War — game events
-    // ─────────────────────────────────────────────
 
     // Player signals ready (during building or battle)
     socket.on('game:ready', () => {
@@ -189,12 +200,19 @@ io.on('connection', (socket) => {
         }
 
         currentPlayer.ready = !currentPlayer.ready;
-        // If all players ready, transition to building
-        if (room.players.length === 2 && !room.players.some(p => !p.ready) && room.game.phase === 'waiting') {
-            room.game.phase = 'building';
+        // If all players ready, transition to next phase
+        const currentPhase = room.game.phase;
+
+        if (room.players.length === 2 && !room.players.some(p => !p.ready) && currentPhase === 'waiting') {
+            room.game.phase = GAME_PHASES_MAP[room.gameType][currentPhase];
         }
         broadcastRoom(joinedCode);
     });
+
+    // ─────────────────────────────────────────────
+    // Sling War — game events
+    // ─────────────────────────────────────────────
+
 
     // Player places a block during building
     socket.on('game:layout', (payload) => {

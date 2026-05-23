@@ -99,16 +99,23 @@ export class BuildingComponent implements OnDestroy, AfterViewInit {
     private resizeCanvas(newWidth: number, newHeight: number): void {
         if (!this.physics.getRender() || !this.physics.getRender().canvas) return;
 
-        // 1. Update the logical dimensions in the Render options object
-        this.physics.getRender().options.width = newWidth;
-        this.physics.getRender().options.height = newHeight;
-
-        // 2. Update the actual HTML Canvas DOM attributes
+        // 1. Update canvas structural size
         this.physics.getRender().canvas.width = newWidth;
         this.physics.getRender().canvas.height = newHeight;
 
-        // 3. Force Matter.js to recalculate its internal camera bounds matching the new size
-        Render.setPixelRatio(this.physics.getRender(), "auto" as unknown as any);
+        // 2. Update render configuration options
+        this.physics.getRender().options.width = newWidth;
+        this.physics.getRender().options.height = newHeight;
+
+        // 3. THE CRITICAL FIX: Reset the viewport bounds to 1:1 pixel scale
+        // This stops Matter.js from stretching your physics blocks like silly putty
+        this.physics.getRender().bounds.max.x = newWidth;
+        this.physics.getRender().bounds.max.y = newHeight;
+        this.physics.getRender().bounds.min.x = 0;
+        this.physics.getRender().bounds.min.y = 40;
+
+        // 4. Update the pixel ratio to handle retina/high-DPI screens correctly
+        Render.setPixelRatio(this.physics.getRender(), this.physics.getRender().options.pixelRatio || 1);
     }
 
     private initSubscriptions(): void {
@@ -146,15 +153,8 @@ export class BuildingComponent implements OnDestroy, AfterViewInit {
         if (!canvasEl) return;
 
         this.setCanvasDimsFrom(this.windowSize.width(), this.windowSize.height() - 40);
-        this.physics.createEngine(canvasEl, this.canvasWidth, this.canvasHeight);
-        this.ground = Matter.Bodies.rectangle(
-            this.canvasWidth / 2,
-            this.canvasHeight,
-            this.canvasWidth,
-            this.GRID_PX * 2,
-            {isStatic: true, friction: 1, label: 'ground', render: {fillStyle: '#4a7c59'}},
-        );
-        Matter.World.add(this.physics.getEngine().world, this.ground);
+        this.physics.createEngine(canvasEl, this.canvasWidth, this.canvasHeight, this.GRID_PX);
+        this.addGroundIfNotAlready();
 
         // Bind the render loop exactly ONCE, satisfying TypeScript
         Matter.Events.on(this.physics.getRender(), "afterRender", (event: Matter.IEvent<Matter.Render>) => {
@@ -168,6 +168,21 @@ export class BuildingComponent implements OnDestroy, AfterViewInit {
         Matter.Render.run(this.physics.getRender());
 
         this.physics.startRunner();
+    }
+
+    private addGroundIfNotAlready() {
+        const bodies = Matter.Composite.allBodies(this.physics.getEngine().world);
+        const ground = bodies.find(b => b.label === 'ground');
+        if (!ground) {
+            this.ground = Matter.Bodies.rectangle(
+                this.canvasWidth / 2,
+                this.canvasHeight,
+                this.canvasWidth,
+                this.GRID_PX * 2,
+                {isStatic: true, friction: 1, label: 'ground', render: {fillStyle: '#4a7c59'}},
+            );
+            Matter.World.add(this.physics.getEngine().world, this.ground);
+        }
     }
 
     private syncWorld(): void {

@@ -31,5 +31,10 @@ export const routes: Routes = [
         loadComponent: () =>
             import('../sling-war/sling-war/components/building/building.component').then((m) => m.BuildingComponent),
     },
+    {
+        path: 'rogue-lite',
+        loadComponent: () =>
+            import('../rouge-lite/rogue-lite.component').then((m) => m.RogueLiteComponent),
+    },
     {path: '**', redirectTo: ''},
 ];

@@ -40,5 +40,12 @@ export class HomeComponent {
             route: '/sling-war',
             accent: '#d6116c',
         },
+        {
+            title: 'Rouge-lite',
+            tagline: 'Rouge lite',
+            emoji: '🌐',
+            route: '/rouge-lite',
+            accent: '#d6116c',
+        },
     ];
 }

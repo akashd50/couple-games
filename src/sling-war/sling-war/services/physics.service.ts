@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import Matter from 'matter-js';
+import Matter, { Bodies, Composite, Engine, Render, Runner } from 'matter-js';
 import type { BlockPlacement, BlockKind } from '../../game.types';
 import { getBlockType } from '../data/block-types';
 
@@ -8,8 +8,10 @@ export class PhysicsService {
     private engine: Matter.Engine | null = null;
     private runner: Matter.Runner | null = null;
     private render: Matter.Render | null = null;
+    private _gridScale: number;
 
-    createEngine(element: HTMLCanvasElement, canvasWidth: number, canvasHeight: number): Matter.Engine {
+    createEngine(element: HTMLCanvasElement, canvasWidth: number, canvasHeight: number, originalScale: number): Matter.Engine {
+        this._gridScale = originalScale;
         this.engine = Matter.Engine.create({
             gravity: {x: 0, y: 1},
         });
@@ -27,6 +29,10 @@ export class PhysicsService {
         });
 
         return this.engine;
+    }
+
+    get gridScale(): number {
+        return this._gridScale;
     }
 
     getRender(): Matter.Render | undefined {
@@ -50,6 +56,12 @@ export class PhysicsService {
     stopRunner(): void {
         if (this.runner) {
             Matter.Runner.stop(this.runner);
+        }
+    }
+
+    stopRender(): void {
+        if (this.render) {
+            Matter.Render.stop(this.render);
         }
     }
 

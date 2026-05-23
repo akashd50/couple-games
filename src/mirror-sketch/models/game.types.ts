@@ -1,7 +1,7 @@
 import { SlingWarRoomState } from "../../sling-war/game.types";
 import { RoomState } from "../../common-types";
 
-export type Role = 'drawer' | 'describer' | "player1" | "player2";
+export type Role = 'drawer' | 'describer' | "player1" | "player2" | "player3" | "player4";
 
 
 export interface GameStartedPayload {
