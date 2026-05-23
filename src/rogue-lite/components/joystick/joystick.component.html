@@ -1,0 +1,7 @@
+<div class="joystick__track"
+     (pointerdown)="onDown($event)"
+     (pointermove)="onMove($event)"
+     (pointerup)="onUp($event)"
+     (pointercancel)="onUp($event)">
+    <div class="joystick__knob" [style.transform]="knobTransform()"></div>
+</div>

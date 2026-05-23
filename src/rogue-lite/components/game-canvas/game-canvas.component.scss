@@ -21,3 +21,18 @@
         max-height: 100%;
     }
 }
+
+// Touch joystick overlays — positioned absolutely over the canvas
+.joystick--left {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    z-index: 10;
+}
+
+.joystick--right {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 10;
+}

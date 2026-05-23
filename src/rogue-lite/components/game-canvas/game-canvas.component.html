@@ -1,1 +1,14 @@
 <div #host class="game-canvas__host"></div>
+
+@if (isTouchDevice()) {
+    <rl-joystick
+        class="joystick--left"
+        (vectorChange)="onMoveVector($event)"
+        (released)="onMoveRelease()"
+    />
+    <rl-joystick
+        class="joystick--right"
+        (vectorChange)="onAimVector($event)"
+        (released)="onAimRelease()"
+    />
+}

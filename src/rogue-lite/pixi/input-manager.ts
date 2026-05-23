@@ -1,0 +1,101 @@
+import type { Vec2, InputState } from './types';
+
+/**
+ * Manages all input channels (keyboard + mouse for desktop, touch vectors from
+ * the Angular joystick overlays for mobile) and merges them into a single
+ * InputState consumed by the game world.
+ *
+ * This class is Angular-free; it works purely with DOM APIs so it can be
+ * reused server-side in Phase 7.
+ */
+export class InputManager {
+    private readonly keysDown = new Set<string>();
+    private mouseScreenX = 0;
+    private mouseScreenY = 0;
+    private touchMove: Vec2 | null = null;
+    private touchAim: Vec2 | null = null;
+    private host: HTMLElement | null = null;
+
+    private readonly onKeyDown = (e: KeyboardEvent): void => {
+        this.keysDown.add(e.key.toLowerCase());
+    };
+
+    private readonly onKeyUp = (e: KeyboardEvent): void => {
+        this.keysDown.delete(e.key.toLowerCase());
+    };
+
+    private readonly onMouseMove = (e: MouseEvent): void => {
+        if (!this.host) return;
+        const rect = this.host.getBoundingClientRect();
+        this.mouseScreenX = e.clientX - rect.left;
+        this.mouseScreenY = e.clientY - rect.top;
+    };
+
+    attach(host: HTMLElement): void {
+        this.host = host;
+        window.addEventListener('keydown', this.onKeyDown);
+        window.addEventListener('keyup', this.onKeyUp);
+        host.addEventListener('mousemove', this.onMouseMove);
+    }
+
+    detach(): void {
+        window.removeEventListener('keydown', this.onKeyDown);
+        window.removeEventListener('keyup', this.onKeyUp);
+        this.host?.removeEventListener('mousemove', this.onMouseMove);
+        this.keysDown.clear();
+        this.host = null;
+    }
+
+    /** Called by the left joystick overlay; pass null on release. */
+    setTouchMove(v: Vec2 | null): void {
+        this.touchMove = v;
+    }
+
+    /** Called by the right joystick overlay; pass null on release. */
+    setTouchAim(v: Vec2 | null): void {
+        // Only accept a non-zero aim vector so releasing snaps back to null
+        // and the last mouse aim takes over on hybrid devices.
+        this.touchAim = v && (v.x !== 0 || v.y !== 0) ? v : null;
+    }
+
+    read(): InputState {
+        // --- Move ---
+        let move: Vec2;
+        if (this.touchMove) {
+            move = { ...this.touchMove };
+        } else {
+            let mx = 0, my = 0;
+            for (const k of this.keysDown) {
+                if (k === 'w' || k === 'arrowup')    my -= 1;
+                if (k === 's' || k === 'arrowdown')  my += 1;
+                if (k === 'a' || k === 'arrowleft')  mx -= 1;
+                if (k === 'd' || k === 'arrowright') mx += 1;
+            }
+            const len = Math.hypot(mx, my);
+            move = len > 1 ? { x: mx / len, y: my / len } : { x: mx, y: my };
+        }
+
+        // --- Aim ---
+        let aim: Vec2;
+        if (this.touchAim) {
+            aim = { ...this.touchAim };
+        } else if (this.host) {
+            const cx = this.host.clientWidth / 2;
+            const cy = this.host.clientHeight / 2;
+            const dx = this.mouseScreenX - cx;
+            const dy = this.mouseScreenY - cy;
+            const len = Math.hypot(dx, dy);
+            aim = len > 1 ? { x: dx / len, y: dy / len } : { x: 1, y: 0 };
+        } else {
+            aim = { x: 1, y: 0 };
+        }
+
+        return { move, aim };
+    }
+
+    /** Returns true if the primary input device is touch (evaluated once). */
+    static isTouchDevice(): boolean {
+        return typeof window !== 'undefined' &&
+            ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    }
+}
