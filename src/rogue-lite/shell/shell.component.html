@@ -1,0 +1,24 @@
+<div class="rl-shell">
+    <div class="rl-topbar">
+        <a routerLink="/" class="rl-back-btn">&larr; Back</a>
+        <span class="rl-game-title">Rogue-lite</span>
+        @if (phase()) {
+            <span class="rl-phase">{{ phase() }}</span>
+        }
+        @if (debugInRun()) {
+            <button type="button" class="rl-debug-btn" (click)="exitRun()">End run</button>
+        } @else {
+            <button type="button" class="rl-debug-btn" (click)="enterRun()">Start run (debug)</button>
+        }
+        @if (roomCode()) {
+            <span class="rl-room-code">{{ roomCode() }}</span>
+        }
+    </div>
+    <div class="rl-content">
+        @if (debugInRun()) {
+            <rl-game-canvas></rl-game-canvas>
+        } @else {
+            <common-lobby [maxPlayers]="4"></common-lobby>
+        }
+    </div>
+</div>

@@ -4,7 +4,8 @@
       "Bash(npx tsc *)",
       "PowerShell(New-Item *)",
       "Bash(npx ng *)",
-      "Bash(Select-Object -First 80)"
+      "Bash(Select-Object -First 80)",
+      "Bash(git mv *)"
     ]
   }
 }
