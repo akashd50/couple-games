@@ -1,5 +1,5 @@
 import {
-    Component,
+    Component, Input, input,
     OnDestroy,
     OnInit,
     signal
@@ -19,12 +19,22 @@ import { Role } from "../../../mirror-sketch/models/game.types";
     standalone: true,
 })
 export class LobbyComponent implements OnDestroy, OnInit {
+    players = [2];
+    selectedMaxPlayers = 2;
+
+    @Input() set maxPlayers(value: number) {
+        this.players = Array.from({length: value}, (_, i) => i + 1);
+    };
+
+    playerStates: Record<string, boolean> = {};
+
     joinCode = '';
     roomCode = signal<string | null>(null);
     isReady = signal(false);
     player = signal<Player>(undefined);
-    p1Ready = signal(false);
-    p2Ready = signal(false);
+    /*p1Ready = signal(false);
+    p2Ready = signal(false);*/
+    pReady = signal<Record<string, boolean>>(undefined);
 
     constructor(private state: RoomStateService) {
     }
@@ -41,10 +51,19 @@ export class LobbyComponent implements OnDestroy, OnInit {
 
             this.isReady.set(player.ready);
 
-            const player1 = roomState.players.find(p => p.role === "player1");
+            const maxPlayers = roomState.maxPlayers;
+            this.maxPlayers = maxPlayers;
+
+            for (let i = 0; i < maxPlayers; i++) {
+                const player = roomState.players.find(p => p.role === `player${i}`);
+                this.playerStates[`player${i}`] = !!player?.ready;
+                this.pReady.set(this.playerStates);
+            }
+
+            /*const player1 = roomState.players.find(p => p.role === "player1");
             const player2 = roomState.players.find(p => p.role === "player2");
             this.p1Ready.set(!!player1?.ready);
-            this.p2Ready.set(!!player2?.ready);
+            this.p2Ready.set(!!player2?.ready);*/
         });
     }
 
@@ -52,19 +71,24 @@ export class LobbyComponent implements OnDestroy, OnInit {
         // cleanup
     }
 
+    setMaxPlayers(maxPlayers: number): void {
+        this.selectedMaxPlayers = maxPlayers;
+    }
+
+
     createRoom() {
-        this.state.createRoom().pipe(take(1)).subscribe();
+        this.state.createRoom("rogue-lite", this.selectedMaxPlayers).pipe(take(1)).subscribe();
     }
 
     joinRoom() {
         if (this.joinCode.length !== 4) {
             return;
         }
-        this.state.joinRoom(this.joinCode).pipe(take(1)).subscribe();
+        this.state.joinRoom("rogue-lite", this.joinCode).pipe(take(1)).subscribe();
     }
 
-    pickSlot(role: Role): void {
-        this.state.selectRole(role).subscribe();
+    pickSlot(role: string): void {
+        this.state.selectRole(role as Role).subscribe();
     }
 
     readyUp(): void {

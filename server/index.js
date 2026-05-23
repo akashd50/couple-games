@@ -61,6 +61,7 @@ function getPlayer(gameType, p) {
         id: p.id,
         role: p.role,
         ready: p.ready,
+        isHost: p.isHost,
     };
 
     if (gameType === "sling-war") {
@@ -85,6 +86,7 @@ function publicRoomState(room) {
         players: room.players.map((p) => getPlayer(room.gameType, p)),
         game: room.game,
         gameType: room.gameType,
+        maxPlayers: room.maxPlayers,
     };
 }
 
@@ -103,8 +105,9 @@ io.on('connection', (socket) => {
         const room = {
             code,
             gameType,
+            maxPlayers: payload.maxPlayers,
             game: makeDefaultGame(gameType),
-            players: [{id: socket.id, role: null}],
+            players: [{id: socket.id, role: null, isHost: true}],
             sceneId: null,
             spectator: true,
             strokeHistory: [],
@@ -119,8 +122,14 @@ io.on('connection', (socket) => {
     socket.on('room:join', (payload, ack) => {
         const {code, gameType} = payload || {};
         const room = rooms.get(code);
-        if (!room) return ack?.({ok: false, error: 'Room not found'});
-        if (room.players.length >= 2) return ack?.({ok: false, error: 'Room is full'});
+        if (!room) {
+            return ack?.({ok: false, error: 'Room not found'});
+        }
+
+        if (room.players.length >= room.maxPlayers) {
+            return ack?.({ok: false, error: 'Room is full'});
+        }
+
         room.players.push({id: socket.id, role: null});
         socket.join(code);
         joinedCode = code;
@@ -142,9 +151,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('role:choose', (payload, ack) => {
-        if (!joinedCode) return ack?.({ok: false, error: 'Not in a room'});
+        if (!joinedCode) {
+            return ack?.({ok: false, error: 'Not in a room'});
+        }
         const room = rooms.get(joinedCode);
-        if (!room) return ack?.({ok: false, error: 'Room gone'});
+        if (!room) {
+            return ack?.({ok: false, error: 'Room gone'});
+        }
         if (payload?.role !== 'drawer' && payload?.role !== 'describer' && payload?.role !== 'player1' && payload?.role !== 'player2') {
             return ack?.({ok: false, error: 'Invalid role'});
         }
@@ -203,7 +216,7 @@ io.on('connection', (socket) => {
         // If all players ready, transition to next phase
         const currentPhase = room.game.phase;
 
-        if (room.players.length === 2 && !room.players.some(p => !p.ready) && currentPhase === 'waiting') {
+        if (room.players.length === room.maxPlayers && !room.players.some(p => !p.ready) && currentPhase === 'waiting') {
             room.game.phase = GAME_PHASES_MAP[room.gameType][currentPhase];
         }
         broadcastRoom(joinedCode);

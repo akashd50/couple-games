@@ -12,10 +12,14 @@
     <div class="sg-content">
         @switch (phase()) {
             @case ('waiting') {
-                <common-lobby/>
+                <common-lobby
+                        [maxPlayers]="4"
+                ></common-lobby>
             }
             @default {
-                <common-lobby/>
+                <common-lobby
+                        [maxPlayers]="4"
+                ></common-lobby>
             }
         }
     </div>

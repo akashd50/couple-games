@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, filter, from, map, Observable, shareReplay, tap } from 'rxjs';
 import { SocketService } from '../../../mirror-sketch/services/socket.service';
-import { SlingWarGame, SlingWarGamePlayer, SlingWarPhase, SlingWarRoomState } from '../../game.types';
+import { SlingWarGame, SlingWarGamePlayer, SlingWarRoomState } from '../../game.types';
 import { Role } from "../../../mirror-sketch/models/game.types";
+import { PhaseType } from "../../../common-types";
 
 @Injectable({providedIn: 'root'})
 export class SlingWarStateService {
@@ -11,7 +12,7 @@ export class SlingWarStateService {
     private _myId: string;
     private _player: SlingWarGamePlayer;
 
-    get phase$(): Observable<SlingWarPhase> {
+    get phase$(): Observable<PhaseType> {
         return this.roomState$.pipe(map(s => s.game.phase));
     }
 
@@ -69,7 +70,7 @@ export class SlingWarStateService {
     }
 
     public createRoom(): Observable<SlingWarRoomState> {
-        return from(this.socket.createRoomWithGame()).pipe(
+        return from(this.socket.createRoomWithGame("sling-war")).pipe(
             filter(f => f.ok && !!f.state),
             tap(f => this._myId = f.you),
             map(f => f.state as SlingWarRoomState)
@@ -77,7 +78,7 @@ export class SlingWarStateService {
     }
 
     public joinRoom(code: string): Observable<SlingWarRoomState> {
-        return from(this.socket.joinRoomWithGame(code)).pipe(
+        return from(this.socket.joinRoomWithGame("sling-war", code)).pipe(
             filter(f => f.ok && !!f.state),
             tap(f => this._myId = f.you),
             map(f => f.state as SlingWarRoomState)

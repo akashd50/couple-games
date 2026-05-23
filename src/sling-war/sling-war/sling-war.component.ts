@@ -5,8 +5,9 @@ import { LobbyComponent } from './components/lobby/lobby.component';
 import { BuildingComponent } from './components/building/building.component';
 import { TriviaComponent } from './components/trivia/trivia.component';
 import { BattleComponent } from './components/battle/battle.component';
-import type { SlingWarPhase, SlingWarRoomState } from '../game.types';
+import type { SlingWarRoomState } from '../game.types';
 import { Subscription } from "rxjs";
+import { PhaseType } from "../../common-types";
 
 @Component({
     selector: 'sg-sling-war',
@@ -16,7 +17,7 @@ import { Subscription } from "rxjs";
     standalone: true,
 })
 export class SlingWarComponent implements OnDestroy, OnInit {
-    phase = signal<SlingWarPhase | null>(null);
+    phase = signal<PhaseType | null>(null);
     roomCode = signal<string | null>(null);
 
     private subscription: Subscription;

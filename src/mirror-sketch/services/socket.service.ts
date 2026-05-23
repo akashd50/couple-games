@@ -2,7 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { AckResponse, DrawStroke, GameStartedPayload, Role } from '../models/game.types';
-import { RoomState } from "../../common-types";
+import { GameType, RoomState } from "../../common-types";
 
 // In dev the Angular server runs on a different port from the socket server.
 // Use absolute URL when present, otherwise same origin.
@@ -119,12 +119,12 @@ export class SocketService implements OnDestroy {
     private readonly gameStateChangedSubject = new Subject<RoomState>();
     readonly gameStateChanged$: Observable<RoomState> = this.gameStateChangedSubject.asObservable();
 
-    createRoomWithGame(): Promise<AckResponse> {
-        return this.emitWithAck('room:create', {gameType: 'sling-war'});
+    createRoomWithGame(gameType: GameType, maxPlayers = 2): Promise<AckResponse> {
+        return this.emitWithAck('room:create', {gameType, maxPlayers});
     }
 
-    joinRoomWithGame(code: string): Promise<AckResponse> {
-        return this.emitWithAck('room:join', {code, gameType: 'sling-war'});
+    joinRoomWithGame(gameType: string, code: string): Promise<AckResponse> {
+        return this.emitWithAck('room:join', {code, gameType});
     }
 
     sendGameReady(): void {

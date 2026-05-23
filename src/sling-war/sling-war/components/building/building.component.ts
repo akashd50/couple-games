@@ -17,6 +17,7 @@ import { Subscription } from 'rxjs';
 import Matter, { Render } from 'matter-js';
 import { TestSlingWarStateService } from "../../services/test-sling-war-state.service";
 import { WindowSizeService } from "../../services/window-size.service";
+import { PhaseType } from "../../../../common-types";
 
 @Component({
     selector: 'sg-building',
@@ -42,7 +43,7 @@ export class BuildingComponent implements OnDestroy, AfterViewInit {
     dragWorldX = signal(0);
     dragWorldY = signal(0);
 
-    phase = signal<'waiting' | 'building' | 'trivia' | 'battle' | 'finished' | null>(null);
+    phase = signal<PhaseType>(null);
     myId = signal<string | null>(null);
     player = signal<SlingWarGamePlayer | null>(null);
     p1Layout = signal<BlockPlacement[]>([]);

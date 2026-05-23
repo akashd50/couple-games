@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, filter, from, map, Observable, shareReplay, tap } from 'rxjs';
-import { Player, RoomState } from "../../common-types";
+import { GameType, Player, RoomState } from "../../common-types";
 import { SocketService } from "../../mirror-sketch/services/socket.service";
 import { Role } from "../../mirror-sketch/models/game.types";
 
@@ -27,16 +27,16 @@ export class RoomStateService {
         });
     }
 
-    public createRoom(): Observable<RoomState> {
-        return from(this.socket.createRoomWithGame()).pipe(
+    public createRoom(gameType: GameType, maxPlayers = 2): Observable<RoomState> {
+        return from(this.socket.createRoomWithGame(gameType, maxPlayers)).pipe(
             filter(f => f.ok && !!f.state),
             tap(f => this._myId = f.you),
             map(f => f.state as RoomState)
         );
     }
 
-    public joinRoom(code: string): Observable<RoomState> {
-        return from(this.socket.joinRoomWithGame(code)).pipe(
+    public joinRoom(gameType: GameType, code: string): Observable<RoomState> {
+        return from(this.socket.joinRoomWithGame(gameType, code)).pipe(
             filter(f => f.ok && !!f.state),
             tap(f => this._myId = f.you),
             map(f => f.state as RoomState)

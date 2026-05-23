@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { RoomStateService } from "../shared/services/room-state.service";
+import { RoomStateService } from "../../shared/services/room-state.service";
 import { RouterLink } from "@angular/router";
-import { LobbyComponent } from "../shared/components/lobby/lobby.component";
+import { LobbyComponent } from "../../shared/components/lobby/lobby.component";
 import { Subscription } from "rxjs";
-import { PhaseType, RoomState } from "../common-types";
+import { PhaseType, RoomState } from "../../common-types";
 
 @Component({
     selector: "rouge-lite",

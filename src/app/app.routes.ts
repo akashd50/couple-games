@@ -34,7 +34,7 @@ export const routes: Routes = [
     {
         path: 'rogue-lite',
         loadComponent: () =>
-            import('../rouge-lite/rogue-lite.component').then((m) => m.RogueLiteComponent),
+            import('../rouge-lite/rogue-lite/rogue-lite.component').then((m) => m.RogueLiteComponent),
     },
     {path: '**', redirectTo: ''},
 ];

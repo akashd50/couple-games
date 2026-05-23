@@ -1,8 +1,6 @@
 // Sling War — game type definitions.
 
-import { Player, RoomState } from "../common-types";
-
-export type SlingWarPhase = 'waiting' | 'building' | 'trivia' | 'battle' | 'finished';
+import { GameInfo, Player, RoomState } from "../common-types";
 
 export interface SlingWarRoomState extends RoomState {
     game?: SlingWarGame;
@@ -17,8 +15,7 @@ export interface SlingWarGamePlayer extends Player {
     heartsDestroyed: number;
 }
 
-export interface SlingWarGame {
-    phase: SlingWarPhase;
+export interface SlingWarGame extends GameInfo {
     triviaTurn: 'p1' | 'p2';
     triviaAsked: boolean;
     battleActive: boolean;

@@ -44,7 +44,7 @@ export class HomeComponent {
             title: 'Rouge-lite',
             tagline: 'Rouge lite',
             emoji: '🌐',
-            route: '/rouge-lite',
+            route: '/rogue-lite',
             accent: '#d6116c',
         },
     ];

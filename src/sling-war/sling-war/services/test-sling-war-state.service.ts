@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, filter, from, map, Observable, of, shareReplay, tap } from 'rxjs';
-import { SocketService } from '../../../mirror-sketch/services/socket.service';
-import { SlingWarGame, SlingWarGamePlayer, SlingWarPhase, SlingWarRoomState } from '../../game.types';
+import { SlingWarGame, SlingWarGamePlayer, SlingWarRoomState } from '../../game.types';
 import { Role } from "../../../mirror-sketch/models/game.types";
+import { PhaseType } from "../../../common-types";
 
 @Injectable({providedIn: 'root'})
 export class TestSlingWarStateService {
@@ -11,7 +11,7 @@ export class TestSlingWarStateService {
     private _myId: string;
     private _player: SlingWarGamePlayer;
 
-    get phase$(): Observable<SlingWarPhase> {
+    get phase$(): Observable<PhaseType> {
         return this.roomState$.pipe(map(s => s.game.phase));
     }
 
@@ -53,6 +53,7 @@ export class TestSlingWarStateService {
     constructor() {
         this._myId = "player1";
         this.testRoomState = {
+            maxPlayers: 2,
             game: {
                 phase: "building",
             } as SlingWarGame,
