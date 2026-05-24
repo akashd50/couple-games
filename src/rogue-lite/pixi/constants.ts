@@ -1,60 +1,79 @@
 // ─── Arena ───────────────────────────────────────────────────────────────────
-export const ARENA_SIZE = 4000;
-export const GRID_CELL = 200;
+export class ArenaConsts {
+    static readonly SIZE             = 4000;
+    static readonly GRID_CELL        = 200;
+    static readonly BACKGROUND_COLOR = 0x0e0e1a;
+}
 
-// ─── Player movement ─────────────────────────────────────────────────────────
-export const PLAYER_RADIUS = 22;
-export const PLAYER_SPEED = 280; // world units / second
-export const PLAYER_COLOR = 0xe8e8f0;
-export const SHIELD_COLOR = 0x5599ff;
-export const SHIELD_ARC_HALF = Math.PI / 4; // ~45° half-angle on each side
+// ─── Knight (player) ─────────────────────────────────────────────────────────
+export class KnightConsts {
+    static readonly RADIUS = 22;
+    /** World units / second. */
+    static readonly SPEED  = 280;
+    static readonly COLOR  = 0xe8e8f0;
+    static readonly HP     = 100;
+    /** Invincibility window after taking a hit (seconds). */
+    static readonly IFRAMES = 0.5;
 
-// ─── Player HP ───────────────────────────────────────────────────────────────
-export const PLAYER_HP = 100;
-/** Invincibility window after taking a hit (seconds). */
-export const PLAYER_IFRAMES = 0.5;
+    // ── Shield ──────────────────────────────────────────────────────────────
+    static readonly SHIELD_COLOR    = 0x5599ff;
+    /** ~45° half-angle on each side. */
+    static readonly SHIELD_ARC_HALF = Math.PI / 4;
 
-// ─── Knight auto-attack ──────────────────────────────────────────────────────
-/** World-unit reach of the sword swing. */
-export const ATTACK_RANGE = 80;
-/** Half-angle of the 60° cone (30° each side). */
-export const ATTACK_HALF_ANGLE = Math.PI / 6;
-/** Seconds between auto-swings. */
-export const ATTACK_COOLDOWN = 0.65;
-export const ATTACK_DAMAGE = 30;
-/** How long the visual swing arc stays visible (seconds). */
-export const ATTACK_ARC_DURATION = 0.18;
-export const SWORD_COLOR = 0xffcc44;
-/** Knockback impulse applied to an enemy on sword hit (world units/s). */
-export const ATTACK_KNOCKBACK = 195;
-
-// ─── Knockback (shared) ──────────────────────────────────────────────────────
-/** Exponential velocity-decay factor for knockback (higher = faster stop). */
-export const KNOCKBACK_FRICTION = 8;
+    // ── Auto-attack ─────────────────────────────────────────────────────────
+    static readonly AutoAttack = {
+        /** World-unit reach of the sword swing. */
+        RANGE:       80,
+        /** Half-angle of the 60° cone (30° each side). */
+        HALF_ANGLE:  Math.PI / 6,
+        /** Seconds between auto-swings. */
+        COOLDOWN:    0.65,
+        DAMAGE:      30,
+        /** How long the visual swing arc stays visible (seconds). */
+        ARC_DURATION: 0.18,
+        SWORD_COLOR:  0xffcc44,
+        /** Knockback impulse applied to an enemy on sword hit (world units/s). */
+        KNOCKBACK:    195,
+    } as const;
+}
 
 // ─── Chaser enemy ────────────────────────────────────────────────────────────
-export const CHASER_RADIUS = 16;
-export const CHASER_HP = 40;
-export const CHASER_SPEED_WANDER = 55;
-export const CHASER_SPEED_CHASE = 115;
-/** Distance at which a wandering Chaser switches to chase mode. */
-export const CHASER_AGGRO_RANGE = 340;
-/** Distance at which a chasing Chaser gives up and reverts to wander. */
-export const CHASER_DEAGGRO_RANGE = 470;
-export const CHASER_COLOR = 0xcc3333;
-/** Fixed HP damage per contact hit on the player (gated by PLAYER_IFRAMES). */
-export const CHASER_HIT_DAMAGE = 15;
-/** Knockback impulse applied to the player on contact hit (world units/s). */
-export const CHASER_KNOCKBACK = 145;
-/** How many Chasers to spawn when a run starts. */
-export const CHASER_SPAWN_COUNT = 6;
+export class ChaserConsts {
+    static readonly RADIUS       = 16;
+    static readonly HP           = 40;
+    static readonly SPEED_WANDER = 55;
+    static readonly SPEED_CHASE  = 115;
+    /** Distance at which a wandering Chaser switches to chase mode. */
+    static readonly AGGRO_RANGE   = 340;
+    /** Distance at which a chasing Chaser gives up and reverts to wander. */
+    static readonly DEAGGRO_RANGE = 470;
+    static readonly COLOR         = 0xcc3333;
+    /** Fixed HP damage per contact hit on the player (gated by KnightConsts.IFRAMES). */
+    static readonly HIT_DAMAGE    = 15;
+    /** Knockback impulse applied to the player on contact hit (world units/s). */
+    static readonly KNOCKBACK     = 145;
+    /** How many Chasers to spawn when a run starts. */
+    static readonly SPAWN_COUNT   = 6;
+}
 
 // ─── Camera ──────────────────────────────────────────────────────────────────
-export const CAMERA_LOOKAHEAD = 80; // world units toward aim direction
-export const CAMERA_LERP = 8;       // exponential-decay speed factor
+export class CameraConsts {
+    /** World units toward aim direction. */
+    static readonly LOOKAHEAD = 80;
+    /** Exponential-decay speed factor. */
+    static readonly LERP      = 8;
+}
 
-// ─── Game loop ───────────────────────────────────────────────────────────────
-export const FIXED_STEP = 1 / 60;          // seconds per sim tick
-export const MAX_ACCUMULATED_TIME = 0.25;  // spiral-of-death cap
+// ─── Physics (shared) ────────────────────────────────────────────────────────
+export class PhysicsConsts {
+    /** Exponential velocity-decay factor for knockback (higher = faster stop). */
+    static readonly KNOCKBACK_FRICTION = 8;
+}
 
-export const BACKGROUND_COLOR = 0x0e0e1a;
+// ─── Simulation ──────────────────────────────────────────────────────────────
+export class SimConsts {
+    /** Seconds per sim tick. */
+    static readonly FIXED_STEP           = 1 / 60;
+    /** Spiral-of-death cap (seconds). */
+    static readonly MAX_ACCUMULATED_TIME = 0.25;
+}

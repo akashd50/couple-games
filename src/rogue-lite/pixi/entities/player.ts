@@ -1,20 +1,6 @@
 import { Color, Container, FillGradient, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
-import {
-    ARENA_SIZE,
-    ATTACK_ARC_DURATION,
-    ATTACK_COOLDOWN,
-    ATTACK_RANGE,
-    KNOCKBACK_FRICTION,
-    PLAYER_COLOR,
-    PLAYER_HP,
-    PLAYER_IFRAMES,
-    PLAYER_RADIUS,
-    PLAYER_SPEED,
-    SHIELD_ARC_HALF,
-    SHIELD_COLOR,
-    SWORD_COLOR,
-} from '../constants';
+import { ArenaConsts, KnightConsts, PhysicsConsts } from '../constants';
 import { lerp } from "../common-utils";
 
 /**
@@ -52,12 +38,12 @@ export class Player {
     private swingAngle = 0;
 
     constructor(parent: Container) {
-        this.posX = ARENA_SIZE / 2;
-        this.posY = ARENA_SIZE / 2;
-        this._hp = PLAYER_HP;
-        this._maxHp = PLAYER_HP;
+        this.posX = ArenaConsts.SIZE / 2;
+        this.posY = ArenaConsts.SIZE / 2;
+        this._hp = KnightConsts.HP;
+        this._maxHp = KnightConsts.HP;
         // First attack fires after half a cooldown so the player isn't instant-swinging
-        this.attackCooldown = ATTACK_COOLDOWN * 0.5;
+        this.attackCooldown = KnightConsts.AutoAttack.COOLDOWN * 0.5;
 
         this.container = new Container();
         this.container.label = 'player';
@@ -70,7 +56,7 @@ export class Player {
 
         // Body circle — drawn once, never changes
         const body = new Graphics();
-        body.circle(0, 0, PLAYER_RADIUS).fill({color: PLAYER_COLOR});
+        body.circle(0, 0, KnightConsts.RADIUS).fill({ color: KnightConsts.COLOR });
         this.container.addChild(body);
 
         // Shield arc — redrawn every sim tick
@@ -82,7 +68,7 @@ export class Player {
     // ── Getters ──────────────────────────────────────────────────────────────
 
     get position(): Vec2 {
-        return {x: this.posX, y: this.posY};
+        return { x: this.posX, y: this.posY };
     }
 
     get hp(): number {
@@ -94,7 +80,7 @@ export class Player {
     }
 
     get radius(): number {
-        return PLAYER_RADIUS;
+        return KnightConsts.RADIUS;
     }
 
     get isDead(): boolean {
@@ -112,9 +98,9 @@ export class Player {
     tryAttack(dt: number, aimAngle: number): number | null {
         this.attackCooldown -= dt;
         if (this.attackCooldown <= 0) {
-            // += ATTACK_COOLDOWN to preserve any overshoot (keeps timing precise)
-            this.attackCooldown += ATTACK_COOLDOWN;
-            this.swingTimer = ATTACK_ARC_DURATION;
+            // += COOLDOWN to preserve any overshoot (keeps timing precise)
+            this.attackCooldown += KnightConsts.AutoAttack.COOLDOWN;
+            this.swingTimer = KnightConsts.AutoAttack.ARC_DURATION;
             this.swingAngle = aimAngle;
             return aimAngle;
         }
@@ -133,17 +119,17 @@ export class Player {
         if (this.swingTimer > 0) this.swingTimer = Math.max(0, this.swingTimer - dt);
 
         // ── Knockback decay ─────────────────────────────────────────────────
-        const friction = Math.exp(-KNOCKBACK_FRICTION * dt);
+        const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
         this.vx *= friction;
         this.vy *= friction;
 
         // ── Position ────────────────────────────────────────────────────────
-        this.posX += (move.x * PLAYER_SPEED + this.vx) * dt;
-        this.posY += (move.y * PLAYER_SPEED + this.vy) * dt;
+        this.posX += (move.x * KnightConsts.SPEED + this.vx) * dt;
+        this.posY += (move.y * KnightConsts.SPEED + this.vy) * dt;
 
-        const r = PLAYER_RADIUS;
-        this.posX = Math.max(r, Math.min(ARENA_SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ARENA_SIZE - r, this.posY));
+        const r = KnightConsts.RADIUS;
+        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
+        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
 
         this.container.position.set(this.posX, this.posY);
 
@@ -167,14 +153,14 @@ export class Player {
     takeDamage(amount: number, kbx: number, kby: number): boolean {
         if (this.iframes > 0 || this._hp <= 0) return false;
         this._hp = Math.max(0, this._hp - amount);
-        this.iframes = PLAYER_IFRAMES;
+        this.iframes = KnightConsts.IFRAMES;
         this.vx += kbx;
         this.vy += kby;
         return true;
     }
 
     destroy(): void {
-        this.container.destroy({children: true});
+        this.container.destroy({ children: true });
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
@@ -182,39 +168,48 @@ export class Player {
     private drawShieldArc(aimAngle: number): void {
         const g = this.arcGfx;
         g.clear();
-        const arcR = PLAYER_RADIUS + 6;
-        const start = aimAngle - SHIELD_ARC_HALF;
-        const end = aimAngle + SHIELD_ARC_HALF;
+        const arcR = KnightConsts.RADIUS + 6;
+        const start = aimAngle - KnightConsts.SHIELD_ARC_HALF;
+        const end = aimAngle + KnightConsts.SHIELD_ARC_HALF;
         // arc() after clear() starts a fresh path — no stray line from origin.
         g.arc(0, 0, arcR, start, end);
-        g.stroke({color: SHIELD_COLOR, width: 3, alpha: 1});
+        g.stroke({ color: KnightConsts.SHIELD_COLOR, width: 3, alpha: 1 });
     }
-
-    private gradient = new FillGradient({
-        end: {x: 0.5, y: 0.5},
-        colorStops: [
-            {offset: 0, color: new Color('rgba(228,245,10,0.03)')},
-            {offset: 0.5, color: new Color('rgba(230,204,29,0.5)')},
-            {offset: 1, color: new Color('rgba(251,201,1,0.92)')},
-        ],
-    });
 
     private drawSwingArc(): void {
         const g = this.swingGfx;
         g.clear();
         if (this.swingTimer <= 0) return;
 
-        const alpha = this.swingTimer / ATTACK_ARC_DURATION;
+        const { ARC_DURATION, RANGE, SWORD_COLOR } = KnightConsts.AutoAttack;
+        const alpha = this.swingTimer / ARC_DURATION;
         const start = this.swingAngle - (Math.PI / 6); // 30° half-angle
         const end = this.swingAngle + (Math.PI / 6);
-        const normalizedSwingTimer = (ATTACK_ARC_DURATION - this.swingTimer) / ATTACK_ARC_DURATION;
+        const normalizedSwingTimer = (ARC_DURATION - this.swingTimer) / ARC_DURATION;
         const currEnd = lerp(start, end, normalizedSwingTimer);
 
-        // Need to add a sword like stick but this doesn't work
-        // g.rect(0, 0, 4, ATTACK_RANGE);
-        // g.fill({color: SWORD_COLOR});
+        // Swing arc trail
+        g.arc(0, 0, RANGE, start, currEnd);
+        g.stroke({ color: SWORD_COLOR, width: 4, alpha });
 
-        g.arc(0, 0, ATTACK_RANGE, start, currEnd);
-        g.stroke({color: SWORD_COLOR, width: 4, alpha});
+        // Sword at the leading edge of the swing
+        const cos = Math.cos(currEnd);
+        const sin = Math.sin(currEnd);
+        const perpCos = -Math.sin(currEnd);
+        const perpSin = Math.cos(currEnd);
+
+        const hiltDist = KnightConsts.RADIUS + 2;
+        const guardDist = KnightConsts.RADIUS + 10;
+        const guardWidth = 8;
+
+        // Blade
+        g.moveTo(cos * hiltDist, sin * hiltDist);
+        g.lineTo(cos * RANGE, sin * RANGE);
+        g.stroke({ color: SWORD_COLOR, width: 3, alpha });
+
+        // Crossguard
+        g.moveTo(cos * guardDist + perpCos * guardWidth, sin * guardDist + perpSin * guardWidth);
+        g.lineTo(cos * guardDist - perpCos * guardWidth, sin * guardDist - perpSin * guardWidth);
+        g.stroke({ color: SWORD_COLOR, width: 3, alpha });
     }
 }
