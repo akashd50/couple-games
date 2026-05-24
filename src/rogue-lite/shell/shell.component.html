@@ -1,5 +1,5 @@
 <div class="rl-shell">
-    <div class="rl-topbar">
+    <div class="rl-topbar" *ngIf="!debugInRun()">
         <a routerLink="/" class="rl-back-btn">&larr; Back</a>
         <span class="rl-game-title">Rogue-lite</span>
         @if (phase()) {
