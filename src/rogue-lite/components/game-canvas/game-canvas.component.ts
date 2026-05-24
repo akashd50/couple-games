@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { GameRenderer } from '../../pixi/game-renderer';
 import { JoystickComponent } from '../joystick/joystick.component';
-import { PLAYER_HP } from '../../pixi/constants';
+import { KnightConsts } from '../../pixi/constants';
 import type { Vec2 } from '../../pixi/types';
 
 @Component({
@@ -35,8 +35,8 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Signals ──────────────────────────────────────────────────────────────
 
     readonly isTouchDevice = signal(false);
-    readonly playerHp = signal(PLAYER_HP);
-    readonly maxPlayerHp = PLAYER_HP;
+    readonly playerHp = signal(KnightConsts.HP);
+    readonly maxPlayerHp = KnightConsts.HP;
     readonly runTime = signal(0);   // integer seconds, updated by interval
     readonly runEnded = signal(false);
 
@@ -94,7 +94,7 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Actions ──────────────────────────────────────────────────────────────
 
     restart(): void {
-        this.playerHp.set(PLAYER_HP);
+        this.playerHp.set(KnightConsts.HP);
         this.runTime.set(0);
         this.runEnded.set(false);
         this.renderer.restart();

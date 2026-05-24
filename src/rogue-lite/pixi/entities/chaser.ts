@@ -1,15 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import {
-    ARENA_SIZE,
-    CHASER_AGGRO_RANGE,
-    CHASER_COLOR,
-    CHASER_DEAGGRO_RANGE,
-    CHASER_HP,
-    CHASER_RADIUS,
-    CHASER_SPEED_CHASE,
-    CHASER_SPEED_WANDER,
-    KNOCKBACK_FRICTION,
-} from '../constants';
+import { ArenaConsts, ChaserConsts, PhysicsConsts } from '../constants';
 import type { Vec2 } from '../types';
 
 const enum ChaserState {
@@ -47,8 +37,8 @@ export class Chaser {
     constructor(parent: Container, x: number, y: number) {
         this.posX = x;
         this.posY = y;
-        this._hp = CHASER_HP;
-        this._maxHp = CHASER_HP;
+        this._hp = ChaserConsts.HP;
+        this._maxHp = ChaserConsts.HP;
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5; // stagger initial direction change
 
@@ -63,13 +53,13 @@ export class Chaser {
         this.container.addChild(this.bodyContainer);
 
         // Triangle (equilateral-ish, pointing right at rotation=0)
-        const r = CHASER_RADIUS;
+        const r = ChaserConsts.RADIUS;
         const body = new Graphics();
         body.moveTo(r, 0)
             .lineTo(-r * 0.75, -r * 0.65)
             .lineTo(-r * 0.75, r * 0.65)
             .lineTo(r, 0)
-            .fill({ color: CHASER_COLOR });
+            .fill({ color: ChaserConsts.COLOR });
         this.bodyContainer.addChild(body);
 
         // HP bar — child of outer container so it stays horizontal
@@ -79,7 +69,7 @@ export class Chaser {
     }
 
     get position(): Vec2 { return { x: this.posX, y: this.posY }; }
-    get radius(): number { return CHASER_RADIUS; }
+    get radius(): number { return ChaserConsts.RADIUS; }
     get isDead(): boolean { return this._hp <= 0; }
 
     /**
@@ -94,9 +84,9 @@ export class Chaser {
         const dist = Math.hypot(dx, dy);
 
         // ── State machine ──────────────────────────────────────────────────
-        if (this.state === ChaserState.WANDER && dist < CHASER_AGGRO_RANGE) {
+        if (this.state === ChaserState.WANDER && dist < ChaserConsts.AGGRO_RANGE) {
             this.state = ChaserState.CHASE;
-        } else if (this.state === ChaserState.CHASE && dist > CHASER_DEAGGRO_RANGE) {
+        } else if (this.state === ChaserState.CHASE && dist > ChaserConsts.DEAGGRO_RANGE) {
             this.state = ChaserState.WANDER;
             this.wanderAngle = Math.random() * Math.PI * 2;
             this.wanderTimer = 1.0 + Math.random();
@@ -122,11 +112,11 @@ export class Chaser {
         }
 
         const speed = this.state === ChaserState.CHASE
-            ? CHASER_SPEED_CHASE
-            : CHASER_SPEED_WANDER;
+            ? ChaserConsts.SPEED_CHASE
+            : ChaserConsts.SPEED_WANDER;
 
         // ── Physics ────────────────────────────────────────────────────────
-        const friction = Math.exp(-KNOCKBACK_FRICTION * dt);
+        const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
         this.vx *= friction;
         this.vy *= friction;
 
@@ -134,9 +124,9 @@ export class Chaser {
         this.posY += (moveY * speed + this.vy) * dt;
 
         // Clamp to arena
-        const r = CHASER_RADIUS;
-        this.posX = Math.max(r, Math.min(ARENA_SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ARENA_SIZE - r, this.posY));
+        const r = ChaserConsts.RADIUS;
+        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
+        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
 
         this.container.position.set(this.posX, this.posY);
 
@@ -175,7 +165,7 @@ export class Chaser {
         const barW = 28;
         const barH = 3;
         const barX = -barW / 2;
-        const barY = -CHASER_RADIUS - 9;
+        const barY = -ChaserConsts.RADIUS - 9;
 
         // Background track
         g.rect(barX, barY, barW, barH).fill({ color: 0x330000 });

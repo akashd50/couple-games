@@ -1,4 +1,4 @@
-import { ATTACK_HALF_ANGLE, ATTACK_RANGE } from '../constants';
+import { KnightConsts } from '../constants';
 
 /**
  * Returns true if a circular target is within the Knight's attack cone.
@@ -24,7 +24,7 @@ export function isInAttackCone(
     const dist = Math.hypot(dx, dy);
 
     // Distance check — target centre plus its radius must reach the cone
-    if (dist > ATTACK_RANGE + targetRadius) return false;
+    if (dist > KnightConsts.AutoAttack.RANGE + targetRadius) return false;
 
     // Targets directly on top of the attacker are always hit
     if (dist < 0.001) return true;
@@ -41,5 +41,5 @@ export function isInAttackCone(
     // Leniency: extra angle "credit" for the target's radius
     const angularLeniency = Math.asin(Math.min(1, targetRadius / dist));
 
-    return Math.abs(delta) <= ATTACK_HALF_ANGLE + angularLeniency;
+    return Math.abs(delta) <= KnightConsts.AutoAttack.HALF_ANGLE + angularLeniency;
 }

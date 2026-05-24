@@ -1,5 +1,5 @@
 import type { Container } from 'pixi.js';
-import { ARENA_SIZE, CAMERA_LERP, CAMERA_LOOKAHEAD } from '../constants';
+import { ArenaConsts, CameraConsts } from '../constants';
 import type { Vec2 } from '../types';
 
 /**
@@ -13,8 +13,8 @@ export class CameraSystem {
 
     constructor(
         private readonly worldRoot: Container,
-        startX = ARENA_SIZE / 2,
-        startY = ARENA_SIZE / 2,
+        startX = ArenaConsts.SIZE / 2,
+        startY = ArenaConsts.SIZE / 2,
     ) {
         this.camX = startX;
         this.camY = startY;
@@ -30,23 +30,23 @@ export class CameraSystem {
      */
     update(dt: number, playerPos: Vec2, aimVec: Vec2, viewW: number, viewH: number): void {
         // Lookahead: bias the camera slightly toward where the player is aiming
-        const targetX = playerPos.x + aimVec.x * CAMERA_LOOKAHEAD;
-        const targetY = playerPos.y + aimVec.y * CAMERA_LOOKAHEAD;
+        const targetX = playerPos.x + aimVec.x * CameraConsts.LOOKAHEAD;
+        const targetY = playerPos.y + aimVec.y * CameraConsts.LOOKAHEAD;
 
         // Framerate-independent exponential decay lerp
-        const t = 1 - Math.exp(-CAMERA_LERP * dt);
+        const t = 1 - Math.exp(-CameraConsts.LERP * dt);
         this.camX += (targetX - this.camX) * t;
         this.camY += (targetY - this.camY) * t;
 
         // Clamp so the viewport never shows outside the arena
         const halfW = viewW / 2;
         const halfH = viewH / 2;
-        const cx = viewW <= ARENA_SIZE
-            ? Math.max(halfW, Math.min(ARENA_SIZE - halfW, this.camX))
-            : ARENA_SIZE / 2;
-        const cy = viewH <= ARENA_SIZE
-            ? Math.max(halfH, Math.min(ARENA_SIZE - halfH, this.camY))
-            : ARENA_SIZE / 2;
+        const cx = viewW <= ArenaConsts.SIZE
+            ? Math.max(halfW, Math.min(ArenaConsts.SIZE - halfW, this.camX))
+            : ArenaConsts.SIZE / 2;
+        const cy = viewH <= ArenaConsts.SIZE
+            ? Math.max(halfH, Math.min(ArenaConsts.SIZE - halfH, this.camY))
+            : ArenaConsts.SIZE / 2;
 
         // Shift worldRoot so cam center maps to screen center
         this.worldRoot.position.set(halfW - cx, halfH - cy);

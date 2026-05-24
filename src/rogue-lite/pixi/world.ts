@@ -5,17 +5,7 @@ import { Chaser } from './entities/chaser';
 import { CameraSystem } from './systems/camera-system';
 import { isInAttackCone } from './systems/attack-system';
 import { InputManager } from './input-manager';
-import {
-    ARENA_SIZE,
-    ATTACK_DAMAGE,
-    ATTACK_KNOCKBACK,
-    CHASER_HIT_DAMAGE,
-    CHASER_KNOCKBACK,
-    CHASER_SPAWN_COUNT,
-    FIXED_STEP,
-    MAX_ACCUMULATED_TIME,
-    PLAYER_HP,
-} from './constants';
+import { ArenaConsts, ChaserConsts, KnightConsts, SimConsts } from './constants';
 import type { Vec2, WorldCallbacks } from './types';
 
 /**
@@ -36,7 +26,7 @@ export class World {
     private lastAim: Vec2 = { x: 1, y: 0 };
     private _runTime = 0;
     private runEnded = false;
-    private lastNotifiedHp = PLAYER_HP;
+    private lastNotifiedHp = KnightConsts.HP;
 
     private readonly tickerFn: () => void;
 
@@ -60,7 +50,7 @@ export class World {
 
         // ── Entities ───────────────────────────────────────────────────────
         this.player = new Player(playerLayer);
-        this.camera = new CameraSystem(worldRoot, ARENA_SIZE / 2, ARENA_SIZE / 2);
+        this.camera = new CameraSystem(worldRoot, ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
         this.spawnChasers();
 
         // ── Ticker ─────────────────────────────────────────────────────────
@@ -71,11 +61,11 @@ export class World {
             if (!this.runEnded) {
                 this._runTime += rawDt;
 
-                const cappedDt = Math.min(rawDt, MAX_ACCUMULATED_TIME);
+                const cappedDt = Math.min(rawDt, SimConsts.MAX_ACCUMULATED_TIME);
                 this.accumulator += cappedDt;
-                while (this.accumulator >= FIXED_STEP) {
-                    this.accumulator -= FIXED_STEP;
-                    this.tick(FIXED_STEP);
+                while (this.accumulator >= SimConsts.FIXED_STEP) {
+                    this.accumulator -= SimConsts.FIXED_STEP;
+                    this.tick(SimConsts.FIXED_STEP);
                 }
             }
 
@@ -104,17 +94,17 @@ export class World {
 
     // ── Private ──────────────────────────────────────────────────────────────
 
-    /** Spawn CHASER_SPAWN_COUNT enemies distributed around the arena centre. */
+    /** Spawn {@link ChaserConsts.SPAWN_COUNT} enemies distributed around the arena centre. */
     private spawnChasers(): void {
-        for (let i = 0; i < CHASER_SPAWN_COUNT; i++) {
+        for (let i = 0; i < ChaserConsts.SPAWN_COUNT; i++) {
             // Spread evenly by angle, randomise radius
-            const angle = (i / CHASER_SPAWN_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+            const angle = (i / ChaserConsts.SPAWN_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
             const dist  = 600 + Math.random() * 900;
-            const rawX  = ARENA_SIZE / 2 + Math.cos(angle) * dist;
-            const rawY  = ARENA_SIZE / 2 + Math.sin(angle) * dist;
+            const rawX  = ArenaConsts.SIZE / 2 + Math.cos(angle) * dist;
+            const rawY  = ArenaConsts.SIZE / 2 + Math.sin(angle) * dist;
             const margin = 40;
-            const x = Math.max(margin, Math.min(ARENA_SIZE - margin, rawX));
-            const y = Math.max(margin, Math.min(ARENA_SIZE - margin, rawY));
+            const x = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawX));
+            const y = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawY));
             this.chasers.push(new Chaser(this.enemyLayer, x, y));
         }
     }
@@ -152,9 +142,9 @@ export class World {
                 const nx = dist > 0.001 ? dx / dist : 1;
                 const ny = dist > 0.001 ? dy / dist : 0;
                 this.player.takeDamage(
-                    CHASER_HIT_DAMAGE,
-                    nx * CHASER_KNOCKBACK,
-                    ny * CHASER_KNOCKBACK,
+                    ChaserConsts.HIT_DAMAGE,
+                    nx * ChaserConsts.KNOCKBACK,
+                    ny * ChaserConsts.KNOCKBACK,
                 );
             }
 
@@ -165,9 +155,9 @@ export class World {
                     const dx2 = chaser.posX - pp.x;
                     const dy2 = chaser.posY - pp.y;
                     const d2  = Math.hypot(dx2, dy2);
-                    const kbx = d2 > 0.001 ? (dx2 / d2) * ATTACK_KNOCKBACK : ATTACK_KNOCKBACK;
-                    const kby = d2 > 0.001 ? (dy2 / d2) * ATTACK_KNOCKBACK : 0;
-                    chaser.takeDamage(ATTACK_DAMAGE, kbx, kby);
+                    const kbx = d2 > 0.001 ? (dx2 / d2) * KnightConsts.AutoAttack.KNOCKBACK : KnightConsts.AutoAttack.KNOCKBACK;
+                    const kby = d2 > 0.001 ? (dy2 / d2) * KnightConsts.AutoAttack.KNOCKBACK : 0;
+                    chaser.takeDamage(KnightConsts.AutoAttack.DAMAGE, kbx, kby);
                 }
             }
         }

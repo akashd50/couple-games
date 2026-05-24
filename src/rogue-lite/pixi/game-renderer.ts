@@ -1,9 +1,8 @@
 import { Application, Container } from 'pixi.js';
 import { InputManager } from './input-manager';
 import { World } from './world';
+import { ArenaConsts } from './constants';
 import type { Vec2, WorldCallbacks } from './types';
-
-const BACKGROUND_COLOR = 0x0e0e1a;
 
 export class GameRenderer {
     private app: Application | null = null;
@@ -44,7 +43,7 @@ export class GameRenderer {
             autoDensity: true,
             resolution: window.devicePixelRatio || 1,
             resizeTo: host,
-            background: BACKGROUND_COLOR,
+            background: ArenaConsts.BACKGROUND_COLOR,
         });
         host.appendChild(app.canvas);
         this.app = app;
