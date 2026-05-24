@@ -6,6 +6,7 @@ import { LobbyComponent } from '../../shared/components/lobby/lobby.component';
 import { RoomStateService } from '../../shared/services/room-state.service';
 import { PhaseType, RoomState } from '../../common-types';
 import { GameCanvasComponent } from '../components/game-canvas/game-canvas.component';
+import { SettingMenuService } from "../../shared/services/settings-menu.service";
 
 @Component({
     selector: 'rl-shell',
@@ -22,7 +23,11 @@ export class ShellComponent implements OnInit, OnDestroy {
 
     private subscription?: Subscription;
 
-    constructor(readonly state: RoomStateService) {}
+    constructor(
+        readonly state: RoomStateService,
+        readonly settingsService: SettingMenuService,
+    ) {
+    }
 
     ngOnInit(): void {
         this.subscription = this.state.roomState$.subscribe((roomState: RoomState) => {
@@ -31,6 +36,7 @@ export class ShellComponent implements OnInit, OnDestroy {
             this.roomCode.set(roomState.code);
             this.phase.set(game.phase);
         });
+
     }
 
     ngOnDestroy(): void {
@@ -39,9 +45,15 @@ export class ShellComponent implements OnInit, OnDestroy {
 
     enterRun(): void {
         this.debugInRun.set(true);
+        this.settingsService.addMenuItem({
+            id: "exit-run-debug",
+            text: "Exit game debug",
+            click: () => this.exitRun()
+        });
     }
 
     exitRun(): void {
         this.debugInRun.set(false);
+        this.settingsService.removeMenuItem("exit-run-debug");
     }
 }

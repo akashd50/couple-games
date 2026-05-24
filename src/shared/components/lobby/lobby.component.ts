@@ -23,7 +23,7 @@ export class LobbyComponent implements OnDestroy, OnInit {
     selectedMaxPlayers = 2;
 
     @Input() set maxPlayers(value: number) {
-        this.players = Array.from({length: value}, (_, i) => i + 1);
+        this.players = Array.from({ length: value }, (_, i) => i + 1);
     };
 
     playerStates: Record<string, boolean> = {};
