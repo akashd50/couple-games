@@ -2,9 +2,12 @@ import { Application, Container } from 'pixi.js';
 import { buildArena } from './graphics/arena-graphics';
 import { KnightPlayer, Player } from './entities/player';
 import { Chaser } from './entities/chaser';
+import { XpGem } from './entities/xp-gem';
 import { CameraSystem } from './systems/camera-system';
-import { isInAttackCone } from './systems/attack-system';
+import { SpawnerSystem } from './systems/spawner-system';
+import { LevelSystem } from './systems/level-system';
 import { InputManager } from './input-manager';
+import { ALL_UPGRADES } from './upgrades/upgrade-registry';
 import { ArenaConsts, ChaserConsts, KnightConsts, SimConsts } from './constants';
 import type { Vec2, WorldCallbacks } from './types';
 
@@ -15,17 +18,31 @@ import type { Vec2, WorldCallbacks } from './types';
  *   const world = new World(app, worldRoot, host, inputManager, callbacks);
  *   // ... run plays ...
  *   world.destroy();
+ *
+ * Phase 3 additions:
+ *   - SpawnerSystem: tops up enemy count every second; ramps over time.
+ *   - XpGem entities: drop on Chaser death; collected by walking over them.
+ *   - LevelSystem: XP → level-up → 3-upgrade modal (sim pauses until pick).
+ *   - isPaused: set on level-up, cleared when the player picks an upgrade.
  */
 export class World {
     private readonly player: Player;
     private readonly chasers: Chaser[] = [];
+    private readonly gems: XpGem[] = [];
     private readonly camera: CameraSystem;
+
     private readonly enemyLayer: Container;
+    private readonly gemLayer: Container;
+
+    private readonly spawner: SpawnerSystem;
+    private readonly levelSystem: LevelSystem;
 
     private accumulator = 0;
     private lastAim: Vec2 = { x: 1, y: 0 };
     private _runTime = 0;
     private runEnded = false;
+    /** True while the sim is paused waiting for the player to pick an upgrade. */
+    private isPaused = false;
     private lastNotifiedHp = KnightConsts.hp;
 
     private readonly tickerFn: () => void;
@@ -40,6 +57,10 @@ export class World {
         // ── Layers (bottom → top) ──────────────────────────────────────────
         worldRoot.addChild(buildArena());
 
+        this.gemLayer = new Container();
+        this.gemLayer.label = 'gems';
+        worldRoot.addChild(this.gemLayer);
+
         this.enemyLayer = new Container();
         this.enemyLayer.label = 'enemies';
         worldRoot.addChild(this.enemyLayer);
@@ -51,14 +72,30 @@ export class World {
         // ── Entities ───────────────────────────────────────────────────────
         this.player = new KnightPlayer(playerLayer);
         this.camera = new CameraSystem(worldRoot, ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
-        this.spawnChasers();
+
+        // ── Systems ────────────────────────────────────────────────────────
+        this.spawner = new SpawnerSystem((x, y) => {
+            this.chasers.push(new Chaser(this.enemyLayer, x, y));
+        });
+
+        this.levelSystem = new LevelSystem(
+            ALL_UPGRADES,
+            (level, choices) => {
+                // Pause the sim synchronously before notifying Angular
+                this.isPaused = true;
+                this.callbacks.onLevelUp?.(level, choices);
+            },
+            (xp, xpToNext, level) => {
+                this.callbacks.onXpChange?.(xp, xpToNext, level);
+            },
+        );
 
         // ── Ticker ─────────────────────────────────────────────────────────
         this.tickerFn = () => {
             const rawDt = app.ticker.deltaMS / 1000;
 
-            // Advance run time (wall-clock; stops when run ends)
-            if (!this.runEnded) {
+            // Advance run time and sim only when running (not ended, not paused)
+            if (!this.runEnded && !this.isPaused) {
                 this._runTime += rawDt;
 
                 const cappedDt = Math.min(rawDt, SimConsts.MAX_ACCUMULATED_TIME);
@@ -87,60 +124,62 @@ export class World {
         return this._runTime;
     }
 
+    /**
+     * Apply the chosen upgrade and resume the simulation.
+     * Called by GameRenderer after the Angular component relays the player's
+     * selection from the level-up modal.
+     */
+    selectUpgrade(id: string): void {
+        if (this.runEnded) return; // guard: don't act on stale modal events
+        this.levelSystem.applyUpgrade(id, this.player);
+        this.isPaused = false;
+    }
+
     destroy(): void {
         this.app.ticker.remove(this.tickerFn);
         this.player.destroy();
         for (const chaser of this.chasers) chaser.destroy();
         this.chasers.length = 0;
+        for (const gem of this.gems) gem.destroy();
+        this.gems.length = 0;
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
 
-    /** Spawn {@link ChaserConsts.SPAWN_COUNT} enemies distributed around the arena centre. */
-    private spawnChasers(): void {
-        for (let i = 0; i < ChaserConsts.SPAWN_COUNT; i++) {
-            // Spread evenly by angle, randomise radius
-            const angle = (i / ChaserConsts.SPAWN_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
-            const dist = 600 + Math.random() * 900;
-            const rawX = ArenaConsts.SIZE / 2 + Math.cos(angle) * dist;
-            const rawY = ArenaConsts.SIZE / 2 + Math.sin(angle) * dist;
-            const margin = 40;
-            const x = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawX));
-            const y = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawY));
-            this.chasers.push(new Chaser(this.enemyLayer, x, y));
-        }
-    }
-
     /** One fixed-timestep simulation step. */
     private tick(dt: number): void {
-        if (this.runEnded) return;
+        // Defensive early-return — a level-up inside this frame can set
+        // isPaused mid-loop; the next iteration will bail here.
+        if (this.runEnded || this.isPaused) return;
 
         const { move, aim } = this.inputManager.read();
         this.lastAim = aim;
         const aimAngle = Math.atan2(aim.y, aim.x);
 
-        // Player auto-attack: advance cooldown; non-null return = new swing started
+        // ── Player auto-attack ─────────────────────────────────────────────
         this.player.tryAttack(dt, aimAngle);
 
-        // Player movement
+        // ── Player movement ────────────────────────────────────────────────
         this.player.update(dt, move, aimAngle);
 
         const pp = this.player.position;
         const pr = this.player.radius;
 
-        // Enemy updates + collisions
+        // ── Spawner ────────────────────────────────────────────────────────
+        this.spawner.update(dt, this._runTime, this.chasers.length, pp.x, pp.y);
+
+        // ── Enemy updates + collisions ─────────────────────────────────────
         for (const chaser of this.chasers) {
             if (chaser.isDead) continue;
 
             chaser.update(dt, pp.x, pp.y);
 
-            // ── Player ↔ Chaser overlap ────────────────────────────────────
+            // Player ↔ Chaser overlap
             const dx = pp.x - chaser.posX;
             const dy = pp.y - chaser.posY;
             const dist = Math.hypot(dx, dy);
 
             if (dist < pr + chaser.radius) {
-                // Direction from chaser toward player (push player away)
                 const nx = dist > 0.001 ? dx / dist : 1;
                 const ny = dist > 0.001 ? dy / dist : 0;
                 this.player.takeDamage(
@@ -152,22 +191,46 @@ export class World {
 
             const hitInfo = this.player.checkHit(chaser);
             if (hitInfo.success) {
-                // Knock the chaser away from the player
                 chaser.takeDamage(hitInfo.damage, hitInfo.knockback.x, hitInfo.knockback.y);
             }
         }
 
-        // Remove dead chasers (iterate backwards to splice safely)
+        // ── Remove dead chasers + drop XP gems ────────────────────────────
         for (let i = this.chasers.length - 1; i >= 0; i--) {
             if (this.chasers[i].isDead) {
-                this.chasers[i].destroy();
+                const c = this.chasers[i];
+                // Drop gem before destroying so we still have the position
+                this.gems.push(new XpGem(this.gemLayer, c.posX, c.posY));
+                c.destroy();
                 this.chasers.splice(i, 1);
+            }
+        }
+
+        // ── XP gem updates ─────────────────────────────────────────────────
+        const pickupR = this.player.pickupRadius;
+        const magnetR = this.player.magnetRadius;
+
+        for (const gem of this.gems) {
+            if (gem.isCollected) continue;
+            const collected = gem.update(dt, pp.x, pp.y, pickupR, magnetR);
+            if (collected) {
+                this.levelSystem.addXp(gem.value);
+                // isPaused may now be true if a level-up triggered —
+                // the defensive check at the top handles the next iteration.
+            }
+        }
+
+        // Remove collected gems (containers already destroyed by XpGem.update)
+        for (let i = this.gems.length - 1; i >= 0; i--) {
+            if (this.gems[i].isCollected) {
+                this.gems.splice(i, 1);
             }
         }
 
         // ── Check player death ─────────────────────────────────────────────
         if (this.player.isDead) {
             this.runEnded = true;
+            this.isPaused = false; // dismiss any in-flight level-up
             this.callbacks.onRunEnd?.();
             return;
         }

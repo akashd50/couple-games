@@ -47,6 +47,14 @@ export abstract class AttackResolver {
     clearHitSet() {
         this.hitSet.clear();
     }
+
+    /**
+     * Apply a cooldown multiplier from an upgrade (e.g. Flurry).
+     * Default implementation is a no-op — only resolvers that have a
+     * cooldown concept need to override this.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    setCooldownMult(_mult: number): void { /* no-op by default */ }
 }
 
 export class SwingAttackResolver extends AttackResolver {
@@ -57,6 +65,8 @@ export class SwingAttackResolver extends AttackResolver {
     /** Aim angle captured when the attack fired (used for the visual). */
     private swingAngle = 0;
     private props: AttackProps;
+    /** Accumulated cooldown multiplier from upgrades (Flurry stacks multiply). */
+    private cooldownMult = 1;
     private arcStart: number;
     private arcEnd: number;
     private readonly swingGfx: Graphics;
@@ -89,11 +99,15 @@ export class SwingAttackResolver extends AttackResolver {
         this.arcEnd = this.arcStart + 2 * halfAngle * this.progress;
     }
 
+    override setCooldownMult(mult: number): void {
+        this.cooldownMult = mult;
+    }
+
     override tryAttack(dt: number, aimAngle: number): number {
         this.attackCooldown -= dt;
         if (this.attackCooldown <= 0) {
-            // += COOLDOWN to preserve any overshoot (keeps timing precise)
-            this.attackCooldown += this.props.cooldown;
+            // += scaled COOLDOWN to preserve any overshoot; multiplier from Flurry upgrade
+            this.attackCooldown += this.props.cooldown * this.cooldownMult;
             this.swingTimer = this.props.duration;
             this.swingAngle = aimAngle;
             this.clearHitSet();

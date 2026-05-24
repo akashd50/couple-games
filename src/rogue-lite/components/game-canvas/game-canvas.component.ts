@@ -14,7 +14,8 @@ import {
 import { GameRenderer } from '../../pixi/game-renderer';
 import { JoystickComponent } from '../joystick/joystick.component';
 import { KnightConsts } from '../../pixi/constants';
-import type { Vec2 } from '../../pixi/types';
+import { xpForLevel } from '../../pixi/systems/level-system';
+import type { UpgradeChoice, Vec2 } from '../../pixi/types';
 
 @Component({
     selector: 'rl-game-canvas',
@@ -40,8 +41,19 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     readonly runTime = signal(0);   // integer seconds, updated by interval
     readonly runEnded = signal(false);
 
+    // Level / XP
+    readonly level = signal(1);
+    readonly xp = signal(0);
+    readonly xpToNext = signal(xpForLevel(1));
+    readonly levelUpChoices = signal<UpgradeChoice[]>([]);
+    readonly showLevelUp = signal(false);
+
     readonly hpPercent = computed(() =>
         Math.max(0, (this.playerHp() / this.maxPlayerHp) * 100),
+    );
+
+    readonly xpPercent = computed(() =>
+        Math.max(0, Math.min(100, (this.xp() / this.xpToNext()) * 100)),
     );
 
     readonly runTimeFormatted = computed(() => {
@@ -71,6 +83,21 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
 
             this.renderer.onRunEnd = () => {
                 this.runEnded.set(true);
+                this.showLevelUp.set(false); // dismiss any open level-up modal
+                this.cdr.markForCheck();
+            };
+
+            this.renderer.onLevelUp = (level, choices) => {
+                this.level.set(level);
+                this.levelUpChoices.set(choices);
+                this.showLevelUp.set(true);
+                this.cdr.markForCheck();
+            };
+
+            this.renderer.onXpChange = (xp, xpToNext, level) => {
+                this.xp.set(xp);
+                this.xpToNext.set(xpToNext);
+                this.level.set(level);
                 this.cdr.markForCheck();
             };
 
@@ -97,12 +124,29 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
         this.playerHp.set(KnightConsts.hp);
         this.runTime.set(0);
         this.runEnded.set(false);
+        this.level.set(1);
+        this.xp.set(0);
+        this.xpToNext.set(xpForLevel(1));
+        this.showLevelUp.set(false);
+        this.levelUpChoices.set([]);
         this.renderer.restart();
+        this.cdr.markForCheck();
+    }
+
+    /** Called when the player taps an upgrade card in the level-up modal. */
+    selectUpgrade(id: string): void {
+        this.showLevelUp.set(false);
+        this.renderer.selectUpgrade(id);
         this.cdr.markForCheck();
     }
 
     onBackToLobby(): void {
         this.backToLobby.emit();
+    }
+
+    /** Generate a range array for stack-pip rendering in the template. */
+    stackRange(n: number): number[] {
+        return Array.from({ length: n }, (_, i) => i);
     }
 
     // ── Joystick bridge ──────────────────────────────────────────────────────

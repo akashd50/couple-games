@@ -1,33 +1,43 @@
-import { Color, Container, FillGradient, Graphics } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
-import { ArenaConsts, KnightConsts, PhysicsConsts } from '../constants';
-import { lerp } from "../common-utils";
+import { ArenaConsts, KnightConsts, PhysicsConsts, XpGemConsts } from '../constants';
 import { AttackResolver, getAttackResolver, HitInfo } from "./attacks";
 import { Chaser } from "./chaser";
 
 /**
- * Knight player entity.
+ * Abstract base for all player classes.
  *
- * Layer order inside container (bottom → top):
- *   swingGfx  — sword-swing arc (fades out)
- *   body      — white circle (static, drawn once)
- *   arcGfx    — blue shield arc (redrawn each tick)
+ * Upgrade-facing mutator API — safe to call from upgrade definitions:
+ *   addMaxHp(n)               — Juggernaut: grow max HP and heal immediately
+ *   addRadiusBonus(n)         — Juggernaut: grow collision/visual radius
+ *   addMagnetRadius(n)        — Magnet: expand XP-gem attraction range
+ *   multiplyAttackCooldown(f) — Flurry: multiply all cooldowns by factor f
  */
 export abstract class Player {
     protected readonly container: Container;
     protected posX: number;
     protected posY: number;
 
-    // Knockback velocity components (decay each tick)
+    // ── Knockback velocity ────────────────────────────────────────────────────
     protected vx = 0;
     protected vy = 0;
 
-    // HP
+    // ── HP ────────────────────────────────────────────────────────────────────
     protected _hp: number;
-    protected readonly _maxHp: number;
+    protected _maxHp: number;
     /** Remaining invincibility seconds after a hit. */
     protected iframes = 0;
     protected attackResolvers: AttackResolver[] = [];
+
+    // ── Upgrade-mutable stats ─────────────────────────────────────────────────
+    /** Extra radius added by Juggernaut stacks. */
+    protected _radiusBonus = 0;
+    /** Gem pickup radius — player must step within this range to collect. */
+    protected _pickupRadius = XpGemConsts.BASE_PICKUP_RADIUS;
+    /** Magnet attraction range (0 = no attraction). Grown by the Magnet upgrade. */
+    protected _magnetRadius = 0;
+    /** Product of all Flurry cooldown multipliers applied so far. */
+    protected _cooldownMult = 1;
 
     constructor(parent: Container) {
         this.posX = ArenaConsts.SIZE / 2;
@@ -55,12 +65,49 @@ export abstract class Player {
         return this._maxHp;
     }
 
+    /** Current collision and visual radius; grows with Juggernaut stacks. */
     get radius(): number {
-        return KnightConsts.radius;
+        return KnightConsts.radius + this._radiusBonus;
     }
+
+    get pickupRadius(): number { return this._pickupRadius; }
+    get magnetRadius(): number { return this._magnetRadius; }
 
     get isDead(): boolean {
         return this._hp <= 0;
+    }
+
+    // ── Upgrade mutators ─────────────────────────────────────────────────────
+
+    /** Increase max HP and immediately heal the same amount (Juggernaut). */
+    addMaxHp(amount: number): void {
+        this._maxHp += amount;
+        this._hp = Math.min(this._hp + amount, this._maxHp);
+    }
+
+    /**
+     * Grow collision and visual radius by `amount` (Juggernaut).
+     * Triggers `onRadiusChanged()` so subclasses can redraw body graphics.
+     */
+    addRadiusBonus(amount: number): void {
+        this._radiusBonus += amount;
+        this.onRadiusChanged();
+    }
+
+    /** Expand the XP-gem magnet range by `amount` (Magnet). */
+    addMagnetRadius(amount: number): void {
+        this._magnetRadius += amount;
+    }
+
+    /**
+     * Multiply all attack resolver cooldowns by `factor` (Flurry).
+     * Immediately propagated to every attached `AttackResolver`.
+     */
+    multiplyAttackCooldown(factor: number): void {
+        this._cooldownMult *= factor;
+        for (const r of this.attackResolvers) {
+            r.setCooldownMult(this._cooldownMult);
+        }
     }
 
     // ── Public methods ───────────────────────────────────────────────────────
@@ -68,8 +115,6 @@ export abstract class Player {
     /**
      * Check whether an auto-attack should fire this tick.
      * Must be called ONCE per tick, before update().
-     *
-     * @returns The aim angle if an attack fires; null otherwise.
      */
     tryAttack(dt: number, aimAngle: number): number {
         return undefined;
@@ -98,7 +143,8 @@ export abstract class Player {
         this.posX += (move.x * KnightConsts.speed + this.vx) * dt;
         this.posY += (move.y * KnightConsts.speed + this.vy) * dt;
 
-        const r = KnightConsts.radius;
+        // Use current (upgrade-affected) radius for arena clamping
+        const r = this.radius;
         this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
         this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
 
@@ -122,9 +168,15 @@ export abstract class Player {
     protected abstract draw(dt: number, move: Vec2, aimAngle: number): void;
 
     /**
-     * Apply a hit to the player — only lands if iframes are not active.
+     * Called whenever `_radiusBonus` changes (i.e. Juggernaut was picked).
+     * Subclasses override to redraw body graphics at the new radius.
+     */
+    protected onRadiusChanged(): void { /* override in subclass */ }
+
+    /**
+     * Apply a hit — only lands if iframes are not active.
      * @param amount  HP to remove.
-     * @param kbx     X knockback impulse (world units/s, positive = right).
+     * @param kbx     X knockback impulse (world units/s).
      * @param kby     Y knockback impulse.
      * @returns true if the hit landed.
      */
@@ -143,11 +195,9 @@ export abstract class Player {
 }
 
 export class KnightPlayer extends Player {
+    /** Stored so it can be redrawn when radius changes (Juggernaut). */
+    private body: Graphics;
     private readonly arcGfx: Graphics;
-
-    get speed(): number {
-        return KnightConsts.speed;
-    }
 
     constructor(parent: Container) {
         super(parent);
@@ -155,10 +205,10 @@ export class KnightPlayer extends Player {
         this.attackResolvers.push(getAttackResolver(KnightConsts.autoAttack));
         this.container.addChild(...this.attackResolvers.flatMap(a => a.getGfx()));
 
-        // Body circle — drawn once, never changes
-        const body = new Graphics();
-        body.circle(0, 0, KnightConsts.radius).fill({ color: KnightConsts.color });
-        this.container.addChild(body);
+        // Body circle — stored for redraw on radius change
+        this.body = new Graphics();
+        this.drawBody();
+        this.container.addChild(this.body);
 
         // Shield arc — redrawn every sim tick
         this.arcGfx = new Graphics();
@@ -171,7 +221,6 @@ export class KnightPlayer extends Player {
         for (const a of this.attackResolvers) {
             a.tryAttack(dt, aimAngle);
         }
-
         return 0;
     }
 
@@ -180,8 +229,11 @@ export class KnightPlayer extends Player {
         for (const a of this.attackResolvers) {
             hitInfo.add(a.checkHit(this, chaser));
         }
-
         return hitInfo;
+    }
+
+    protected override onRadiusChanged(): void {
+        this.drawBody();
     }
 
     protected override issueUpdate(dt: number, move: Vec2, aimAngle: number): void {
@@ -197,10 +249,15 @@ export class KnightPlayer extends Player {
         }
     }
 
+    private drawBody(): void {
+        this.body.clear();
+        this.body.circle(0, 0, this.radius).fill({ color: KnightConsts.color });
+    }
+
     private drawShieldArc(aimAngle: number): void {
         const g = this.arcGfx;
         g.clear();
-        const arcR = KnightConsts.radius + 6;
+        const arcR = this.radius + 6;
         const start = aimAngle - KnightConsts.SHIELD_ARC_HALF;
         const end = aimAngle + KnightConsts.SHIELD_ARC_HALF;
         // arc() after clear() starts a fresh path — no stray line from origin.

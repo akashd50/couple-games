@@ -73,6 +73,45 @@ export class ChaserConsts {
     static readonly SPAWN_COUNT = 6;
 }
 
+// ─── XP gems ─────────────────────────────────────────────────────────────────
+export class XpGemConsts {
+    /** Visual radius of the gem diamond shape. */
+    static readonly RADIUS = 7;
+    static readonly COLOR = 0x44ffaa;
+    /** World units/s when a gem is being attracted by the Magnet upgrade. */
+    static readonly ATTRACTION_SPEED = 420;
+    /** Default pickup radius (player must walk within this range to collect). */
+    static readonly BASE_PICKUP_RADIUS = 40;
+    /** XP awarded per collected gem. */
+    static readonly XP_VALUE = 5;
+}
+
+// ─── Spawner ──────────────────────────────────────────────────────────────────
+export class SpawnerConsts {
+    /** Seconds between enemy-count checks. */
+    static readonly TICK_INTERVAL = 1.0;
+    /** Initial enemy cap when runTime=0. */
+    static readonly BASE_COUNT = 6;
+    /** Additional enemies unlocked each ramp period. */
+    static readonly COUNT_RAMP_STEP = 2;
+    /** Seconds between count ramps. */
+    static readonly COUNT_RAMP_INTERVAL = 30;
+    /** Hard cap on simultaneous enemies. */
+    static readonly MAX_COUNT = 30;
+    /** Minimum spawn distance from the player (world units). */
+    static readonly SPAWN_RING_MIN = 650;
+    /** Maximum spawn distance from the player (world units). */
+    static readonly SPAWN_RING_MAX = 950;
+}
+
+// ─── Level / XP ──────────────────────────────────────────────────────────────
+export class LevelConsts {
+    /** XP required to reach level N+1 = N * XP_PER_LEVEL. */
+    static readonly XP_PER_LEVEL = 20;
+    /** Number of upgrade choices offered on level-up. */
+    static readonly UPGRADE_CHOICES = 3;
+}
+
 // ─── Camera ──────────────────────────────────────────────────────────────────
 export class CameraConsts {
     /** World units toward aim direction. */

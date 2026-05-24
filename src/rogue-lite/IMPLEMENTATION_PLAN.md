@@ -35,9 +35,9 @@ Pixi canvas, no console errors.
 - `Player` entity (Knight): circle with a small shield arc showing facing.
 - Camera follows player, slight lookahead toward aim direction.
 - Unified input system:
-  - Desktop: WASD move, mouse position = aim.
-  - Touch: detect via pointer events; show two virtual joysticks (HTML overlay
-    components, not Pixi) — left = move, right = aim.
+    - Desktop: WASD move, mouse position = aim.
+    - Touch: detect via pointer events; show two virtual joysticks (HTML overlay
+      components, not Pixi) — left = move, right = aim.
 - Game loop runs at Pixi's ticker; fixed-timestep sim step inside.
 
 **Done when:** you can drive Knight around the arena on both desktop and
@@ -62,6 +62,8 @@ mobile, hitting the arena boundary stops you cleanly.
 **Done when:** you can kill enemies, enemies can kill you, and you can start
 a new run.
 
+✅ **Phase 2 complete** (2026-05-24)
+
 ---
 
 ## Phase 3 — Spawner + XP loop + level-up
@@ -74,10 +76,17 @@ a new run.
 - XP-level curve. Level-up pauses the sim, shows a 3-upgrade modal.
 - Implement 3 starter upgrades to validate the system: Flurry (cooldown),
   Juggernaut (HP + size), Magnet (pickup radius).
-- HUD: XP bar (bottom of screen), Lv N indicator.
+- Make the powerup system easily extendable, such that in the future we can
+  build upgrade trees and choose upgrades that build on top of each other, or
+  some upgrades that appear conditionally when certain conditions are met whether its
+  level or existence of certain things.
+- HUD: XP bar (top of the screen) should be above the hp bar and extend the full length of display, contains the level
+  in the center, Lv N indicator.
 
 **Done when:** you can survive several minutes, hit Lv 5+, and your build
 visibly changes how the Knight plays.
+
+✅ **Phase 3 complete** (2026-05-24)
 
 ---
 

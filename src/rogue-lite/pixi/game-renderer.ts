@@ -31,6 +31,14 @@ export class GameRenderer {
         this._callbacks.onRunEnd = fn;
     }
 
+    set onLevelUp(fn: ((level: number, choices: import('./types').UpgradeChoice[]) => void) | undefined) {
+        this._callbacks.onLevelUp = fn;
+    }
+
+    set onXpChange(fn: ((xp: number, xpToNext: number, level: number) => void) | undefined) {
+        this._callbacks.onXpChange = fn;
+    }
+
     // ── Public API ───────────────────────────────────────────────────────────
 
     async init(host: HTMLElement): Promise<void> {
@@ -92,6 +100,14 @@ export class GameRenderer {
     /** Returns the number of seconds elapsed in the current run. */
     getRunTime(): number {
         return this.world?.runTime ?? 0;
+    }
+
+    /**
+     * Relay the upgrade selection from Angular to the active World.
+     * Unpauses the sim once the upgrade is applied.
+     */
+    selectUpgrade(id: string): void {
+        this.world?.selectUpgrade(id);
     }
 
     /** Called by the left joystick overlay (touch devices). */

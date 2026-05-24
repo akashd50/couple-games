@@ -1,6 +1,17 @@
 <div #host class="game-canvas__host"></div>
 
-<!-- ── HUD (visible while running) ─────────────────────────────────────── -->
+<!-- ── XP bar: full-width, pinned to very top of screen ────────────────── -->
+@if (!runEnded()) {
+    <div class="xp-bar" role="progressbar"
+         [attr.aria-valuenow]="xp()"
+         [attr.aria-valuemax]="xpToNext()"
+         aria-label="Experience bar">
+        <div class="xp-bar__fill" [style.width.%]="xpPercent()"></div>
+        <span class="xp-bar__level">Lv {{ level() }}</span>
+    </div>
+}
+
+<!-- ── HUD: HP bar + run timer (below XP bar) ───────────────────────────── -->
 @if (!runEnded()) {
     <div class="hud" aria-label="HUD">
         <div class="hud__hp-section">
@@ -12,6 +23,36 @@
             <span class="hud__hp-text">{{ playerHp() }} / {{ maxPlayerHp }}</span>
         </div>
         <div class="hud__timer">{{ runTimeFormatted() }}</div>
+    </div>
+}
+
+<!-- ── Level-up modal ───────────────────────────────────────────────────── -->
+@if (showLevelUp()) {
+    <div class="levelup" role="dialog" aria-modal="true" aria-label="Level up">
+        <div class="levelup__modal">
+            <div class="levelup__header">
+                <span class="levelup__badge">Lv {{ level() }}</span>
+                <h2 class="levelup__title">Level Up!</h2>
+                <p class="levelup__sub">Choose an upgrade</p>
+            </div>
+            <div class="levelup__choices">
+                @for (choice of levelUpChoices(); track choice.id) {
+                    <button class="levelup__choice" type="button"
+                            (click)="selectUpgrade(choice.id)">
+                        <div class="levelup__choice-name">{{ choice.name }}</div>
+                        <div class="levelup__choice-desc">{{ choice.description }}</div>
+                        @if (choice.maxStacks > 1) {
+                            <div class="levelup__stacks">
+                                @for (i of stackRange(choice.maxStacks); track i) {
+                                    <span class="levelup__pip"
+                                          [class.levelup__pip--filled]="i < choice.currentStacks"></span>
+                                }
+                            </div>
+                        }
+                    </button>
+                }
+            </div>
+        </div>
     </div>
 }
 

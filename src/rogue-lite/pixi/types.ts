@@ -19,6 +19,15 @@ export interface RunState {
     runEnded: boolean;
 }
 
+/** A single upgrade option presented in the level-up modal. */
+export interface UpgradeChoice {
+    id: string;
+    name: string;
+    description: string;
+    currentStacks: number;
+    maxStacks: number;
+}
+
 /**
  * Callback hooks the World calls when important state changes.
  * Stored on the WorldCallbacks object which is shared by reference between
@@ -28,4 +37,11 @@ export interface RunState {
 export interface WorldCallbacks {
     onHpChange?: (hp: number) => void;
     onRunEnd?: () => void;
+    /**
+     * Fired when the player levels up and upgrades are available.
+     * The sim is paused until World.selectUpgrade() is called.
+     */
+    onLevelUp?: (level: number, choices: UpgradeChoice[]) => void;
+    /** Fired whenever XP changes (gem collected or level-up overflow). */
+    onXpChange?: (xp: number, xpToNext: number, level: number) => void;
 }
