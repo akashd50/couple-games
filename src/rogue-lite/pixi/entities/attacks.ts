@@ -1,5 +1,5 @@
 import { Chaser } from "./chaser";
-import { AttackProps, KnightConsts, KnightProps } from "../constants";
+import { AttackProps, KnightConsts } from "../constants";
 import { Player } from "./player";
 import { isInAttackCone } from "../systems/attack-system";
 import { Vec2 } from "../types";
@@ -32,13 +32,13 @@ export class HitInfo {
 export abstract class AttackResolver {
     protected hitSet = new Set<Chaser>();
 
-    abstract checkHit(player: Player, chaser: Chaser);
+    abstract checkHit(player: Player, chaser: Chaser): HitInfo | undefined;
 
-    abstract tryAttack(dt: number, aimAngle: number): number;
+    abstract tryAttack(dt: number, aimAngle: number): number | undefined;
 
     abstract update(dt: number, move: Vec2, aimAngle: number): void;
 
-    abstract draw(dt: number, move: Vec2, aimAngle: number);
+    abstract draw(dt: number, move: Vec2, aimAngle: number): void;
 
     getGfx(): Graphics[] {
         return [];
@@ -55,6 +55,20 @@ export abstract class AttackResolver {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setCooldownMult(_mult: number): void { /* no-op by default */ }
+
+    /**
+     * Widen the attack cone by `delta` radians (half-angle).
+     * Used by the Wide Cleave upgrade. Default: no-op.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    addHalfAngle(_delta: number): void { /* no-op by default */ }
+
+    /**
+     * Multiply the attack range by `factor`.
+     * Used by the Wide Cleave upgrade. Default: no-op.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    multiplyRange(_factor: number): void { /* no-op by default */ }
 }
 
 export class SwingAttackResolver extends AttackResolver {
@@ -71,6 +85,14 @@ export class SwingAttackResolver extends AttackResolver {
     private arcEnd: number;
     private readonly swingGfx: Graphics;
 
+    // ── Phase 4: Wide Cleave mutation fields ──────────────────────────────────
+    /** Extra half-angle (radians) added by Wide Cleave stacks. */
+    private _halfAngleDelta = 0;
+    /** Range multiplier accumulated from Wide Cleave stacks. */
+    private _rangeMult = 1;
+    /** Callbacks invoked each time a swing fires; used by ShockwaveResolver. */
+    private readonly _fireListeners: ((angle: number) => void)[] = [];
+
     constructor(props: AttackProps) {
         super();
         this.props = props;
@@ -78,7 +100,17 @@ export class SwingAttackResolver extends AttackResolver {
         this.swingGfx = new Graphics();
     }
 
-    get progress(): number {
+    /** Effective half-angle after all Wide Cleave stacks. */
+    get effectiveHalfAngle(): number {
+        return this.props.halfAngle + this._halfAngleDelta;
+    }
+
+    /** Effective sword range after all Wide Cleave stacks. */
+    get effectiveRange(): number {
+        return this.props.range * this._rangeMult;
+    }
+
+    get progress(): number | undefined {
         if (this.swingTimer <= 0) {
             return undefined;
         }
@@ -89,21 +121,29 @@ export class SwingAttackResolver extends AttackResolver {
         return [this.swingGfx];
     }
 
-    override update(dt: number, move: Vec2, aimAngle: number) {
+    override update(dt: number, _move: Vec2, _aimAngle: number) {
         if (this.swingTimer > 0) {
             this.swingTimer = Math.max(0, this.swingTimer - dt);
         }
 
-        const halfAngle = this.props.halfAngle;
+        const halfAngle = this.effectiveHalfAngle;
         this.arcStart = this.swingAngle - halfAngle;
-        this.arcEnd = this.arcStart + 2 * halfAngle * this.progress;
+        this.arcEnd = this.arcStart + 2 * halfAngle * (this.progress ?? 0);
     }
 
     override setCooldownMult(mult: number): void {
         this.cooldownMult = mult;
     }
 
-    override tryAttack(dt: number, aimAngle: number): number {
+    override addHalfAngle(delta: number): void {
+        this._halfAngleDelta += delta;
+    }
+
+    override multiplyRange(factor: number): void {
+        this._rangeMult *= factor;
+    }
+
+    override tryAttack(dt: number, aimAngle: number): number | undefined {
         this.attackCooldown -= dt;
         if (this.attackCooldown <= 0) {
             // += scaled COOLDOWN to preserve any overshoot; multiplier from Flurry upgrade
@@ -111,17 +151,31 @@ export class SwingAttackResolver extends AttackResolver {
             this.swingTimer = this.props.duration;
             this.swingAngle = aimAngle;
             this.clearHitSet();
+            for (const cb of this._fireListeners) cb(aimAngle);
             return aimAngle;
         }
         return undefined;
     }
 
-    override checkHit(player: Player, chaser: Chaser): HitInfo {
+    /**
+     * Register a callback invoked each time a swing fires.
+     * ShockwaveResolver subscribes here to count attacks without any state on the player.
+     */
+    addFireListener(cb: (angle: number) => void): void {
+        this._fireListeners.push(cb);
+    }
+
+    override checkHit(player: Player, chaser: Chaser): HitInfo | undefined {
         if (this.swingTimer <= 0 || this.hitSet.has(chaser)) {
             return undefined;
         }
 
-        if (isInAttackCone(player.position.x, player.position.y, this.arcStart, this.arcEnd, chaser.posX, chaser.posY, chaser.radius)) {
+        if (isInAttackCone(
+            player.position.x, player.position.y,
+            this.arcStart, this.arcEnd,
+            chaser.posX, chaser.posY, chaser.radius,
+            this.effectiveRange,
+        )) {
             const dx2 = chaser.posX - player.position.x;
             const dy2 = chaser.posY - player.position.y;
             const d2 = Math.hypot(dx2, dy2);
@@ -139,22 +193,25 @@ export class SwingAttackResolver extends AttackResolver {
         return undefined;
     }
 
-    override draw(dt: number, move: Vec2, aimAngle: number): void {
+    override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
         const g = this.swingGfx;
         g.clear();
         if (this.swingTimer <= 0) {
             return;
         }
 
-        const { duration, range, color } = KnightConsts.autoAttack;
+        const { duration, color } = KnightConsts.autoAttack;
+        const effectiveRange    = this.effectiveRange;
+        const effectiveHalfAngle = this.effectiveHalfAngle;
+
         const alpha = this.swingTimer / duration;
-        const start = this.swingAngle - (Math.PI / 6); // 30° half-angle
-        const end = this.swingAngle + (Math.PI / 6);
+        const start = this.swingAngle - effectiveHalfAngle;
+        const end   = this.swingAngle + effectiveHalfAngle;
         const normalizedSwingTimer = (duration - this.swingTimer) / duration;
         const currEnd = lerp(start, end, normalizedSwingTimer);
 
         // Swing arc trail
-        g.arc(0, 0, range, start, currEnd);
+        g.arc(0, 0, effectiveRange, start, currEnd);
         g.stroke({ color: color, width: 4, alpha });
 
         // Sword at the leading edge of the swing
@@ -163,13 +220,13 @@ export class SwingAttackResolver extends AttackResolver {
         const perpCos = -Math.sin(currEnd);
         const perpSin = Math.cos(currEnd);
 
-        const hiltDist = KnightConsts.radius + 2;
+        const hiltDist  = KnightConsts.radius + 2;
         const guardDist = KnightConsts.radius + 10;
         const guardWidth = 8;
 
         // Blade
         g.moveTo(cos * hiltDist, sin * hiltDist);
-        g.lineTo(cos * range, sin * range);
+        g.lineTo(cos * effectiveRange, sin * effectiveRange);
         g.stroke({ color: color, width: 3, alpha });
 
         // Crossguard

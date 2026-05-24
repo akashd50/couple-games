@@ -50,6 +50,52 @@ export class KnightProps implements PlayerProps {
         /** Knockback impulse applied to an enemy on sword hit (world units/s). */
         knockback: 195,
     };
+
+    // ── Directional speed bonus ───────────────────────────────────────────────
+    /**
+     * Maximum fractional speed bonus gained when the player's movement direction
+     * perfectly matches the aim direction.  Applied proportionally to the dot
+     * product: facing 90° off = 0 bonus; facing exactly the same = +30%.
+     */
+    readonly DIRECTIONAL_SPEED_BONUS = 0.30;
+
+    // ── Shield-side damage reduction ──────────────────────────────────────────
+    /**
+     * Base fraction of incoming damage blocked when a hit arrives from the
+     * shield-facing side (within ±SHIELD_ARC_HALF of the aim direction).
+     * The Aura Shield upgrade stacks on top of this.
+     */
+    readonly SHIELD_BASE_REDUCTION = 0.20;
+
+    // ── Shockwave (Phase 4) ───────────────────────────────────────────────────
+    /** Every N attacks fires a Shockwave. */
+    readonly SHOCKWAVE_EVERY_N = 5;
+    /**
+     * How far beyond the sword range the Shockwave cone expands (world units).
+     * The cone's inner edge matches the sword arc; the outer edge is
+     * innerRadius + SHOCKWAVE_RANGE.
+     */
+    readonly SHOCKWAVE_RANGE = 220;
+    /** Knockback impulse (world units/s) applied by the primary Shockwave. */
+    readonly SHOCKWAVE_FORCE = 350;
+    /** Seconds after the primary Shockwave that Aftershock fires. */
+    readonly AFTERSHOCK_DELAY = 0.5;
+    /** Aftershock expansion beyond sword range (smaller than primary). */
+    readonly AFTERSHOCK_RANGE = 140;
+    /** Knockback impulse of the Aftershock. */
+    readonly AFTERSHOCK_FORCE = 220;
+
+    // ── Aura upgrade ──────────────────────────────────────────────────────────
+    /** Outer radius of the Aura damage pulse (world units). */
+    readonly AURA_RADIUS           = 200;
+    /** Seconds per complete Aura pulse cycle. */
+    readonly AURA_PERIOD           = 2.0;
+    /** HP damage dealt to each enemy the Aura pulse ring passes through. */
+    readonly AURA_DAMAGE           = 8;
+    /** Knockback impulse (world units/s) from the Aura pulse. */
+    readonly AURA_KNOCKBACK_FORCE  = 200;
+    /** Visual colour of the Aura ring. */
+    readonly AURA_COLOR            = 0x88ff88;
 }
 
 export const KnightConsts = new KnightProps();
@@ -71,6 +117,18 @@ export class ChaserConsts {
     static readonly KNOCKBACK = 145;
     /** How many Chasers to spawn when a run starts. */
     static readonly SPAWN_COUNT = 6;
+
+    // ── Difficulty ramp (Phase 4) ─────────────────────────────────────────────
+    /**
+     * Fraction of base HP added per completed {@link SpawnerConsts.COUNT_RAMP_INTERVAL}.
+     * After 1 min (2 ramps): HP ×1.30; after 2 min (4 ramps): HP ×1.60.
+     */
+    static readonly HP_RAMP_PER_INTERVAL = 0.15;
+    /**
+     * Fraction of base speed added per ramp interval.
+     * After 2 min enemies move ~14% faster than baseline.
+     */
+    static readonly SPEED_RAMP_PER_INTERVAL = 0.07;
 }
 
 // ─── XP gems ─────────────────────────────────────────────────────────────────

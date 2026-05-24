@@ -1,0 +1,71 @@
+import type { Player } from './player';
+import type { Chaser } from './chaser';
+import type { Vec2 } from '../types';
+import { AttackResolver, HitInfo, SwingAttackResolver } from './attacks';
+import { KnightConsts } from '../constants';
+
+/**
+ * Fires a shockwave on every Nth sword swing.
+ *
+ * Depends on SwingAttackResolver: subscribes to its fire-callback so the attack
+ * count accumulates without any fields on the player, and reads effectiveHalfAngle /
+ * effectiveRange so the shockwave cone always matches the sword arc (Wide Cleave
+ * stacks included).
+ *
+ * World reads consumePending() each tick to get the pending aim angle, then fires
+ * the physics impulse + ShockwaveEffect visual itself.
+ *
+ * Upgrades:
+ *   Shockwave (1 stack) — KnightPlayer.enableShockwave() creates this resolver.
+ */
+export class ShockwaveResolver extends AttackResolver {
+    private _attacksFired = 0;
+    private _pendingAngle: number | null = null;
+    private readonly _fireListeners: ((angle: number) => void)[] = [];
+
+    constructor(private readonly swing: SwingAttackResolver) {
+        super();
+        swing.addFireListener(angle => this.onSwingFired(angle));
+    }
+
+    /** Effective cone half-angle — mirrors the sword arc, incl. Wide Cleave stacks. */
+    get halfAngle(): number { return this.swing.effectiveHalfAngle; }
+
+    /** Cone inner radius — matches the sword's effective reach. */
+    get innerRadius(): number { return this.swing.effectiveRange; }
+
+    /**
+     * Register a callback invoked each time THIS shockwave fires.
+     * AftershockResolver subscribes here to start its delay timer.
+     */
+    addFireListener(cb: (angle: number) => void): void {
+        this._fireListeners.push(cb);
+    }
+
+    /**
+     * Returns the aim angle at which the shockwave was triggered and clears the
+     * pending flag.  Returns null if no shockwave is queued this tick.
+     *
+     * Called by World after player.update(); safe to call once per tick.
+     */
+    consumePending(): number | null {
+        const a = this._pendingAngle;
+        this._pendingAngle = null;
+        return a;
+    }
+
+    private onSwingFired(angle: number): void {
+        this._attacksFired++;
+        if (this._attacksFired % KnightConsts.SHOCKWAVE_EVERY_N === 0) {
+            this._pendingAngle = angle;
+            for (const cb of this._fireListeners) cb(angle);
+        }
+    }
+
+    // ── AttackResolver contract (passive — driven by swing fire callback) ─────
+    // tryAttack / checkHit / draw are no-ops; update is not needed either.
+    override tryAttack(_dt: number, _aimAngle: number): number | undefined { return undefined; }
+    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined { return undefined; }
+    override update(_dt: number, _move: Vec2, _aimAngle: number): void { }
+    override draw(_dt: number, _move: Vec2, _aimAngle: number): void { }
+}

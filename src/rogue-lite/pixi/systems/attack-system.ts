@@ -1,5 +1,3 @@
-import { KnightConsts } from '../constants';
-
 /**
  * Returns true if a circular target overlaps the sword's swept arc.
  *
@@ -9,10 +7,13 @@ import { KnightConsts } from '../constants';
  *              (lerps toward aimAngle + halfAngle as the swing progresses)
  *
  * On the very first tick arcStart ≈ arcEnd (zero-width); it widens each tick
- * until the full 60° cone is covered at the end of the animation.
+ * until the full cone is covered at the end of the animation.
  *
  * The check is circle-aware: a target partially inside the swept wedge counts
  * as hit.
+ *
+ * @param attackRange  Effective sword range (world units) — may differ from the
+ *                     base constant after Wide Cleave stacks are applied.
  */
 export function isInAttackCone(
     attackerX: number,
@@ -22,13 +23,14 @@ export function isInAttackCone(
     targetX: number,
     targetY: number,
     targetRadius: number,
+    attackRange: number,
 ): boolean {
     const dx   = targetX - attackerX;
     const dy   = targetY - attackerY;
     const dist = Math.hypot(dx, dy);
 
     // Range check — target centre plus its radius must reach the sword
-    if (dist > KnightConsts.autoAttack.range + targetRadius) return false;
+    if (dist > attackRange + targetRadius) return false;
 
     // Targets directly on top of the attacker are always hit
     if (dist < 0.001) return true;

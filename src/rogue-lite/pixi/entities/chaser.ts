@@ -7,6 +7,14 @@ const enum ChaserState {
     CHASE,
 }
 
+/** Optional per-enemy stat overrides applied at spawn time (Phase 4 difficulty ramp). */
+export interface ChaserStats {
+    /** Multiplier applied to base HP (e.g. 1.3 = 30% more HP). */
+    hpMult?: number;
+    /** Multiplier applied to both wander and chase speed. */
+    speedMult?: number;
+}
+
 /**
  * Red triangle enemy.
  * - Wanders randomly until the player enters CHASER_AGGRO_RANGE
@@ -34,11 +42,24 @@ export class Chaser {
     private wanderAngle: number;
     private wanderTimer = 0;
 
-    constructor(parent: Container, x: number, y: number) {
+    /** Instance-level speeds set at spawn time (may be scaled for difficulty ramp). */
+    private readonly speedWander: number;
+    private readonly speedChase: number;
+
+    constructor(parent: Container, x: number, y: number, stats: ChaserStats = {}) {
         this.posX = x;
         this.posY = y;
-        this._hp = ChaserConsts.HP;
-        this._maxHp = ChaserConsts.HP;
+
+        // Apply stat scaling supplied by the spawner (difficulty ramp)
+        const hpMult    = stats.hpMult    ?? 1;
+        const speedMult = stats.speedMult ?? 1;
+        const scaledHp  = Math.round(ChaserConsts.HP * hpMult);
+
+        this._hp    = scaledHp;
+        this._maxHp = scaledHp;
+        this.speedWander = ChaserConsts.SPEED_WANDER * speedMult;
+        this.speedChase  = ChaserConsts.SPEED_CHASE  * speedMult;
+
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5; // stagger initial direction change
 
@@ -112,8 +133,8 @@ export class Chaser {
         }
 
         const speed = this.state === ChaserState.CHASE
-            ? ChaserConsts.SPEED_CHASE
-            : ChaserConsts.SPEED_WANDER;
+            ? this.speedChase
+            : this.speedWander;
 
         // ── Physics ────────────────────────────────────────────────────────
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
@@ -148,6 +169,14 @@ export class Chaser {
         this.vx += kbx;
         this.vy += kby;
         this.drawHpBar();
+    }
+
+    /**
+     * Apply a knockback impulse without dealing damage (used by Shockwave).
+     */
+    applyKnockback(kbx: number, kby: number): void {
+        this.vx += kbx;
+        this.vy += kby;
     }
 
     destroy(): void {
