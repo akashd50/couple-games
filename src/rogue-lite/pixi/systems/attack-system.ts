@@ -24,7 +24,7 @@ export function isInAttackCone(
     const dist = Math.hypot(dx, dy);
 
     // Distance check — target centre plus its radius must reach the cone
-    if (dist > KnightConsts.AutoAttack.RANGE + targetRadius) return false;
+    if (dist > KnightConsts.autoAttack.range + targetRadius) return false;
 
     // Targets directly on top of the attacker are always hit
     if (dist < 0.001) return true;
@@ -41,5 +41,5 @@ export function isInAttackCone(
     // Leniency: extra angle "credit" for the target's radius
     const angularLeniency = Math.asin(Math.min(1, targetRadius / dist));
 
-    return Math.abs(delta) <= KnightConsts.AutoAttack.HALF_ANGLE + angularLeniency;
+    return Math.abs(delta) <= KnightConsts.autoAttack.halfAngle + angularLeniency;
 }

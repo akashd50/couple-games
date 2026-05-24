@@ -35,8 +35,8 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Signals ──────────────────────────────────────────────────────────────
 
     readonly isTouchDevice = signal(false);
-    readonly playerHp = signal(KnightConsts.HP);
-    readonly maxPlayerHp = KnightConsts.HP;
+    readonly playerHp = signal(KnightConsts.hp);
+    readonly maxPlayerHp = KnightConsts.hp;
     readonly runTime = signal(0);   // integer seconds, updated by interval
     readonly runEnded = signal(false);
 
@@ -94,7 +94,7 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Actions ──────────────────────────────────────────────────────────────
 
     restart(): void {
-        this.playerHp.set(KnightConsts.HP);
+        this.playerHp.set(KnightConsts.hp);
         this.runTime.set(0);
         this.runEnded.set(false);
         this.renderer.restart();
@@ -107,8 +107,19 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
 
     // ── Joystick bridge ──────────────────────────────────────────────────────
 
-    onMoveVector(v: Vec2): void { this.renderer.setTouchMove(v); }
-    onMoveRelease(): void       { this.renderer.setTouchMove(null); }
-    onAimVector(v: Vec2): void  { this.renderer.setTouchAim(v); }
-    onAimRelease(): void        { this.renderer.setTouchAim(null); }
+    onMoveVector(v: Vec2): void {
+        this.renderer.setTouchMove(v);
+    }
+
+    onMoveRelease(): void {
+        this.renderer.setTouchMove(null);
+    }
+
+    onAimVector(v: Vec2): void {
+        this.renderer.setTouchAim(v);
+    }
+
+    onAimRelease(): void {
+        this.renderer.setTouchAim(null);
+    }
 }

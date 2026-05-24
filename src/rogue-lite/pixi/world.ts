@@ -1,6 +1,6 @@
 import { Application, Container } from 'pixi.js';
 import { buildArena } from './graphics/arena-graphics';
-import { Player } from './entities/player';
+import { KnightPlayer, Player } from './entities/player';
 import { Chaser } from './entities/chaser';
 import { CameraSystem } from './systems/camera-system';
 import { isInAttackCone } from './systems/attack-system';
@@ -26,7 +26,7 @@ export class World {
     private lastAim: Vec2 = { x: 1, y: 0 };
     private _runTime = 0;
     private runEnded = false;
-    private lastNotifiedHp = KnightConsts.HP;
+    private lastNotifiedHp = KnightConsts.hp;
 
     private readonly tickerFn: () => void;
 
@@ -49,7 +49,7 @@ export class World {
         worldRoot.addChild(playerLayer);
 
         // ── Entities ───────────────────────────────────────────────────────
-        this.player = new Player(playerLayer);
+        this.player = new KnightPlayer(playerLayer);
         this.camera = new CameraSystem(worldRoot, ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
         this.spawnChasers();
 
@@ -83,7 +83,9 @@ export class World {
     }
 
     /** Seconds elapsed since the run started. */
-    get runTime(): number { return this._runTime; }
+    get runTime(): number {
+        return this._runTime;
+    }
 
     destroy(): void {
         this.app.ticker.remove(this.tickerFn);
@@ -99,9 +101,9 @@ export class World {
         for (let i = 0; i < ChaserConsts.SPAWN_COUNT; i++) {
             // Spread evenly by angle, randomise radius
             const angle = (i / ChaserConsts.SPAWN_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
-            const dist  = 600 + Math.random() * 900;
-            const rawX  = ArenaConsts.SIZE / 2 + Math.cos(angle) * dist;
-            const rawY  = ArenaConsts.SIZE / 2 + Math.sin(angle) * dist;
+            const dist = 600 + Math.random() * 900;
+            const rawX = ArenaConsts.SIZE / 2 + Math.cos(angle) * dist;
+            const rawY = ArenaConsts.SIZE / 2 + Math.sin(angle) * dist;
             const margin = 40;
             const x = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawX));
             const y = Math.max(margin, Math.min(ArenaConsts.SIZE - margin, rawY));
@@ -133,8 +135,8 @@ export class World {
             chaser.update(dt, pp.x, pp.y);
 
             // ── Player ↔ Chaser overlap ────────────────────────────────────
-            const dx   = pp.x - chaser.posX;
-            const dy   = pp.y - chaser.posY;
+            const dx = pp.x - chaser.posX;
+            const dy = pp.y - chaser.posY;
             const dist = Math.hypot(dx, dy);
 
             if (dist < pr + chaser.radius) {
@@ -154,10 +156,10 @@ export class World {
                     // Knock the chaser away from the player
                     const dx2 = chaser.posX - pp.x;
                     const dy2 = chaser.posY - pp.y;
-                    const d2  = Math.hypot(dx2, dy2);
-                    const kbx = d2 > 0.001 ? (dx2 / d2) * KnightConsts.AutoAttack.KNOCKBACK : KnightConsts.AutoAttack.KNOCKBACK;
-                    const kby = d2 > 0.001 ? (dy2 / d2) * KnightConsts.AutoAttack.KNOCKBACK : 0;
-                    chaser.takeDamage(KnightConsts.AutoAttack.DAMAGE, kbx, kby);
+                    const d2 = Math.hypot(dx2, dy2);
+                    const kbx = d2 > 0.001 ? (dx2 / d2) * KnightConsts.autoAttack.knockback : KnightConsts.autoAttack.knockback;
+                    const kby = d2 > 0.001 ? (dy2 / d2) * KnightConsts.autoAttack.knockback : 0;
+                    chaser.takeDamage(KnightConsts.autoAttack.damage, kbx, kby);
                 }
             }
         }
