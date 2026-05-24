@@ -16,7 +16,7 @@
     </div>
     <div class="rl-content">
         @if (debugInRun()) {
-            <rl-game-canvas></rl-game-canvas>
+            <rl-game-canvas (backToLobby)="exitRun()"></rl-game-canvas>
         } @else {
             <common-lobby [maxPlayers]="4"></common-lobby>
         }

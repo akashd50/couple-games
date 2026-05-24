@@ -1,5 +1,43 @@
 <div #host class="game-canvas__host"></div>
 
+<!-- ── HUD (visible while running) ─────────────────────────────────────── -->
+@if (!runEnded()) {
+    <div class="hud" aria-label="HUD">
+        <div class="hud__hp-section">
+            <div class="hud__hp-bar" role="progressbar"
+                 [attr.aria-valuenow]="playerHp()"
+                 [attr.aria-valuemax]="maxPlayerHp">
+                <div class="hud__hp-fill" [style.width.%]="hpPercent()"></div>
+            </div>
+            <span class="hud__hp-text">{{ playerHp() }} / {{ maxPlayerHp }}</span>
+        </div>
+        <div class="hud__timer">{{ runTimeFormatted() }}</div>
+    </div>
+}
+
+<!-- ── Run-over modal ───────────────────────────────────────────────────── -->
+@if (runEnded()) {
+    <div class="run-over" role="dialog" aria-modal="true" aria-label="Run ended">
+        <div class="run-over__modal">
+            <h2 class="run-over__title">Run Ended</h2>
+            <p class="run-over__survived">Survived {{ runTimeFormatted() }}</p>
+            <div class="run-over__actions">
+                <button type="button"
+                        class="run-over__btn run-over__btn--primary"
+                        (click)="restart()">
+                    Try again
+                </button>
+                <button type="button"
+                        class="run-over__btn"
+                        (click)="onBackToLobby()">
+                    Back to lobby
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Touch joystick overlays ──────────────────────────────────────────── -->
 @if (isTouchDevice()) {
     <rl-joystick
         class="joystick--left"
