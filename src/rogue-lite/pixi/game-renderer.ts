@@ -137,4 +137,9 @@ export class GameRenderer {
         this.worldRoot = null;
         this.host = null;
     }
+
+    // Debug methods
+    public grantXpDebug() {
+        this.world?.getLevelSystem()?.addXp(200);
+    }
 }

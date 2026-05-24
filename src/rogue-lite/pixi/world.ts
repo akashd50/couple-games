@@ -60,6 +60,10 @@ export class World {
 
     private readonly tickerFn: () => void;
 
+    getLevelSystem(): LevelSystem {
+        return this.levelSystem;
+    }
+
     constructor(
         private readonly app: Application,
         worldRoot: Container,
@@ -96,8 +100,8 @@ export class World {
 
         // ── Systems ────────────────────────────────────────────────────────
         this.spawner = new SpawnerSystem((x, y) => {
-            const ramps     = Math.floor(this._runTime / SpawnerConsts.COUNT_RAMP_INTERVAL);
-            const hpMult    = 1 + ramps * ChaserConsts.HP_RAMP_PER_INTERVAL;
+            const ramps = Math.floor(this._runTime / SpawnerConsts.COUNT_RAMP_INTERVAL);
+            const hpMult = 1 + ramps * ChaserConsts.HP_RAMP_PER_INTERVAL;
             const speedMult = 1 + ramps * ChaserConsts.SPEED_RAMP_PER_INTERVAL;
             this.chasers.push(new Chaser(this.enemyLayer, x, y, { hpMult, speedMult }));
         });
@@ -134,7 +138,9 @@ export class World {
         app.ticker.add(this.tickerFn);
     }
 
-    get runTime(): number { return this._runTime; }
+    get runTime(): number {
+        return this._runTime;
+    }
 
     /**
      * Apply the chosen upgrade and resume the simulation.
@@ -218,8 +224,8 @@ export class World {
                 const currR = resolver.currentRadius;
                 for (const chaser of this.chasers) {
                     if (chaser.isDead || resolver.hasHitEnemy(chaser)) continue;
-                    const dx   = chaser.posX - pp.x;
-                    const dy   = chaser.posY - pp.y;
+                    const dx = chaser.posX - pp.x;
+                    const dy = chaser.posY - pp.y;
                     const dist = Math.hypot(dx, dy);
                     if (dist < currR + chaser.radius && dist >= Math.max(0, prevR - chaser.radius)) {
                         resolver.markHitEnemy(chaser);
@@ -254,8 +260,8 @@ export class World {
             chaser.update(dt, pp.x, pp.y);
 
             // Player ↔ Chaser contact
-            const dx   = pp.x - chaser.posX;
-            const dy   = pp.y - chaser.posY;
+            const dx = pp.x - chaser.posX;
+            const dy = pp.y - chaser.posY;
             const dist = Math.hypot(dx, dy);
 
             if (dist < pr + chaser.radius) {
@@ -329,26 +335,26 @@ export class World {
      * (including those inside the inner radius).
      */
     private fireShockwave(
-        origin:      Vec2,
-        aimAngle:    number,
-        halfAngle:   number,
+        origin: Vec2,
+        aimAngle: number,
+        halfAngle: number,
         innerRadius: number,
-        expansion:   number,
-        force:       number,
-        color:       number,
-        duration:    number,
+        expansion: number,
+        force: number,
+        color: number,
+        duration: number,
     ): void {
         const outerRadius = innerRadius + expansion;
 
         for (const chaser of this.chasers) {
             if (chaser.isDead) continue;
-            const dx   = chaser.posX - origin.x;
-            const dy   = chaser.posY - origin.y;
+            const dx = chaser.posX - origin.x;
+            const dy = chaser.posY - origin.y;
             const dist = Math.hypot(dx, dy);
             if (dist > outerRadius + chaser.radius) continue;
 
             const enemyAngle = Math.atan2(dy, dx);
-            const angleDiff  = Math.abs(wrapAngle(enemyAngle - aimAngle));
+            const angleDiff = Math.abs(wrapAngle(enemyAngle - aimAngle));
             if (angleDiff > halfAngle + 0.15) continue;
 
             const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);

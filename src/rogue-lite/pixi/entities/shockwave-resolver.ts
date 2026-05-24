@@ -29,10 +29,14 @@ export class ShockwaveResolver extends AttackResolver {
     }
 
     /** Effective cone half-angle — mirrors the sword arc, incl. Wide Cleave stacks. */
-    get halfAngle(): number { return this.swing.effectiveHalfAngle; }
+    get halfAngle(): number {
+        return this.swing.effectiveHalfAngle;
+    }
 
     /** Cone inner radius — matches the sword's effective reach. */
-    get innerRadius(): number { return this.swing.effectiveRange; }
+    get innerRadius(): number {
+        return this.swing.effectiveRange;
+    }
 
     /**
      * Register a callback invoked each time THIS shockwave fires.
@@ -64,8 +68,18 @@ export class ShockwaveResolver extends AttackResolver {
 
     // ── AttackResolver contract (passive — driven by swing fire callback) ─────
     // tryAttack / checkHit / draw are no-ops; update is not needed either.
-    override tryAttack(_dt: number, _aimAngle: number): number | undefined { return undefined; }
-    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined { return undefined; }
-    override update(_dt: number, _move: Vec2, _aimAngle: number): void { }
-    override draw(_dt: number, _move: Vec2, _aimAngle: number): void { }
+    override tryAttack(_dt: number, _aimAngle: number): number | undefined {
+        return undefined;
+    }
+
+    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
+        return undefined;
+    }
+
+    override update(_dt: number, _move: Vec2, _aimAngle: number): void {
+
+    }
+
+    override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
+    }
 }

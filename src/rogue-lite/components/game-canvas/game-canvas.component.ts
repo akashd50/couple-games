@@ -16,6 +16,7 @@ import { JoystickComponent } from '../joystick/joystick.component';
 import { KnightConsts } from '../../pixi/constants';
 import { xpForLevel } from '../../pixi/systems/level-system';
 import type { UpgradeChoice, Vec2 } from '../../pixi/types';
+import { SettingMenuService } from "../../../shared/services/settings-menu.service";
 
 @Component({
     selector: 'rl-game-canvas',
@@ -28,6 +29,7 @@ import type { UpgradeChoice, Vec2 } from '../../pixi/types';
 export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     @ViewChild('host', { static: true })
     private hostRef!: ElementRef<HTMLDivElement>;
+    private menuService: SettingMenuService = inject(SettingMenuService);
 
     private readonly renderer = new GameRenderer();
     private readonly cdr = inject(ChangeDetectorRef);
@@ -109,6 +111,11 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
                 }
             }, 1_000);
 
+            this.menuService.addMenuItem({
+                id: "grant-xp",
+                text: "Grant xp +200",
+                click: () => this.renderer.grantXpDebug()
+            });
             this.cdr.markForCheck();
         });
     }
@@ -116,6 +123,8 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     ngOnDestroy(): void {
         if (this.timerInterval !== null) clearInterval(this.timerInterval);
         this.renderer.destroy();
+
+        this.menuService.removeMenuItem("grant-xp");
     }
 
     // ── Actions ──────────────────────────────────────────────────────────────
