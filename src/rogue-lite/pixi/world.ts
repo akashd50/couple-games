@@ -151,7 +151,7 @@ export class World {
             }
 
             const hitInfo = this.player.checkHit(chaser);
-            if (hitInfo) {
+            if (hitInfo.success) {
                 // Knock the chaser away from the player
                 chaser.takeDamage(hitInfo.damage, hitInfo.knockback.x, hitInfo.knockback.y);
             }

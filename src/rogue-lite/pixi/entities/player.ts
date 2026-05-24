@@ -27,7 +27,7 @@ export abstract class Player {
     protected readonly _maxHp: number;
     /** Remaining invincibility seconds after a hit. */
     protected iframes = 0;
-    protected attackResolver: AttackResolver;
+    protected attackResolvers: AttackResolver[] = [];
 
     constructor(parent: Container) {
         this.posX = ArenaConsts.SIZE / 2;
@@ -131,7 +131,7 @@ export abstract class Player {
     takeDamage(amount: number, kbx: number, kby: number): boolean {
         if (this.iframes > 0 || this._hp <= 0) return false;
         this._hp = Math.max(0, this._hp - amount);
-        this.iframes = KnightConsts.iframes;
+        this.iframes = KnightConsts.iframesAfterDamage;
         this.vx += kbx;
         this.vy += kby;
         return true;
@@ -152,8 +152,8 @@ export class KnightPlayer extends Player {
     constructor(parent: Container) {
         super(parent);
 
-        this.attackResolver = getAttackResolver(KnightConsts.autoAttack);
-        this.container.addChild(...this.attackResolver.getGfx());
+        this.attackResolvers.push(getAttackResolver(KnightConsts.autoAttack));
+        this.container.addChild(...this.attackResolvers.flatMap(a => a.getGfx()));
 
         // Body circle — drawn once, never changes
         const body = new Graphics();
@@ -168,20 +168,33 @@ export class KnightPlayer extends Player {
     }
 
     override tryAttack(dt: number, aimAngle: number): number {
-        return this.attackResolver.tryAttack(dt, aimAngle);
+        for (const a of this.attackResolvers) {
+            a.tryAttack(dt, aimAngle);
+        }
+
+        return 0;
     }
 
     override checkHit(chaser: Chaser): HitInfo {
-        return this.attackResolver.checkHit(this, chaser);
+        const hitInfo = new HitInfo();
+        for (const a of this.attackResolvers) {
+            hitInfo.add(a.checkHit(this, chaser));
+        }
+
+        return hitInfo;
     }
 
     protected override issueUpdate(dt: number, move: Vec2, aimAngle: number): void {
-        this.attackResolver.update(dt, move, aimAngle);
+        for (const a of this.attackResolvers) {
+            a.update(dt, move, aimAngle);
+        }
     }
 
     protected override draw(dt: number, move: Vec2, aimAngle: number) {
         this.drawShieldArc(aimAngle);
-        this.attackResolver.draw(dt, move, aimAngle);
+        for (const a of this.attackResolvers) {
+            a.draw(dt, move, aimAngle);
+        }
     }
 
     private drawShieldArc(aimAngle: number): void {

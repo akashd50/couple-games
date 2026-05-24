@@ -9,11 +9,23 @@ import { Graphics } from "pixi.js";
 export class HitInfo {
     damage: number;
     knockback: Vec2;
+    success: boolean;
+
+    constructor() {
+        this.knockback = { x: 0, y: 0 };
+        this.damage = 0;
+        this.success = false;
+    }
 
     add(h: HitInfo) {
-        this.damage += h.damage;
-        this.knockback.x += h.knockback.x;
-        this.knockback.y += h.knockback.y;
+        if (h === undefined) {
+            return;
+        }
+
+        this.success = this.success || h.success;
+        this.damage += h.damage ?? 0;
+        this.knockback.x += h.knockback?.x ?? 0;
+        this.knockback.y += h.knockback?.y ?? 0;
     }
 }
 
@@ -106,6 +118,7 @@ export class SwingAttackResolver extends AttackResolver {
             return {
                 damage: this.props.damage,
                 knockback: { x: kbx, y: kby },
+                success: true,
             } as HitInfo;
         }
 

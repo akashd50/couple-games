@@ -10,7 +10,7 @@ export interface PlayerProps {
     speed: number;
     color: number;
     hp: number;
-    iframes: number;
+    iframesAfterDamage: number;
 }
 
 export type AttackType = "swing";
@@ -31,7 +31,7 @@ export class KnightProps implements PlayerProps {
     speed = 280;
     color = 0xe8e8f0;
     hp = 100;
-    iframes = 0.5;
+    iframesAfterDamage = 0.5;
 
     readonly SHIELD_COLOR = 0x5599ff;
     readonly SHIELD_ARC_HALF = Math.PI / 4;
