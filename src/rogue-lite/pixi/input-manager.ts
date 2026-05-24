@@ -58,7 +58,17 @@ export class InputManager {
         this.touchAim = v && (v.x !== 0 || v.y !== 0) ? v : null;
     }
 
-    read(): InputState {
+    /**
+     * Returns the merged input state for the current frame.
+     *
+     * @param playerScreenX  The player's current X position in screen (CSS pixel)
+     *                       space.  When provided, the mouse-aim vector is computed
+     *                       relative to the player rather than the screen centre.
+     *                       Pass this whenever the camera is clamped at the arena
+     *                       edges so the aim origin tracks the player correctly.
+     * @param playerScreenY  Matching Y component.
+     */
+    read(playerScreenX?: number, playerScreenY?: number): InputState {
         // --- Move ---
         let move: Vec2;
         if (this.touchMove) {
@@ -76,14 +86,17 @@ export class InputManager {
         }
 
         // --- Aim ---
+        // Use the player's actual screen position as the aim origin so that
+        // mouse aim stays correct when the camera is clamped at the arena
+        // edges (i.e. the player is no longer centred on screen).
         let aim: Vec2;
         if (this.touchAim) {
             aim = { ...this.touchAim };
         } else if (this.host) {
-            const cx = this.host.clientWidth / 2;
-            const cy = this.host.clientHeight / 2;
-            const dx = this.mouseScreenX - cx;
-            const dy = this.mouseScreenY - cy;
+            const originX = playerScreenX ?? this.host.clientWidth  / 2;
+            const originY = playerScreenY ?? this.host.clientHeight / 2;
+            const dx = this.mouseScreenX - originX;
+            const dy = this.mouseScreenY - originY;
             const len = Math.hypot(dx, dy);
             aim = len > 1 ? { x: dx / len, y: dy / len } : { x: 1, y: 0 };
         } else {

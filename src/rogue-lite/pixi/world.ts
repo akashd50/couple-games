@@ -30,6 +30,8 @@ export class World {
     private readonly chasers: Chaser[] = [];
     private readonly gems: XpGem[] = [];
     private readonly camera: CameraSystem;
+    /** Retained so tick() can convert player world-pos → screen-pos for aim. */
+    private readonly worldRoot: Container;
 
     private readonly enemyLayer: Container;
     private readonly gemLayer: Container;
@@ -54,6 +56,9 @@ export class World {
         private readonly inputManager: InputManager,
         private readonly callbacks: WorldCallbacks = {},
     ) {
+        // Retain worldRoot so tick() can resolve the player's screen position.
+        this.worldRoot = worldRoot;
+
         // ── Layers (bottom → top) ──────────────────────────────────────────
         worldRoot.addChild(buildArena());
 
@@ -152,7 +157,15 @@ export class World {
         // isPaused mid-loop; the next iteration will bail here.
         if (this.runEnded || this.isPaused) return;
 
-        const { move, aim } = this.inputManager.read();
+        // Convert the player's world position to screen (CSS pixel) space using
+        // the worldRoot offset the camera set on the previous render frame.
+        // This keeps aim correct even when the camera is clamped at the arena
+        // boundary and the player is no longer centred on screen.
+        const wp = this.player.position;
+        const playerScreenX = wp.x + this.worldRoot.position.x;
+        const playerScreenY = wp.y + this.worldRoot.position.y;
+
+        const { move, aim } = this.inputManager.read(playerScreenX, playerScreenY);
         this.lastAim = aim;
         const aimAngle = Math.atan2(aim.y, aim.x);
 
