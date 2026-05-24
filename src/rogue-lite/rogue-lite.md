@@ -11,16 +11,16 @@ Locked decisions live here; phasing lives in `IMPLEMENTATION_PLAN.md`.
 
 ## Locked decisions
 
-| Topic         | Choice                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------- |
-| Renderer      | **PixiJS v8** (already in repo via thewargame). No new dependency.                     |
-| Physics       | **Hand-rolled** circle-vs-circle + knockback. No Matter.js — not stacking rigid bodies. |
-| Game shape    | **Open bounded arena**, escalating waves over time, periodic boss.                     |
-| Run structure | Death/team-wipe ends the run. Return to lobby. No save/load.                           |
-| Networking    | **Solo-first.** Multiplayer is Phase 7+, server-authoritative at ~10 Hz, no prediction. |
-| Classes (MVP) | **Knight only.** Summoner deferred to Phase 6.                                         |
-| Platforms     | **Desktop + mobile from day 1.** Twin-stick on touch, WASD + mouse on desktop.         |
-| Meta progression | **None.** Every run starts fresh.                                                   |
+| Topic            | Choice                                                                                  |
+|------------------|-----------------------------------------------------------------------------------------|
+| Renderer         | **PixiJS v8** (already in repo via thewargame). No new dependency.                      |
+| Physics          | **Hand-rolled** circle-vs-circle + knockback. No Matter.js — not stacking rigid bodies. |
+| Game shape       | **Open bounded arena**, escalating waves over time, periodic boss.                      |
+| Run structure    | Death/team-wipe ends the run. Return to lobby. No save/load.                            |
+| Networking       | **Solo-first.** Multiplayer is Phase 7+, server-authoritative at ~10 Hz, no prediction. |
+| Classes (MVP)    | **Knight only.** Summoner deferred to Phase 6.                                          |
+| Platforms        | **Desktop + mobile from day 1.** Twin-stick on touch, WASD + mouse on desktop.          |
+| Meta progression | **None.** Every run starts fresh.                                                       |
 
 ---
 
@@ -48,19 +48,24 @@ desktop + touch — movement+positioning is what the player controls.
 **Attack:** sword arc sweeping in front of the Knight. Hits everything in a
 60° cone within range. Triggers on a fixed cooldown.
 
-**Upgrade pool (pick 1 on level-up; the level-up roller picks 3 from this pool
+- Minor new things:
+- You run faster if you face the same direction that you are aiming
+- Taking a hit on shield side you take less damage than from the back.
+  **Upgrade pool (pick 1 on level-up; the level-up roller picks 3 from this pool
+
 + already-owned upgrades that can stack):**
 
-| Upgrade        | Effect                                                                                |
-| -------------- | ------------------------------------------------------------------------------------- |
-| Wide Cleave    | +20° cone angle, +10% range.                                                          |
-| Flurry         | -15% attack cooldown.                                                                 |
-| Juggernaut     | +25% max HP, +5% body radius, +20% knockback resistance.                              |
-| Iron Skin      | -15% incoming damage.                                                                 |
-| Lifesteal      | +5% of damage dealt heals you.                                                        |
-| Magnet         | +50% XP-gem pickup radius.                                                            |
-| Shockwave      | Every 5th attack emits an expanding ring that knocks back enemies in range.           |
-| Aftershock     | (requires Shockwave) Shockwave also deals damage equal to a normal attack.            |
+| Upgrade     | Effect                                                                                                                                                                                                                                     |
+|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Wide Cleave | +10° cone angle, +5% range, slows down the sword attack duration i.e. you swing slowly.                                                                                                                                                    |
+| Flurry      | -15% attack cooldown.                                                                                                                                                                                                                      |
+| Juggernaut  | +25% max HP, +5% body radius, +20% knockback resistance, shows movement speed -10%.                                                                                                                                                        |
+| Iron Skin   | -15% incoming damage.                                                                                                                                                                                                                      |
+| Aura shield | -5% incoming damage on shield side hit. i.e. better shield damage reduction                                                                                                                                                                |
+| Lifesteal   | +5% of damage dealt heals you.                                                                                                                                                                                                             |
+| Magnet      | +50% XP-gem pickup radius.                                                                                                                                                                                                                 |
+| Shockwave   | Every 5th attack emits an expanding ring that knocks back enemies in range. Shockwave starts past the sword range. cone like shape however it's smaller edge is the same arc and length as the sword swipe's and it expands as it goes.    |
+| Aura        | Represented as a circular area around the player, a pulsing smaller circle that expands and fills the circle, the fades and a new circle starts from the player and does the same on a loop. It pushes enemies back and does little damage |
 
 Stacking rules and exact numbers are tuning knobs — locked in code, not here.
 
@@ -68,11 +73,11 @@ Stacking rules and exact numbers are tuning knobs — locked in code, not here.
 
 ## Enemies
 
-| Enemy          | Shape    | Behavior                                                                |
-| -------------- | -------- | ----------------------------------------------------------------------- |
-| Chaser         | Triangle | Wanders until aggro radius, then straight-line chases.                  |
-| Tank           | Square   | Slower, higher HP, bigger knockback on contact.                         |
-| Boss (Phase 5) | Hexagon  | Spawns at ~2-min intervals. Stops to fire 8-projectile radial bursts.   |
+| Enemy          | Shape    | Behavior                                                              |
+|----------------|----------|-----------------------------------------------------------------------|
+| Chaser         | Triangle | Wanders until aggro radius, then straight-line chases.                |
+| Tank           | Square   | Slower, higher HP, bigger knockback on contact.                       |
+| Boss (Phase 5) | Hexagon  | Spawns at ~2-min intervals. Stops to fire 8-projectile radial bursts. |
 
 Damage is collision-based — overlap deducts HP, both parties recoil to prevent
 single-frame drain.
@@ -94,11 +99,13 @@ single-frame drain.
 ## Controls
 
 **Desktop:**
+
 - WASD = move.
 - Mouse position = aim direction (auto-attack fires in that direction).
 - Esc = pause.
 
 **Mobile / touch:**
+
 - Left thumb virtual joystick = move.
 - Right thumb virtual joystick = aim.
 - Aim joystick at rest = auto-aim at nearest enemy.
