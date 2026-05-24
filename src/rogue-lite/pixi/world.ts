@@ -119,8 +119,8 @@ export class World {
         this.lastAim = aim;
         const aimAngle = Math.atan2(aim.y, aim.x);
 
-        // Player auto-attack check (before movement update)
-        const attackAngle = this.player.tryAttack(dt, aimAngle);
+        // Player auto-attack: advance cooldown; non-null return = new swing started
+        this.player.tryAttack(dt, aimAngle);
 
         // Player movement
         this.player.update(dt, move, aimAngle);
@@ -150,17 +150,10 @@ export class World {
                 );
             }
 
-            // ── Sword cone hit check ───────────────────────────────────────
-            if (attackAngle !== null) {
-                if (isInAttackCone(pp.x, pp.y, attackAngle, chaser.posX, chaser.posY, chaser.radius)) {
-                    // Knock the chaser away from the player
-                    const dx2 = chaser.posX - pp.x;
-                    const dy2 = chaser.posY - pp.y;
-                    const d2 = Math.hypot(dx2, dy2);
-                    const kbx = d2 > 0.001 ? (dx2 / d2) * KnightConsts.autoAttack.knockback : KnightConsts.autoAttack.knockback;
-                    const kby = d2 > 0.001 ? (dy2 / d2) * KnightConsts.autoAttack.knockback : 0;
-                    chaser.takeDamage(KnightConsts.autoAttack.damage, kbx, kby);
-                }
+            const hitInfo = this.player.checkHit(chaser);
+            if (hitInfo) {
+                // Knock the chaser away from the player
+                chaser.takeDamage(hitInfo.damage, hitInfo.knockback.x, hitInfo.knockback.y);
             }
         }
 

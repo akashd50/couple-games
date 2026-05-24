@@ -2,6 +2,8 @@ import { Color, Container, FillGradient, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
 import { ArenaConsts, KnightConsts, PhysicsConsts } from '../constants';
 import { lerp } from "../common-utils";
+import { AttackResolver, getAttackResolver, HitInfo } from "./attacks";
+import { Chaser } from "./chaser";
 
 /**
  * Knight player entity.
@@ -25,6 +27,7 @@ export abstract class Player {
     protected readonly _maxHp: number;
     /** Remaining invincibility seconds after a hit. */
     protected iframes = 0;
+    protected attackResolver: AttackResolver;
 
     constructor(parent: Container) {
         this.posX = ArenaConsts.SIZE / 2;
@@ -68,8 +71,8 @@ export abstract class Player {
      *
      * @returns The aim angle if an attack fires; null otherwise.
      */
-    tryAttack(dt: number, aimAngle: number): number | null {
-        return null;
+    tryAttack(dt: number, aimAngle: number): number {
+        return undefined;
     }
 
     /**
@@ -102,7 +105,7 @@ export abstract class Player {
         this.container.position.set(this.posX, this.posY);
 
         // ── Visuals ──────────────────────────────────────────────────────────
-        this.drawVisuals(dt, move, aimAngle);
+        this.draw(dt, move, aimAngle);
 
         // Flash while in iframes: rapid alpha toggle
         this.container.alpha = this.iframes > 0
@@ -110,9 +113,13 @@ export abstract class Player {
             : 1.0;
     }
 
+    public checkHit(chaser: Chaser): HitInfo {
+        return undefined;
+    }
+
     protected abstract issueUpdate(dt: number, move: Vec2, aimAngle: number): void;
 
-    protected abstract drawVisuals(dt: number, move: Vec2, aimAngle: number): void;
+    protected abstract draw(dt: number, move: Vec2, aimAngle: number): void;
 
     /**
      * Apply a hit to the player — only lands if iframes are not active.
@@ -137,13 +144,6 @@ export abstract class Player {
 
 export class KnightPlayer extends Player {
     private readonly arcGfx: Graphics;
-    private readonly swingGfx: Graphics;
-    /** Counts down to 0; attack fires when it crosses 0. */
-    private attackCooldown: number;
-    /** Counts down from ATTACK_ARC_DURATION to 0 while the swing arc is visible. */
-    private swingTimer = 0;
-    /** Aim angle captured when the attack fired (used for the visual). */
-    private swingAngle = 0;
 
     get speed(): number {
         return KnightConsts.speed;
@@ -151,12 +151,9 @@ export class KnightPlayer extends Player {
 
     constructor(parent: Container) {
         super(parent);
-        // First attack fires after half a cooldown so the player isn't instant-swinging
-        this.attackCooldown = KnightConsts.autoAttack.cooldown * 0.5;
 
-        // Sword swing arc — drawn behind the body
-        this.swingGfx = new Graphics();
-        this.container.addChild(this.swingGfx);
+        this.attackResolver = getAttackResolver(KnightConsts.autoAttack);
+        this.container.addChild(...this.attackResolver.getGfx());
 
         // Body circle — drawn once, never changes
         const body = new Graphics();
@@ -170,27 +167,21 @@ export class KnightPlayer extends Player {
         this.drawShieldArc(0);
     }
 
-    override tryAttack(dt: number, aimAngle: number): number | null {
-        this.attackCooldown -= dt;
-        if (this.attackCooldown <= 0) {
-            // += COOLDOWN to preserve any overshoot (keeps timing precise)
-            this.attackCooldown += KnightConsts.autoAttack.cooldown;
-            this.swingTimer = KnightConsts.autoAttack.duration;
-            this.swingAngle = aimAngle;
-            return aimAngle;
-        }
-        return null;
+    override tryAttack(dt: number, aimAngle: number): number {
+        return this.attackResolver.tryAttack(dt, aimAngle);
+    }
+
+    override checkHit(chaser: Chaser): HitInfo {
+        return this.attackResolver.checkHit(this, chaser);
     }
 
     protected override issueUpdate(dt: number, move: Vec2, aimAngle: number): void {
-        if (this.swingTimer > 0) {
-            this.swingTimer = Math.max(0, this.swingTimer - dt);
-        }
+        this.attackResolver.update(dt, move, aimAngle);
     }
 
-    protected override drawVisuals(dt: number, move: Vec2, aimAngle: number) {
+    protected override draw(dt: number, move: Vec2, aimAngle: number) {
         this.drawShieldArc(aimAngle);
-        this.drawSwingArc();
+        this.attackResolver.draw(dt, move, aimAngle);
     }
 
     private drawShieldArc(aimAngle: number): void {
@@ -202,42 +193,5 @@ export class KnightPlayer extends Player {
         // arc() after clear() starts a fresh path — no stray line from origin.
         g.arc(0, 0, arcR, start, end);
         g.stroke({ color: KnightConsts.SHIELD_COLOR, width: 3, alpha: 1 });
-    }
-
-    private drawSwingArc(): void {
-        const g = this.swingGfx;
-        g.clear();
-        if (this.swingTimer <= 0) return;
-
-        const { duration, range, color } = KnightConsts.autoAttack;
-        const alpha = this.swingTimer / duration;
-        const start = this.swingAngle - (Math.PI / 6); // 30° half-angle
-        const end = this.swingAngle + (Math.PI / 6);
-        const normalizedSwingTimer = (duration - this.swingTimer) / duration;
-        const currEnd = lerp(start, end, normalizedSwingTimer);
-
-        // Swing arc trail
-        g.arc(0, 0, range, start, currEnd);
-        g.stroke({ color: color, width: 4, alpha });
-
-        // Sword at the leading edge of the swing
-        const cos = Math.cos(currEnd);
-        const sin = Math.sin(currEnd);
-        const perpCos = -Math.sin(currEnd);
-        const perpSin = Math.cos(currEnd);
-
-        const hiltDist = KnightConsts.radius + 2;
-        const guardDist = KnightConsts.radius + 10;
-        const guardWidth = 8;
-
-        // Blade
-        g.moveTo(cos * hiltDist, sin * hiltDist);
-        g.lineTo(cos * range, sin * range);
-        g.stroke({ color: color, width: 3, alpha });
-
-        // Crossguard
-        g.moveTo(cos * guardDist + perpCos * guardWidth, sin * guardDist + perpSin * guardWidth);
-        g.lineTo(cos * guardDist - perpCos * guardWidth, sin * guardDist - perpSin * guardWidth);
-        g.stroke({ color: color, width: 3, alpha });
     }
 }

@@ -13,7 +13,10 @@ export interface PlayerProps {
     iframes: number;
 }
 
-export interface Attack {
+export type AttackType = "swing";
+
+export interface AttackProps {
+    type: AttackType
     range: number;
     halfAngle: number;
     cooldown: number;
@@ -33,7 +36,8 @@ export class KnightProps implements PlayerProps {
     readonly SHIELD_COLOR = 0x5599ff;
     readonly SHIELD_ARC_HALF = Math.PI / 4;
 
-    autoAttack: Attack = {
+    autoAttack: AttackProps = {
+        type: "swing",
         range: 80,
         /** Half-angle of the 60° cone (30° each side). */
         halfAngle: Math.PI / 6,

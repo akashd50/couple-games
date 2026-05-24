@@ -1,45 +1,51 @@
 import { KnightConsts } from '../constants';
 
 /**
- * Returns true if a circular target is within the Knight's attack cone.
+ * Returns true if a circular target overlaps the sword's swept arc.
  *
- * The cone has:
- *   - origin at (attackerX, attackerY)
- *   - axis along aimAngle
- *   - half-angle of ATTACK_HALF_ANGLE (30°)
- *   - reach of ATTACK_RANGE world units
+ * The arc represents the portion of the swing that has already passed:
+ *   arcStart — the leftmost angle (where the sword begins, aimAngle − halfAngle)
+ *   arcEnd   — the leading edge of the sword at the current tick
+ *              (lerps toward aimAngle + halfAngle as the swing progresses)
  *
- * The check is circle-aware: a target partially inside the cone counts as hit.
+ * On the very first tick arcStart ≈ arcEnd (zero-width); it widens each tick
+ * until the full 60° cone is covered at the end of the animation.
+ *
+ * The check is circle-aware: a target partially inside the swept wedge counts
+ * as hit.
  */
 export function isInAttackCone(
     attackerX: number,
     attackerY: number,
-    aimAngle: number,
+    arcStart: number,
+    arcEnd: number,
     targetX: number,
     targetY: number,
     targetRadius: number,
 ): boolean {
-    const dx = targetX - attackerX;
-    const dy = targetY - attackerY;
+    const dx   = targetX - attackerX;
+    const dy   = targetY - attackerY;
     const dist = Math.hypot(dx, dy);
 
-    // Distance check — target centre plus its radius must reach the cone
+    // Range check — target centre plus its radius must reach the sword
     if (dist > KnightConsts.autoAttack.range + targetRadius) return false;
 
     // Targets directly on top of the attacker are always hit
     if (dist < 0.001) return true;
 
-    // Angle check — compute angular difference between aim and target direction,
-    // then add angular leniency proportional to how much of the target circle
-    // could poke into the cone from the side.
-    const angleToTarget = Math.atan2(dy, dx);
-    let delta = angleToTarget - aimAngle;
-
-    // Normalise to [-π, π]
-    delta = ((delta + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-
-    // Leniency: extra angle "credit" for the target's radius
+    // Angular leniency — extra angle credit for the target's circular body
     const angularLeniency = Math.asin(Math.min(1, targetRadius / dist));
 
-    return Math.abs(delta) <= KnightConsts.autoAttack.halfAngle + angularLeniency;
+    // Normalise sweepWidth to [0, 2π) so the comparison is always in one direction
+    const sweepWidth  = ((arcEnd - arcStart)         % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+
+    // Angular distance from arcStart to the target direction, also in [0, 2π)
+    const angleToTarget = Math.atan2(dy, dx);
+    const delta         = ((angleToTarget - arcStart) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+
+    // The target is hit when its angular span overlaps [0, sweepWidth]:
+    //   delta ≤ sweepWidth + leniency  → inside or peeking past the leading edge
+    //   delta ≥ 2π − leniency          → peeking just before the start edge (wrap-around)
+    return delta <= sweepWidth + angularLeniency
+        || delta >= 2 * Math.PI - angularLeniency;
 }
