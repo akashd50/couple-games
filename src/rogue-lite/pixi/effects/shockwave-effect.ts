@@ -1,4 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
+import type { Vec2 } from "../types";
+import { wrapAngle } from "../common-utils";
 
 /**
  * Expanding cone-shaped shockwave visual.
@@ -23,7 +25,7 @@ import { Container, Graphics } from 'pixi.js';
 export class ShockwaveEffect {
     private readonly gfx: Graphics;
     private elapsed = 0;
-    private _done   = false;
+    private _done = false;
 
     /**
      * @param parent      Container in world space to attach to.
@@ -38,13 +40,13 @@ export class ShockwaveEffect {
      */
     constructor(
         parent: Container,
-        x: number,
-        y: number,
-        private readonly aimAngle:    number,
-        private readonly halfAngle:   number,
+        public readonly x: number,
+        public readonly y: number,
+        public readonly aimAngle: number,
+        public readonly halfAngle: number,
         private readonly innerRadius: number,
-        private readonly expansion:   number,
-        private readonly color:       number,
+        private readonly expansion: number,
+        private readonly color: number,
         private readonly duration = 0.35,
     ) {
         this.gfx = new Graphics();
@@ -52,7 +54,9 @@ export class ShockwaveEffect {
         parent.addChild(this.gfx);
     }
 
-    get isDone(): boolean { return this._done; }
+    get isDone(): boolean {
+        return this._done;
+    }
 
     /**
      * Advance the animation by `dt` seconds.
@@ -68,16 +72,16 @@ export class ShockwaveEffect {
             return;
         }
 
-        const innerR  = this.innerRadius;
-        const outerR  = innerR + this.expansion * t;
-        const alpha   = (1 - t) * 0.85;
-        const aStart  = this.aimAngle - this.halfAngle;
-        const aEnd    = this.aimAngle + this.halfAngle;
+        const innerR = this.innerRadius;
+        const outerR = innerR + this.expansion * t;
+        const alpha = (1 - t) * 0.85;
+        const aStart = this.aimAngle - this.halfAngle;
+        const aEnd = this.aimAngle + this.halfAngle;
 
         const cosStart = Math.cos(aStart);
         const sinStart = Math.sin(aStart);
-        const cosEnd   = Math.cos(aEnd);
-        const sinEnd   = Math.sin(aEnd);
+        const cosEnd = Math.cos(aEnd);
+        const sinEnd = Math.sin(aEnd);
 
         const g = this.gfx;
         g.clear();

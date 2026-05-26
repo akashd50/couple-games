@@ -34,6 +34,7 @@ import { wrapAngle } from '../common-utils';
  */
 export abstract class Player {
     protected readonly container: Container;
+    protected readonly backgroundFxContainer: Container;
     protected posX: number;
     protected posY: number;
 
@@ -60,7 +61,7 @@ export abstract class Player {
     protected _pickupRadius = XpGemConsts.BASE_PICKUP_RADIUS;
     protected _magnetRadius = 0;
     protected _cooldownMult = 1;
-    protected _damageMult   = 1;
+    protected _damageMult = 1;
     protected _lifestealPct = 0;
     /**
      * Extra shield-side damage reduction from Aura Shield stacks.
@@ -82,31 +83,63 @@ export abstract class Player {
     constructor(parent: Container) {
         this.posX = ArenaConsts.SIZE / 2;
         this.posY = ArenaConsts.SIZE / 2;
-        this._hp    = KnightConsts.hp;
+        this._hp = KnightConsts.hp;
         this._maxHp = KnightConsts.hp;
 
         this.container = new Container();
         this.container.label = 'player';
         this.container.position.set(this.posX, this.posY);
+
+        this.backgroundFxContainer = new Container();
+        this.backgroundFxContainer.label = "bg_fx";
+        // this.backgroundFxContainer.position.set(this.posX, this.posY);
+
+        this.container.addChild(this.backgroundFxContainer);
         parent.addChild(this.container);
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
 
-    get position(): Vec2 { return { x: this.posX, y: this.posY }; }
-    get hp(): number { return this._hp; }
-    get maxHp(): number { return this._maxHp; }
-    get radius(): number { return KnightConsts.radius + this._radiusBonus; }
-    get pickupRadius(): number { return this._pickupRadius; }
-    get magnetRadius(): number { return this._magnetRadius; }
-    get isDead(): boolean { return this._hp <= 0; }
+    get backgroundFx(): Container {
+        return this.backgroundFxContainer;
+    }
+
+    get position(): Vec2 {
+        return { x: this.posX, y: this.posY };
+    }
+
+    get hp(): number {
+        return this._hp;
+    }
+
+    get maxHp(): number {
+        return this._maxHp;
+    }
+
+    get radius(): number {
+        return KnightConsts.radius + this._radiusBonus;
+    }
+
+    get pickupRadius(): number {
+        return this._pickupRadius;
+    }
+
+    get magnetRadius(): number {
+        return this._magnetRadius;
+    }
+
+    get isDead(): boolean {
+        return this._hp <= 0;
+    }
 
     /**
      * Read-only view of all active attack resolvers.
      * World iterates this to handle world-space effects from ShockwaveResolver,
      * AftershockResolver, and AuraResolver.
      */
-    get resolvers(): readonly AttackResolver[] { return this.attackResolvers; }
+    get resolvers(): readonly AttackResolver[] {
+        return this.attackResolvers;
+    }
 
     // ── Upgrade mutators ─────────────────────────────────────────────────────
 
@@ -125,7 +158,9 @@ export abstract class Player {
         this.onRadiusChanged();
     }
 
-    addMagnetRadius(amount: number): void { this._magnetRadius += amount; }
+    addMagnetRadius(amount: number): void {
+        this._magnetRadius += amount;
+    }
 
     /**
      * Multiply all resolver cooldowns by factor (Flurry / Wide Cleave).
@@ -147,10 +182,14 @@ export abstract class Player {
     }
 
     /** Multiply incoming damage (Iron Skin — 0.85 per stack). */
-    multiplyIncomingDamage(factor: number): void { this._damageMult *= factor; }
+    multiplyIncomingDamage(factor: number): void {
+        this._damageMult *= factor;
+    }
 
     /** Add lifesteal fraction (Lifesteal — 0.05 per stack). */
-    addLifestealPct(pct: number): void { this._lifestealPct += pct; }
+    addLifestealPct(pct: number): void {
+        this._lifestealPct += pct;
+    }
 
     /**
      * Increase shield-side block (Aura Shield — +0.05 per stack).
@@ -169,21 +208,29 @@ export abstract class Player {
     }
 
     /** Scale movement speed (Juggernaut — ×0.9 per stack). */
-    multiplyMovementSpeed(factor: number): void { this._movementSpeedMult *= factor; }
+    multiplyMovementSpeed(factor: number): void {
+        this._movementSpeedMult *= factor;
+    }
 
     // ── Upgrade enablers (no-ops; KnightPlayer overrides to create resolvers) ─
     // These exist on the base so UpgradeDefinition.apply(player: Player) compiles.
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    enableShockwave(): void { }
+    enableShockwave(): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    enableAftershock(): void { }
+    enableAftershock(): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    enableAura(): void { }
+    enableAura(): void {
+    }
 
     // ── Public methods ───────────────────────────────────────────────────────
 
     /** Check whether any attack should fire this tick (called once per tick, before update). */
-    tryAttack(_dt: number, _aimAngle: number): void { }
+    tryAttack(_dt: number, _aimAngle: number): void {
+    }
 
     /**
      * Simulate one physics step.
@@ -223,6 +270,11 @@ export abstract class Player {
         this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
 
         this.container.position.set(this.posX, this.posY);
+
+        for (const r of this.attackResolvers) {
+            r.update(dt, move, aimAngle);
+        }
+
         this.draw(dt, move, aimAngle);
 
         // Flash during iframes
@@ -235,7 +287,16 @@ export abstract class Player {
     checkHit(chaser: Chaser): HitInfo {
         const hitInfo = new HitInfo();
         for (const r of this.attackResolvers) {
-            hitInfo.add(r.checkHit(this, chaser));
+            if (r.hasHitEnemy(chaser)) {
+                continue;
+            }
+
+            const h = r.checkHit(this, chaser);
+            if (h?.success) {
+                r.markHitEnemy(chaser);
+            }
+
+            hitInfo.add(h);
         }
         return hitInfo;
     }
@@ -271,7 +332,7 @@ export abstract class Player {
         // Shield-side check — kbx/kby points away from attacker, so the incoming
         // direction is the opposite.
         let dmgMult = this._damageMult;
-        const hitAngle  = Math.atan2(-kby, -kbx);
+        const hitAngle = Math.atan2(-kby, -kbx);
         const angleDiff = Math.abs(wrapAngle(hitAngle - this._aimAngle));
         if (angleDiff <= KnightConsts.SHIELD_ARC_HALF) {
             const block = Math.min(0.85, KnightConsts.SHIELD_BASE_REDUCTION + this._shieldReduction);
@@ -293,8 +354,11 @@ export abstract class Player {
     }
 
     protected abstract issueUpdate(dt: number, move: Vec2, aimAngle: number): void;
+
     protected abstract draw(dt: number, move: Vec2, aimAngle: number): void;
-    protected onRadiusChanged(): void { /* override in subclass to redraw body */ }
+
+    protected onRadiusChanged(): void { /* override in subclass to redraw body */
+    }
 }
 
 // ── KnightPlayer ─────────────────────────────────────────────────────────────
@@ -334,7 +398,7 @@ export class KnightPlayer extends Player {
             (r): r is SwingAttackResolver => r instanceof SwingAttackResolver,
         );
         if (!swing) throw new Error('KnightPlayer: SwingAttackResolver not found — cannot enable Shockwave');
-        this.attackResolvers.push(new ShockwaveResolver(swing));
+        this.attackResolvers.push(new ShockwaveResolver(this, swing));
     }
 
     /**
@@ -347,7 +411,7 @@ export class KnightPlayer extends Player {
             (r): r is ShockwaveResolver => r instanceof ShockwaveResolver,
         );
         if (!shockwave) throw new Error('KnightPlayer: ShockwaveResolver not found — cannot enable Aftershock');
-        this.attackResolvers.push(new AftershockResolver(shockwave));
+        this.attackResolvers.push(new AftershockResolver(this, shockwave));
     }
 
     /**
@@ -355,7 +419,7 @@ export class KnightPlayer extends Player {
      */
     override enableAura(): void {
         if (this.attackResolvers.some(r => r instanceof AuraResolver)) return;
-        const aura = new AuraResolver();
+        const aura = new AuraResolver(this);
         // Insert the aura ring at the back of the container stack so it renders
         // behind the swing arc, body circle, and shield arc.
         this.container.addChildAt(aura.getGfx()[0], 0);
@@ -371,9 +435,6 @@ export class KnightPlayer extends Player {
     }
 
     protected override issueUpdate(dt: number, move: Vec2, aimAngle: number): void {
-        for (const r of this.attackResolvers) {
-            r.update(dt, move, aimAngle);
-        }
     }
 
     protected override draw(dt: number, move: Vec2, aimAngle: number): void {
@@ -397,9 +458,9 @@ export class KnightPlayer extends Player {
     private drawShieldArc(aimAngle: number): void {
         const g = this.arcGfx;
         g.clear();
-        const arcR  = this.radius + 6;
+        const arcR = this.radius + 6;
         const start = aimAngle - KnightConsts.SHIELD_ARC_HALF;
-        const end   = aimAngle + KnightConsts.SHIELD_ARC_HALF;
+        const end = aimAngle + KnightConsts.SHIELD_ARC_HALF;
         g.arc(0, 0, arcR, start, end);
         g.stroke({ color: KnightConsts.SHIELD_COLOR, width: 3, alpha: 1 });
     }

@@ -42,14 +42,9 @@ export class World {
 
     private readonly enemyLayer: Container;
     private readonly gemLayer: Container;
-    /** Layer for transient visual effects (shockwave cones, future VFX). */
-    private readonly fxLayer: Container;
 
     private readonly spawner: SpawnerSystem;
     private readonly levelSystem: LevelSystem;
-
-    /** Active shockwave cone visuals; updated and pruned each tick. */
-    private readonly shockwaveEffects: ShockwaveEffect[] = [];
 
     private accumulator = 0;
     private lastAim: Vec2 = { x: 1, y: 0 };
@@ -83,12 +78,6 @@ export class World {
         this.enemyLayer = new Container();
         this.enemyLayer.label = 'enemies';
         worldRoot.addChild(this.enemyLayer);
-
-        // FX layer sits between enemies and player so cones are visible but
-        // the player sprite renders on top.
-        this.fxLayer = new Container();
-        this.fxLayer.label = 'fx';
-        worldRoot.addChild(this.fxLayer);
 
         const playerLayer = new Container();
         playerLayer.label = 'players';
@@ -159,8 +148,6 @@ export class World {
         this.chasers.length = 0;
         for (const gem of this.gems) gem.destroy();
         this.gems.length = 0;
-        for (const fx of this.shockwaveEffects) fx.destroy();
-        this.shockwaveEffects.length = 0;
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
@@ -190,65 +177,6 @@ export class World {
 
         const pp = this.player.position;
         const pr = this.player.radius;
-
-        // ── Resolver world-effects ─────────────────────────────────────────
-        // Loop all active resolvers.  Shockwave / Aftershock / Aura each
-        // produce world-space effects that require access to the enemy list.
-        for (const resolver of this.player.resolvers) {
-            if (resolver instanceof ShockwaveResolver) {
-                const angle = resolver.consumePending();
-                if (angle !== null) {
-                    this.fireShockwave(
-                        pp, angle,
-                        resolver.halfAngle, resolver.innerRadius,
-                        KnightConsts.SHOCKWAVE_RANGE, KnightConsts.SHOCKWAVE_FORCE,
-                        0x88aaff, 0.38,
-                    );
-                }
-
-            } else if (resolver instanceof AftershockResolver) {
-                const angle = resolver.consumePending();
-                if (angle !== null) {
-                    this.fireShockwave(
-                        pp, angle,
-                        resolver.halfAngle, resolver.innerRadius,
-                        KnightConsts.AFTERSHOCK_RANGE, KnightConsts.AFTERSHOCK_FORCE,
-                        0xff8844, 0.28,
-                    );
-                }
-
-            } else if (resolver instanceof AuraResolver) {
-                // The resolver advanced its phase in update(); prevRadius and
-                // currentRadius now form the band swept by the ring this tick.
-                const prevR = resolver.prevRadius;
-                const currR = resolver.currentRadius;
-                for (const chaser of this.chasers) {
-                    if (chaser.isDead || resolver.hasHitEnemy(chaser)) continue;
-                    const dx = chaser.posX - pp.x;
-                    const dy = chaser.posY - pp.y;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist < currR + chaser.radius && dist >= Math.max(0, prevR - chaser.radius)) {
-                        resolver.markHitEnemy(chaser);
-                        const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);
-                        const ny = dist > 0.001 ? dy / dist : (Math.random() * 2 - 1);
-                        chaser.takeDamage(
-                            KnightConsts.AURA_DAMAGE,
-                            nx * KnightConsts.AURA_KNOCKBACK_FORCE,
-                            ny * KnightConsts.AURA_KNOCKBACK_FORCE,
-                        );
-                    }
-                }
-            }
-        }
-
-        // ── Update and prune shockwave visuals ─────────────────────────────
-        for (const fx of this.shockwaveEffects) fx.update(dt);
-        for (let i = this.shockwaveEffects.length - 1; i >= 0; i--) {
-            if (this.shockwaveEffects[i].isDone) {
-                this.shockwaveEffects[i].destroy();
-                this.shockwaveEffects.splice(i, 1);
-            }
-        }
 
         // ── Spawner ────────────────────────────────────────────────────────
         this.spawner.update(dt, this._runTime, this.chasers.length, pp.x, pp.y);
@@ -319,55 +247,5 @@ export class World {
             this.lastNotifiedHp = currentHp;
             this.callbacks.onHpChange?.(currentHp);
         }
-    }
-
-    /**
-     * Apply shockwave physics to all live chasers within the directional cone,
-     * then spawn an expanding cone visual.
-     *
-     * Cone geometry:
-     *   Origin      — player position
-     *   Inner edge  — innerRadius (matches sword range)
-     *   Outer edge  — innerRadius + expansion
-     *   Angular     — aimAngle ± halfAngle
-     *
-     * Enemies anywhere within the outer radius are pushed outward
-     * (including those inside the inner radius).
-     */
-    private fireShockwave(
-        origin: Vec2,
-        aimAngle: number,
-        halfAngle: number,
-        innerRadius: number,
-        expansion: number,
-        force: number,
-        color: number,
-        duration: number,
-    ): void {
-        const outerRadius = innerRadius + expansion;
-
-        for (const chaser of this.chasers) {
-            if (chaser.isDead) continue;
-            const dx = chaser.posX - origin.x;
-            const dy = chaser.posY - origin.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist > outerRadius + chaser.radius) continue;
-
-            const enemyAngle = Math.atan2(dy, dx);
-            const angleDiff = Math.abs(wrapAngle(enemyAngle - aimAngle));
-            if (angleDiff > halfAngle + 0.15) continue;
-
-            const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);
-            const ny = dist > 0.001 ? dy / dist : (Math.random() * 2 - 1);
-            chaser.applyKnockback(nx * force, ny * force);
-        }
-
-        this.shockwaveEffects.push(
-            new ShockwaveEffect(
-                this.fxLayer, origin.x, origin.y,
-                aimAngle, halfAngle, innerRadius, expansion,
-                color, duration,
-            ),
-        );
     }
 }

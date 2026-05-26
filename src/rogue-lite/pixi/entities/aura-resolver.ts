@@ -28,35 +28,35 @@ export class AuraResolver extends AttackResolver {
     private _prevRadius = 0;
     /** Ring radius at the end of the last sim tick. */
     private _currentRadius = 0;
-    /** Enemies already struck during the current cycle; cleared on cycle wrap. */
-    private readonly _hitSet = new Set<Chaser>();
     /** Persistent Graphics node managed by this resolver; z-ordering owned by caller. */
     private readonly _gfx: Graphics;
 
-    constructor() {
+    constructor(private readonly player: Player) {
         super();
         this._gfx = new Graphics();
     }
 
     /** Graphics to be inserted at z-index 0 by KnightPlayer.enableAura(). */
-    override getGfx(): Graphics[] { return [this._gfx]; }
+    override getGfx(): Graphics[] {
+        return [this._gfx];
+    }
 
     /** Swept band start — radius at the beginning of the last sim tick. */
-    get prevRadius(): number { return this._prevRadius; }
-    /** Swept band end — radius at the end of the last sim tick. */
-    get currentRadius(): number { return this._currentRadius; }
+    get prevRadius(): number {
+        return this._prevRadius;
+    }
 
-    /** Returns true if `c` was already struck during the current pulse cycle. */
-    hasHitEnemy(c: Chaser): boolean { return this._hitSet.has(c); }
-    /** Mark `c` as struck so it is not hit again this cycle. */
-    markHitEnemy(c: Chaser): void { this._hitSet.add(c); }
+    /** Swept band end — radius at the end of the last sim tick. */
+    get currentRadius(): number {
+        return this._currentRadius;
+    }
 
     override update(dt: number, _move: Vec2, _aimAngle: number): void {
         this._prevRadius = this._phase * KnightConsts.AURA_RADIUS;
         this._phase += dt / KnightConsts.AURA_PERIOD;
         if (this._phase >= 1) {
             this._phase -= 1;
-            this._hitSet.clear(); // fresh hit tracking for the new cycle
+            this.clearHitSet(); // fresh hit tracking for the new cycle
         }
         this._currentRadius = this._phase * KnightConsts.AURA_RADIUS;
     }
@@ -79,6 +79,22 @@ export class AuraResolver extends AttackResolver {
     }
 
     // ── AttackResolver contract (passive — world handles hit detection) ───────
-    override tryAttack(_dt: number, _aimAngle: number): number | undefined { return undefined; }
-    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined { return undefined; }
+    override tryAttack(_dt: number, _aimAngle: number): number | undefined {
+        return undefined;
+    }
+
+    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
+        const dx = _chaser.posX - this.player.position.x;
+        const dy = _chaser.posY - this.player.position.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < this.currentRadius + _chaser.radius && dist >= Math.max(0, this.prevRadius - _chaser.radius)) {
+            const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);
+            const ny = dist > 0.001 ? dy / dist : (Math.random() * 2 - 1);
+            return new HitInfo()
+                .setDamage(KnightConsts.AURA_DAMAGE)
+                .setKnockback(nx * KnightConsts.AURA_KNOCKBACK_FORCE, ny * KnightConsts.AURA_KNOCKBACK_FORCE);
+        }
+
+        return undefined;
+    }
 }

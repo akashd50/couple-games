@@ -27,6 +27,32 @@ export class HitInfo {
         this.knockback.x += h.knockback?.x ?? 0;
         this.knockback.y += h.knockback?.y ?? 0;
     }
+
+    setDamage(d: number): HitInfo {
+        this.damage += d;
+        this.success = true;
+        return this;
+    }
+
+    setKnockback(x: number, y: number): HitInfo {
+        this.knockback.x = x;
+        this.knockback.y = y;
+        this.success = true;
+        return this;
+    }
+
+    addDamage(d: number): HitInfo {
+        this.damage += d;
+        this.success = true;
+        return this;
+    }
+
+    addKnockback(x: number, y: number): HitInfo {
+        this.knockback.x += x;
+        this.knockback.y += y;
+        this.success = true;
+        return this;
+    }
 }
 
 export abstract class AttackResolver {
@@ -44,7 +70,17 @@ export abstract class AttackResolver {
         return [];
     }
 
-    clearHitSet() {
+    /** Mark `c` as struck so it is not hit again this cycle. */
+    markHitEnemy(c: Chaser): void {
+        this.hitSet.add(c);
+    }
+
+    /** Returns true if `c` was already struck during the current pulse cycle. */
+    hasHitEnemy(c: Chaser): boolean {
+        return this.hitSet.has(c);
+    }
+
+    protected clearHitSet() {
         this.hitSet.clear();
     }
 
@@ -54,21 +90,24 @@ export abstract class AttackResolver {
      * cooldown concept need to override this.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    setCooldownMult(_mult: number): void { /* no-op by default */ }
+    setCooldownMult(_mult: number): void { /* no-op by default */
+    }
 
     /**
      * Widen the attack cone by `delta` radians (half-angle).
      * Used by the Wide Cleave upgrade. Default: no-op.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    addHalfAngle(_delta: number): void { /* no-op by default */ }
+    addHalfAngle(_delta: number): void { /* no-op by default */
+    }
 
     /**
      * Multiply the attack range by `factor`.
      * Used by the Wide Cleave upgrade. Default: no-op.
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    multiplyRange(_factor: number): void { /* no-op by default */ }
+    multiplyRange(_factor: number): void { /* no-op by default */
+    }
 }
 
 export class SwingAttackResolver extends AttackResolver {
@@ -201,12 +240,12 @@ export class SwingAttackResolver extends AttackResolver {
         }
 
         const { duration, color } = KnightConsts.autoAttack;
-        const effectiveRange    = this.effectiveRange;
+        const effectiveRange = this.effectiveRange;
         const effectiveHalfAngle = this.effectiveHalfAngle;
 
         const alpha = this.swingTimer / duration;
         const start = this.swingAngle - effectiveHalfAngle;
-        const end   = this.swingAngle + effectiveHalfAngle;
+        const end = this.swingAngle + effectiveHalfAngle;
         const normalizedSwingTimer = (duration - this.swingTimer) / duration;
         const currEnd = lerp(start, end, normalizedSwingTimer);
 
@@ -220,7 +259,7 @@ export class SwingAttackResolver extends AttackResolver {
         const perpCos = -Math.sin(currEnd);
         const perpSin = Math.cos(currEnd);
 
-        const hiltDist  = KnightConsts.radius + 2;
+        const hiltDist = KnightConsts.radius + 2;
         const guardDist = KnightConsts.radius + 10;
         const guardWidth = 8;
 
