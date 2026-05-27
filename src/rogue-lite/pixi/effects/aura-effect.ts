@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { Effect } from "./effect";
 import { Chaser } from "../entities/chaser";
 import { Vec2 } from "../types";
-import { Props } from "../constants";
+import { IProps } from "../constants";
 
 export class AuraEffect extends Effect {
     private readonly gfx: Graphics;
@@ -18,7 +18,7 @@ export class AuraEffect extends Effect {
     constructor(
         parent: Container,
         public readonly origin: Vec2,
-        private readonly props: Props,
+        private props: IProps,
         private readonly loop = false,
         private readonly track = false,
     ) {
@@ -32,9 +32,13 @@ export class AuraEffect extends Effect {
      * Advance the animation by `dt` seconds.
      * Call once per fixed sim tick.
      */
-    update(dt: number, pos?: Vec2): void {
+    update(dt: number, pos?: Vec2, props?: IProps): void {
         if (this.onDoneSubject.value) {
             return;
+        }
+
+        if (props != null) {
+            this.props = props;
         }
 
         this.lastPos = pos;

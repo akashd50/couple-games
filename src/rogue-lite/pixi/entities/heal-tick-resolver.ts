@@ -2,7 +2,7 @@ import { Resolver, HitInfo } from "./attacks";
 import { Chaser } from "./chaser";
 import { Vec2 } from "../types";
 import { Player } from "./player";
-import { Props } from "../constants";
+import { IProps } from "../constants";
 
 export class HealTickResolver extends Resolver {
     private healBonus = 0;
@@ -10,7 +10,7 @@ export class HealTickResolver extends Resolver {
     private cooldownMult = 1;
 
     constructor(
-        private readonly props: Props,
+        private readonly props: IProps,
         private readonly player: Player
     ) {
         super();

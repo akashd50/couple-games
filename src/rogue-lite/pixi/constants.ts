@@ -15,14 +15,14 @@ export interface PlayerProps {
 
 export type PropsType = "swing" | "aura" | "sword_shockwave" | "sword_shockwave_aftershock" | "healTick";
 
-export interface Props {
-    type: PropsType
+export interface IProps {
+    type?: PropsType
     range?: number;
     halfAngle?: number;
     cooldown?: number;
     damage?: number;
     duration?: number;
-    color: number;
+    color?: number;
     knockback?: number;
     everyN?: number;
     delay?: number;
@@ -40,7 +40,7 @@ export class KnightProps implements PlayerProps {
     readonly SHIELD_ARC_HALF = Math.PI / 4;
 
     // ── Basic sword swing ──────────────────────────────────────────────────────────
-    swing: Props = {
+    swing: IProps = {
         type: "swing",
         range: 80,
         /** Half-angle of the 60° cone (30° each side). */
@@ -56,9 +56,9 @@ export class KnightProps implements PlayerProps {
     };
 
     // ── Aura upgrade ──────────────────────────────────────────────────────────
-    aura: Props = {
+    aura: IProps = {
         type: "aura",
-        range: 200,
+        range: 100,
         duration: 2.0,
         damage: 8,
         knockback: 200,
@@ -66,7 +66,7 @@ export class KnightProps implements PlayerProps {
         cooldown: 0,
     };
 
-    swordShockwave: Props = {
+    swordShockwave: IProps = {
         type: "sword_shockwave",
         /** Every N attacks fires a Shockwave. */
         everyN: 5,
@@ -78,7 +78,7 @@ export class KnightProps implements PlayerProps {
         damage: 5
     };
 
-    aftershock: Props = {
+    aftershock: IProps = {
         type: "sword_shockwave_aftershock",
         delay: 0.5,
         range: 140,
@@ -88,7 +88,7 @@ export class KnightProps implements PlayerProps {
         damage: 5
     };
 
-    healTick: Props = {
+    healTick: IProps = {
         type: "healTick",
         healPerTick: 0.0,
         cooldown: 1,

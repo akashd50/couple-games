@@ -1,6 +1,7 @@
 import { Chaser } from "../entities/chaser";
 import { Vec2 } from "../types";
 import { BehaviorSubject } from "rxjs";
+import { IProps } from "../constants";
 
 export abstract class Effect {
     protected onDoneSubject = new BehaviorSubject<boolean>(false);
@@ -12,7 +13,7 @@ export abstract class Effect {
         return this.onDoneSubject.value;
     }
 
-    abstract update(_dt: number, pos?: Vec2): void;
+    abstract update(_dt: number, pos?: Vec2, props?: IProps): void;
 
     abstract destroy(): void;
 

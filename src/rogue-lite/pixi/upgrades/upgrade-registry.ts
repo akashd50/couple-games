@@ -1,5 +1,6 @@
 import type { UpgradeDefinition } from './upgrade-types';
 import { SwingAttackResolver } from "../entities/swing-resolver";
+import { AuraResolver } from "../entities/aura-resolver";
 
 /**
  * Flurry — attack speed.
@@ -123,8 +124,8 @@ const healOverTime: UpgradeDefinition = {
     id: 'healOverTime',
     name: 'Heal over time',
     maxStacks: 5,
-    describe: (nextStacks) => `Heal +0.25 (${nextStacks * 0.25}) hp every second`,
-    apply: (player) => player.enableHealTickResolver(0.25),
+    describe: (nextStacks) => `Heal +0.1 (${nextStacks * 0.1}) hp every second`,
+    apply: (player) => player.enableHealTickResolver(0.1),
 };
 
 /**
@@ -192,6 +193,17 @@ const aura: UpgradeDefinition = {
     apply: (player) => player.enableAura(),
 };
 
+const auraUpgrades: UpgradeDefinition = {
+    id: 'increase-aura-area',
+    name: 'Increase Aura Range',
+    maxStacks: 5,
+    describe: () => `Increase the range of your aura by 20%`,
+    apply: (player) => {
+        player.getResolver(AuraResolver).getMultipliers().range *= 1.2;
+    },
+    requires: ["aura"]
+};
+
 /**
  * All upgrade definitions available in a run.
  *
@@ -211,4 +223,5 @@ export const ALL_UPGRADES: UpgradeDefinition[] = [
     aftershock,
     auraShield,
     aura,
+    auraUpgrades
 ];
