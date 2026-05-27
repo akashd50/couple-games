@@ -1,13 +1,14 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
-import { ArenaConsts, KnightConsts, PhysicsConsts, XpGemConsts } from '../constants';
-import { AttackResolver, HitInfo } from './attacks';
+import { ArenaConsts, KnightConsts, KnightProps, PhysicsConsts, XpGemConsts } from '../constants';
+import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
 import { AuraResolver } from './aura-resolver';
 import { Chaser } from './chaser';
 import { Constructor, wrapAngle } from '../common-utils';
 import { SwingAttackResolver } from "./swing-resolver";
+import { HealTickResolver } from "./heal-tick-resolver";
 
 /**
  * Abstract base for all player classes.
@@ -51,7 +52,7 @@ export abstract class Player {
 
     // ── Attack resolvers ──────────────────────────────────────────────────────
     /** All active attack resolvers.  Iterated for tryAttack / checkHit / update / draw. */
-    protected attackResolvers: AttackResolver[] = [];
+    protected attackResolvers: Resolver[] = [];
 
     // ── Cached aim angle (set at start of each update()) ─────────────────────
     /** Stored each tick so takeDamage() can determine the shield-facing side. */
@@ -137,7 +138,7 @@ export abstract class Player {
      * World iterates this to handle world-space effects from ShockwaveResolver,
      * AftershockResolver, and AuraResolver.
      */
-    get resolvers(): readonly AttackResolver[] {
+    get resolvers(): readonly Resolver[] {
         return this.attackResolvers;
     }
 
@@ -170,6 +171,9 @@ export abstract class Player {
     /** Add lifesteal fraction (Lifesteal — 0.05 per stack). */
     addLifestealPct(pct: number): void {
         this._lifestealPct += pct;
+    }
+
+    enableHealTickResolver(val: number): void {
     }
 
     /**
@@ -209,7 +213,7 @@ export abstract class Player {
 
     // ── Public methods ───────────────────────────────────────────────────────
 
-    getResolver<T extends AttackResolver>(TargetClass: Constructor<T>): T {
+    getResolver<T extends Resolver>(TargetClass: Constructor<T>): T {
         return this.resolvers.find((resolver): resolver is T => resolver instanceof TargetClass);
     }
 
@@ -293,6 +297,11 @@ export abstract class Player {
     healFromDamageDealt(damage: number): void {
         if (this._lifestealPct <= 0) return;
         this._hp = Math.min(this._maxHp, this._hp + damage * this._lifestealPct);
+    }
+
+
+    healBy(recovery: number): void {
+        this._hp = Math.min(this._maxHp, this._hp + recovery);
     }
 
     /**
@@ -404,6 +413,12 @@ export class KnightPlayer extends Player {
     override enableAura(): void {
         if (this.attackResolvers.some(r => r instanceof AuraResolver)) return;
         this.attackResolvers.push(new AuraResolver(this, KnightConsts.aura));
+    }
+
+    override enableHealTickResolver(val: number): void {
+        const r = this.getResolver(HealTickResolver) ?? new HealTickResolver(KnightConsts.healTick, this);
+        r.addHealBonus(val);
+        this.attackResolvers.push(r);
     }
 
     // ── Core loop ────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import type { Player } from './player';
 import type { Chaser } from './chaser';
 import type { Vec2 } from '../types';
-import { AttackResolver, HitInfo } from './attacks';
+import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
@@ -23,7 +23,7 @@ import { getDirectionTo } from "../common-utils";
  *   Aftershock (1 stack, requires Shockwave) — KnightPlayer.enableAftershock()
  *   creates this resolver and wires it to the existing ShockwaveResolver.
  */
-export class AftershockResolver extends AttackResolver {
+export class AftershockResolver extends Resolver {
     private _pendingAngle: number | null = null;
     /** Angle stored when the timer started; used when the timer expires. */
     private _timerAngle = 0;

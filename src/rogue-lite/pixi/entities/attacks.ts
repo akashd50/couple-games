@@ -52,7 +52,7 @@ export class HitInfo {
     }
 }
 
-export abstract class AttackResolver {
+export abstract class Resolver {
     protected hitSet = new Set<Chaser>();
     protected effects: Effect[] = [];
 

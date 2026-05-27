@@ -115,6 +115,19 @@ const lifesteal: UpgradeDefinition = {
 };
 
 /**
+ * HealOverTime — heal over time.
+ * Each stack adds 0.25 heal over time
+ * Five stacks: 1.25 per second
+ */
+const healOverTime: UpgradeDefinition = {
+    id: 'healOverTime',
+    name: 'Heal over time',
+    maxStacks: 5,
+    describe: (nextStacks) => `Heal +0.25 (${nextStacks * 0.25}) hp every second`,
+    apply: (player) => player.enableHealTickResolver(0.25),
+};
+
+/**
  * Shockwave — every-5th-attack ring knockback.
  * One-shot upgrade (maxStacks: 1).
  * Every 5th sword strike releases an expanding shockwave ring that knocks
@@ -193,6 +206,7 @@ export const ALL_UPGRADES: UpgradeDefinition[] = [
     wideCleave,
     ironSkin,
     lifesteal,
+    healOverTime,
     shockwave,
     aftershock,
     auraShield,

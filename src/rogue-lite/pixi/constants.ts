@@ -13,19 +13,20 @@ export interface PlayerProps {
     iframesAfterDamage: number;
 }
 
-export type AttackType = "swing" | "aura" | "sword_shockwave" | "sword_shockwave_aftershock";
+export type PropsType = "swing" | "aura" | "sword_shockwave" | "sword_shockwave_aftershock" | "healTick";
 
-export interface AttackProps {
-    type: AttackType
-    range: number;
+export interface Props {
+    type: PropsType
+    range?: number;
     halfAngle?: number;
     cooldown?: number;
-    damage: number;
-    duration: number;
+    damage?: number;
+    duration?: number;
     color: number;
-    knockback: number;
+    knockback?: number;
     everyN?: number;
     delay?: number;
+    healPerTick?: number;
 }
 
 export class KnightProps implements PlayerProps {
@@ -39,7 +40,7 @@ export class KnightProps implements PlayerProps {
     readonly SHIELD_ARC_HALF = Math.PI / 4;
 
     // ── Basic sword swing ──────────────────────────────────────────────────────────
-    swing: AttackProps = {
+    swing: Props = {
         type: "swing",
         range: 80,
         /** Half-angle of the 60° cone (30° each side). */
@@ -55,7 +56,7 @@ export class KnightProps implements PlayerProps {
     };
 
     // ── Aura upgrade ──────────────────────────────────────────────────────────
-    aura: AttackProps = {
+    aura: Props = {
         type: "aura",
         range: 200,
         duration: 2.0,
@@ -65,7 +66,7 @@ export class KnightProps implements PlayerProps {
         cooldown: 0,
     };
 
-    swordShockwave: AttackProps = {
+    swordShockwave: Props = {
         type: "sword_shockwave",
         /** Every N attacks fires a Shockwave. */
         everyN: 5,
@@ -77,7 +78,7 @@ export class KnightProps implements PlayerProps {
         damage: 5
     };
 
-    aftershock: AttackProps = {
+    aftershock: Props = {
         type: "sword_shockwave_aftershock",
         delay: 0.5,
         range: 140,
@@ -85,6 +86,13 @@ export class KnightProps implements PlayerProps {
         color: 0xD1A96B,
         duration: 0.2,
         damage: 5
+    };
+
+    healTick: Props = {
+        type: "healTick",
+        healPerTick: 0.0,
+        cooldown: 1,
+        color: 0x0000FF,
     };
 
     // ── Directional speed bonus ───────────────────────────────────────────────

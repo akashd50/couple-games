@@ -1,20 +1,20 @@
 import { Graphics } from "pixi.js";
-import { AttackProps, KnightConsts } from "../constants";
+import { Props, KnightConsts } from "../constants";
 import { Player } from "./player";
-import { AttackResolver, HitInfo } from "./attacks";
+import { Resolver, HitInfo } from "./attacks";
 import { Chaser } from "./chaser";
 import { isInAttackCone } from "../systems/attack-system";
 import { Vec2 } from "../types";
 import { lerp } from "../common-utils";
 
-export class SwingAttackResolver extends AttackResolver {
+export class SwingAttackResolver extends Resolver {
     /** Counts down to 0; attack fires when it crosses 0. */
     private attackCooldown: number;
     /** Counts down from ATTACK_ARC_DURATION to 0 while the swing arc is visible. */
     private swingTimer = 0;
     /** Aim angle captured when the attack fired (used for the visual). */
     private swingAngle = 0;
-    private props: AttackProps;
+    private props: Props;
     /** Accumulated cooldown multiplier from upgrades (Flurry stacks multiply). */
     private cooldownMult = 1;
     private arcStart: number;
@@ -31,7 +31,7 @@ export class SwingAttackResolver extends AttackResolver {
 
     constructor(
         private readonly player: Player,
-        props: AttackProps
+        props: Props
     ) {
         super();
         this.props = props;

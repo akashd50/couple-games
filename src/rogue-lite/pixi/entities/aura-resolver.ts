@@ -1,8 +1,8 @@
 import type { Player } from './player';
 import type { Chaser } from './chaser';
 import type { Vec2 } from '../types';
-import { AttackResolver, HitInfo } from './attacks';
-import { AttackProps } from '../constants';
+import { Resolver, HitInfo } from './attacks';
+import { Props } from '../constants';
 import { AuraEffect } from '../effects/aura-effect';
 import { getDirectionTo } from "../common-utils";
 
@@ -22,8 +22,8 @@ import { getDirectionTo } from "../common-utils";
  * Upgrades:
  *   Aura (1 stack) — KnightPlayer.enableAura() creates this resolver.
  */
-export class AuraResolver extends AttackResolver {
-    constructor(private readonly player: Player, private readonly props: AttackProps) {
+export class AuraResolver extends Resolver {
+    constructor(private readonly player: Player, private readonly props: Props) {
         super();
     }
 

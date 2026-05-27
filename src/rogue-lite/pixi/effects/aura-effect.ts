@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { Effect } from "./effect";
 import { Chaser } from "../entities/chaser";
 import { Vec2 } from "../types";
-import { AttackProps } from "../constants";
+import { Props } from "../constants";
 
 export class AuraEffect extends Effect {
     private readonly gfx: Graphics;
@@ -18,7 +18,7 @@ export class AuraEffect extends Effect {
     constructor(
         parent: Container,
         public readonly origin: Vec2,
-        private readonly props: AttackProps,
+        private readonly props: Props,
         private readonly loop = false,
         private readonly track = false,
     ) {

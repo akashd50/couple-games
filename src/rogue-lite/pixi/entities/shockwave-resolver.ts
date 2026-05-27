@@ -1,7 +1,7 @@
 import type { Player } from './player';
 import type { Chaser } from './chaser';
 import type { Vec2 } from '../types';
-import { AttackResolver, HitInfo } from './attacks';
+import { Resolver, HitInfo } from './attacks';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { getDirectionTo, wrapAngle } from "../common-utils";
@@ -21,7 +21,7 @@ import { SwingAttackResolver } from "./swing-resolver";
  * Upgrades:
  *   Shockwave (1 stack) — KnightPlayer.enableShockwave() creates this resolver.
  */
-export class ShockwaveResolver extends AttackResolver {
+export class ShockwaveResolver extends Resolver {
     private _attacksFired = 0;
     private _pendingAngle: number | null = null;
     private readonly _fireListeners: ((angle: number) => void)[] = [];
