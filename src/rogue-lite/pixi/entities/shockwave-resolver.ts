@@ -25,8 +25,6 @@ export class ShockwaveResolver extends AttackResolver {
     private _attacksFired = 0;
     private _pendingAngle: number | null = null;
     private readonly _fireListeners: ((angle: number) => void)[] = [];
-    /** Active shockwave cone visuals; updated and pruned each tick. */
-    protected readonly shockwaveEffects: ShockwaveEffect[] = [];
 
     constructor(
         private readonly player: Player,
@@ -67,10 +65,10 @@ export class ShockwaveResolver extends AttackResolver {
     }
 
     destroy() {
-        for (const fx of this.shockwaveEffects) {
+        for (const fx of this.effects) {
             fx.destroy();
         }
-        this.shockwaveEffects.length = 0;
+        this.effects.length = 0;
     }
 
     private onSwingFired(angle: number): void {
@@ -92,7 +90,7 @@ export class ShockwaveResolver extends AttackResolver {
             const shockwave = new ShockwaveEffect(this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
                 this.halfAngle, this.innerRadius, KnightConsts.swordShockwave.range, KnightConsts.swordShockwave.color, KnightConsts.swordShockwave.duration
             );
-            this.shockwaveEffects.push(shockwave);
+            this.effects.push(shockwave);
         }
 
         return angle;
@@ -100,7 +98,7 @@ export class ShockwaveResolver extends AttackResolver {
 
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
         const hitInfo = new HitInfo();
-        for (const se of this.shockwaveEffects) {
+        for (const se of this.effects) {
             if (se.isInRange(_chaser)) {
                 const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY })
                 hitInfo
@@ -113,14 +111,14 @@ export class ShockwaveResolver extends AttackResolver {
     }
 
     override update(_dt: number, _move: Vec2, _aimAngle: number): void {
-        for (const fx of this.shockwaveEffects) {
+        for (const fx of this.effects) {
             fx.update(_dt);
         }
 
-        for (let i = this.shockwaveEffects.length - 1; i >= 0; i--) {
-            if (this.shockwaveEffects[i].isDone) {
-                this.shockwaveEffects[i].destroy();
-                this.shockwaveEffects.splice(i, 1);
+        for (let i = this.effects.length - 1; i >= 0; i--) {
+            if (this.effects[i].isDone) {
+                this.effects[i].destroy();
+                this.effects.splice(i, 1);
             }
         }
     }

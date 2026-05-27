@@ -28,7 +28,6 @@ import { Chaser } from "../entities/chaser";
 export class ShockwaveEffect extends Effect {
     private readonly gfx: Graphics;
     private elapsed = 0;
-    private _done = false;
 
     /**
      * @param parent      Container in world space to attach to.
@@ -59,10 +58,6 @@ export class ShockwaveEffect extends Effect {
         parent.addChild(this.gfx);
     }
 
-    get isDone(): boolean {
-        return this._done;
-    }
-
     /**
      * Advance the animation by `dt` seconds.
      * Call once per fixed sim tick.
@@ -72,7 +67,7 @@ export class ShockwaveEffect extends Effect {
         const t = Math.min(1, this.elapsed / this.duration);
 
         if (t >= 1) {
-            this._done = true;
+            this.onDoneSubject.next(true);
             this.gfx.clear();
             return;
         }

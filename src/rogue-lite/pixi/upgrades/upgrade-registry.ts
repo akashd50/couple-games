@@ -1,6 +1,5 @@
 import type { UpgradeDefinition } from './upgrade-types';
-
-// ── Phase 3 — Starter upgrades ────────────────────────────────────────────────
+import { SwingAttackResolver } from "../entities/swing-resolver";
 
 /**
  * Flurry — attack speed.
@@ -15,7 +14,10 @@ const flurry: UpgradeDefinition = {
         const pct = Math.round((1 - Math.pow(0.85, nextStacks)) * 100);
         return `Attack ${pct}% faster overall (stacks multiply, each is −15% cooldown).`;
     },
-    apply: (player) => player.multiplyAttackCooldown(0.85),
+    apply: (player) => {
+        const swingResolver = player.getResolver(SwingAttackResolver);
+        swingResolver.multiplyCooldown(0.85)
+    },
 };
 
 /**
@@ -30,10 +32,10 @@ const juggernaut: UpgradeDefinition = {
     name: 'Juggernaut',
     maxStacks: 5,
     describe: (nextStacks) => {
-        const kbResist  = Math.min(nextStacks * 20, 85);
+        const kbResist = Math.min(nextStacks * 20, 85);
         const speedLoss = Math.round((1 - Math.pow(0.9, nextStacks)) * 100);
         return `+${nextStacks * 25} max HP, +${nextStacks * 2} radius, `
-             + `${kbResist}% knockback resistance, ${speedLoss}% slower movement.`;
+            + `${kbResist}% knockback resistance, ${speedLoss}% slower movement.`;
     },
     apply: (player) => {
         player.addMaxHp(25);
@@ -58,8 +60,6 @@ const magnet: UpgradeDefinition = {
     apply: (player) => player.addMagnetRadius(80),
 };
 
-// ── Phase 4 — Full Knight upgrade pool ───────────────────────────────────────
-
 /**
  * Wide Cleave — arc expansion at the cost of swing speed.
  * Per stack: +10° cone (π/18 half-angle), +5% range, −10% swing speed.
@@ -71,15 +71,16 @@ const wideCleave: UpgradeDefinition = {
     name: 'Wide Cleave',
     maxStacks: 3,
     describe: (nextStacks) => {
-        const coneTotal  = 60 + nextStacks * 10;
-        const rangePct   = Math.round((Math.pow(1.05, nextStacks) - 1) * 100);
-        const slowPct    = Math.round((Math.pow(1.1, nextStacks) - 1) * 100);
+        const coneTotal = 60 + nextStacks * 10;
+        const rangePct = Math.round((Math.pow(1.05, nextStacks) - 1) * 100);
+        const slowPct = Math.round((Math.pow(1.1, nextStacks) - 1) * 100);
         return `Arc ${coneTotal}° total (+${nextStacks * 10}°), range +${rangePct}%, attacks ${slowPct}% slower.`;
     },
     apply: (player) => {
-        player.addAttackHalfAngle(Math.PI / 18); // +10° half-angle per stack
-        player.multiplyAttackRange(1.05);         // +5% range per stack
-        player.multiplyAttackCooldown(1.1);       // 10% slower per stack
+        const swingResolver = player.getResolver(SwingAttackResolver);
+        swingResolver.addHalfAngle(Math.PI / 18); // +10° half-angle per stack
+        swingResolver.multiplyRange(1.05);  // +5% range per stack
+        swingResolver.multiplyCooldown(1.1); // 10% slower per stack
     },
 };
 
@@ -157,7 +158,7 @@ const auraShield: UpgradeDefinition = {
         // Base 20% + upgrade stacks * 5%
         const totalBlock = Math.min(85, 20 + nextStacks * 5);
         return `Shield blocks ${totalBlock}% of incoming damage from the front `
-             + `(base 20% + ${nextStacks * 5}% from this upgrade).`;
+            + `(base 20% + ${nextStacks * 5}% from this upgrade).`;
     },
     apply: (player) => player.addShieldReduction(0.05),
 };
@@ -174,7 +175,7 @@ const aura: UpgradeDefinition = {
     maxStacks: 1,
     describe: () =>
         `Emit a pulsing ring every 2 s that deals ${8} damage and pushes back `
-      + `all enemies within 200 units.`,
+        + `all enemies within 200 units.`,
     apply: (player) => player.enableAura(),
 };
 
@@ -186,17 +187,14 @@ const aura: UpgradeDefinition = {
  * files need to change.
  */
 export const ALL_UPGRADES: UpgradeDefinition[] = [
-    // Phase 3 starters
     flurry,
     juggernaut,
     magnet,
-    // Phase 4 additions
     wideCleave,
     ironSkin,
     lifesteal,
     shockwave,
     aftershock,
-    // Phase 4+ (spec update)
     auraShield,
     aura,
 ];

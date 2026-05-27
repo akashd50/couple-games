@@ -8,11 +8,13 @@ export abstract class Effect {
     public onDone$ = this.onDoneSubject.asObservable();
     public onLoop$ = this.onLoopSubject.asObservable();
 
-    abstract update(_dt: number, pos: Vec2): void;
+    public get isDone(): boolean {
+        return this.onDoneSubject.value;
+    }
+
+    abstract update(_dt: number, pos?: Vec2): void;
 
     abstract destroy(): void;
-
-    abstract isDone: boolean;
 
     abstract isInRange(chaser: Chaser): boolean;
 }

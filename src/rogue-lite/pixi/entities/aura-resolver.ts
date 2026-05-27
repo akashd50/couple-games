@@ -23,14 +23,12 @@ import { getDirectionTo } from "../common-utils";
  *   Aura (1 stack) — KnightPlayer.enableAura() creates this resolver.
  */
 export class AuraResolver extends AttackResolver {
-    private auraEffect: AuraEffect;
-
     constructor(private readonly player: Player, private readonly props: AttackProps) {
         super();
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number): void {
-        this.auraEffect?.update(dt, this.player.position);
+        this.effects[0]?.update(dt, this.player.position);
     }
 
     override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
@@ -38,18 +36,20 @@ export class AuraResolver extends AttackResolver {
 
     // ── AttackResolver contract (passive — world handles hit detection) ───────
     override tryAttack(_dt: number, _aimAngle: number): number | undefined {
-        if (this.auraEffect == null) {
-            this.auraEffect = new AuraEffect(this.player.backgroundFx, this.player.position, this.props, true, true);
-            this.auraEffect.onLoop$.subscribe(() => {
+        if (this.effects.length == 0) {
+            const auraEffect = new AuraEffect(this.player.backgroundFx, this.player.position, this.props, true, true);
+            auraEffect.onLoop$.subscribe(() => {
                 this.clearHitSet();
             });
+
+            this.effects.push(auraEffect);
         }
 
         return undefined;
     }
 
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
-        if (this.auraEffect?.isInRange(_chaser)) {
+        if (this.effects[0]?.isInRange(_chaser)) {
             const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY })
             return new HitInfo()
                 .setDamage(this.props.damage)

@@ -28,15 +28,11 @@ export class AuraEffect extends Effect {
         parent.addChild(this.gfx);
     }
 
-    get isDone(): boolean {
-        return this.onDoneSubject.value;
-    }
-
     /**
      * Advance the animation by `dt` seconds.
      * Call once per fixed sim tick.
      */
-    update(dt: number, pos: Vec2): void {
+    update(dt: number, pos?: Vec2): void {
         if (this.onDoneSubject.value) {
             return;
         }

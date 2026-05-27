@@ -162,25 +162,6 @@ export abstract class Player {
         this._magnetRadius += amount;
     }
 
-    /**
-     * Multiply all resolver cooldowns by factor (Flurry / Wide Cleave).
-     * Propagated immediately to every attached resolver.
-     */
-    multiplyAttackCooldown(factor: number): void {
-        this._cooldownMult *= factor;
-        for (const r of this.attackResolvers) r.setCooldownMult(this._cooldownMult);
-    }
-
-    /** Widen each resolver's cone by delta radians half-angle (Wide Cleave). */
-    addAttackHalfAngle(delta: number): void {
-        for (const r of this.attackResolvers) r.addHalfAngle(delta);
-    }
-
-    /** Multiply each resolver's range (Wide Cleave). */
-    multiplyAttackRange(factor: number): void {
-        for (const r of this.attackResolvers) r.multiplyRange(factor);
-    }
-
     /** Multiply incoming damage (Iron Skin — 0.85 per stack). */
     multiplyIncomingDamage(factor: number): void {
         this._damageMult *= factor;

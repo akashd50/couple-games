@@ -69,15 +69,15 @@ export class SwingAttackResolver extends AttackResolver {
         this.arcEnd = this.arcStart + 2 * halfAngle * (this.progress ?? 0);
     }
 
-    override setCooldownMult(mult: number): void {
-        this.cooldownMult = mult;
+    public multiplyCooldown(mult: number): void {
+        this.cooldownMult *= mult;
     }
 
-    override addHalfAngle(delta: number): void {
+    public addHalfAngle(delta: number): void {
         this._halfAngleDelta += delta;
     }
 
-    override multiplyRange(factor: number): void {
+    public multiplyRange(factor: number): void {
         this._rangeMult *= factor;
     }
 
@@ -173,15 +173,3 @@ export class SwingAttackResolver extends AttackResolver {
         g.stroke({ color: color, width: 3, alpha });
     }
 }
-
-/*export function getAttackResolver(player: Player, attack: AttackProps): AttackResolver {
-    switch (attack.type) {
-        case "swing":
-            return new SwingAttackResolver(player, attack);
-        case "aura":
-            return new AuraResolver(this, attack);
-        case "sword_shockwave":
-            const swingResolver = player.getResolver(SwingAttackResolver);
-            return swingResolver ? new ShockwaveResolver(this, swingResolver) : undefined;
-    }
-}*/

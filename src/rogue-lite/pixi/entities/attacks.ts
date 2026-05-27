@@ -1,6 +1,7 @@
 import { Chaser } from "./chaser";
 import { Player } from "./player";
 import { Vec2 } from "../types";
+import { Effect } from "../effects/effect";
 
 export class HitInfo {
     damage: number;
@@ -53,6 +54,7 @@ export class HitInfo {
 
 export abstract class AttackResolver {
     protected hitSet = new Set<Chaser>();
+    protected effects: Effect[] = [];
 
     abstract checkHit(player: Player, chaser: Chaser): HitInfo | undefined;
 
@@ -74,30 +76,5 @@ export abstract class AttackResolver {
 
     protected clearHitSet() {
         this.hitSet.clear();
-    }
-
-    /**
-     * Apply a cooldown multiplier from an upgrade (e.g. Flurry).
-     * Default implementation is a no-op — only resolvers that have a
-     * cooldown concept need to override this.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    setCooldownMult(_mult: number): void { /* no-op by default */
-    }
-
-    /**
-     * Widen the attack cone by `delta` radians (half-angle).
-     * Used by the Wide Cleave upgrade. Default: no-op.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    addHalfAngle(_delta: number): void { /* no-op by default */
-    }
-
-    /**
-     * Multiply the attack range by `factor`.
-     * Used by the Wide Cleave upgrade. Default: no-op.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    multiplyRange(_factor: number): void { /* no-op by default */
     }
 }
