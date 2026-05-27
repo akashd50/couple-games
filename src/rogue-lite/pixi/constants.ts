@@ -13,17 +13,19 @@ export interface PlayerProps {
     iframesAfterDamage: number;
 }
 
-export type AttackType = "swing";
+export type AttackType = "swing" | "aura" | "sword_shockwave" | "sword_shockwave_aftershock";
 
 export interface AttackProps {
     type: AttackType
     range: number;
-    halfAngle: number;
-    cooldown: number;
+    halfAngle?: number;
+    cooldown?: number;
     damage: number;
     duration: number;
     color: number;
     knockback: number;
+    everyN?: number;
+    delay?: number;
 }
 
 export class KnightProps implements PlayerProps {
@@ -36,7 +38,8 @@ export class KnightProps implements PlayerProps {
     readonly SHIELD_COLOR = 0x5599ff;
     readonly SHIELD_ARC_HALF = Math.PI / 4;
 
-    autoAttack: AttackProps = {
+    // ── Basic sword swing ──────────────────────────────────────────────────────────
+    swing: AttackProps = {
         type: "swing",
         range: 80,
         /** Half-angle of the 60° cone (30° each side). */
@@ -49,6 +52,39 @@ export class KnightProps implements PlayerProps {
         color: 0xffcc44,
         /** Knockback impulse applied to an enemy on sword hit (world units/s). */
         knockback: 195,
+    };
+
+    // ── Aura upgrade ──────────────────────────────────────────────────────────
+    aura: AttackProps = {
+        type: "aura",
+        range: 200,
+        duration: 2.0,
+        damage: 8,
+        knockback: 200,
+        color: 0x88ff88,
+        cooldown: 0,
+    };
+
+    swordShockwave: AttackProps = {
+        type: "sword_shockwave",
+        /** Every N attacks fires a Shockwave. */
+        everyN: 5,
+        range: 220,
+        /** Knockback impulse (world units/s) applied by the primary Shockwave. */
+        knockback: 350,
+        color: 0x88aaff,
+        duration: 0.38,
+        damage: 5
+    };
+
+    aftershock: AttackProps = {
+        type: "sword_shockwave_aftershock",
+        delay: 0.5,
+        range: 140,
+        knockback: 220,
+        color: 0x88aaff,
+        duration: 0.2,
+        damage: 5
     };
 
     // ── Directional speed bonus ───────────────────────────────────────────────
@@ -66,36 +102,6 @@ export class KnightProps implements PlayerProps {
      * The Aura Shield upgrade stacks on top of this.
      */
     readonly SHIELD_BASE_REDUCTION = 0.20;
-
-    // ── Shockwave (Phase 4) ───────────────────────────────────────────────────
-    /** Every N attacks fires a Shockwave. */
-    readonly SHOCKWAVE_EVERY_N = 5;
-    /**
-     * How far beyond the sword range the Shockwave cone expands (world units).
-     * The cone's inner edge matches the sword arc; the outer edge is
-     * innerRadius + SHOCKWAVE_RANGE.
-     */
-    readonly SHOCKWAVE_RANGE = 220;
-    /** Knockback impulse (world units/s) applied by the primary Shockwave. */
-    readonly SHOCKWAVE_FORCE = 350;
-    /** Seconds after the primary Shockwave that Aftershock fires. */
-    readonly AFTERSHOCK_DELAY = 0.5;
-    /** Aftershock expansion beyond sword range (smaller than primary). */
-    readonly AFTERSHOCK_RANGE = 140;
-    /** Knockback impulse of the Aftershock. */
-    readonly AFTERSHOCK_FORCE = 220;
-
-    // ── Aura upgrade ──────────────────────────────────────────────────────────
-    /** Outer radius of the Aura damage pulse (world units). */
-    readonly AURA_RADIUS           = 200;
-    /** Seconds per complete Aura pulse cycle. */
-    readonly AURA_PERIOD           = 2.0;
-    /** HP damage dealt to each enemy the Aura pulse ring passes through. */
-    readonly AURA_DAMAGE           = 8;
-    /** Knockback impulse (world units/s) from the Aura pulse. */
-    readonly AURA_KNOCKBACK_FORCE  = 200;
-    /** Visual colour of the Aura ring. */
-    readonly AURA_COLOR            = 0x88ff88;
 }
 
 export const KnightConsts = new KnightProps();

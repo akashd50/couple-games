@@ -8,7 +8,7 @@ import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { wrapAngle } from "../common-utils";
 
 /**
- * Fires a second, smaller shockwave cone AFTERSHOCK_DELAY seconds after each
+ * Fires a second, smaller shockwave cone aftershock.delay seconds after each
  * primary Shockwave fires.
  *
  * Depends on ShockwaveResolver: subscribes to its fire-callback (rather than
@@ -75,7 +75,7 @@ export class AftershockResolver extends AttackResolver {
             this.clearHitSet();
             const shockwave = new ShockwaveEffect(
                 this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
-                this.halfAngle, this.innerRadius, KnightConsts.SHOCKWAVE_RANGE, 0x88aaff, 0.38
+                this.halfAngle, this.innerRadius, KnightConsts.aftershock.range, KnightConsts.aftershock.color, KnightConsts.aftershock.duration
             );
             this.shockwaveEffects.push(shockwave);
         }
@@ -86,7 +86,7 @@ export class AftershockResolver extends AttackResolver {
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.shockwaveEffects) {
-            const outerRadius = this.innerRadius + KnightConsts.AFTERSHOCK_RANGE;
+            const outerRadius = this.innerRadius + KnightConsts.aftershock.range;
             const dx = _chaser.posX - se.x;
             const dy = _chaser.posY - se.y;
             const dist = Math.hypot(dx, dy);
@@ -100,7 +100,9 @@ export class AftershockResolver extends AttackResolver {
                 continue;
             }
 
-            hitInfo.setDamage(KnightConsts.AFTERSHOCK_FORCE);
+            hitInfo
+                .setDamage(KnightConsts.aftershock.damage)
+                .setKnockback(KnightConsts.aftershock.knockback, KnightConsts.aftershock.knockback);
         }
 
         return hitInfo;
@@ -109,7 +111,7 @@ export class AftershockResolver extends AttackResolver {
     private onShockwaveFired(angle: number): void {
         // (Re-)start the delay timer.  A new shockwave overrides any in-flight timer.
         this._timerAngle = angle;
-        this._timer = KnightConsts.AFTERSHOCK_DELAY;
+        this._timer = KnightConsts.aftershock.delay;
     }
 
     override update(_dt: number, _move: Vec2, _aimAngle: number): void {

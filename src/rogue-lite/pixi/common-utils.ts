@@ -1,3 +1,5 @@
+export type Constructor<T> = new (...args: any[]) => T;
+
 /**
  * Linearly interpolates between two numbers.
  *
@@ -15,7 +17,7 @@ export function lerp(start: number, end: number, t: number): number {
  * Used for directional comparisons (e.g. shield-side hit detection).
  */
 export function wrapAngle(a: number): number {
-    while (a >  Math.PI) a -= 2 * Math.PI;
+    while (a > Math.PI) a -= 2 * Math.PI;
     while (a < -Math.PI) a += 2 * Math.PI;
     return a;
 }

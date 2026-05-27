@@ -5,6 +5,8 @@ import { isInAttackCone } from "../systems/attack-system";
 import { Vec2 } from "../types";
 import { lerp } from "../common-utils";
 import { Graphics } from "pixi.js";
+import { AuraResolver } from "./aura-resolver";
+import { ShockwaveResolver } from "./shockwave-resolver";
 
 export class HitInfo {
     damage: number;
@@ -65,10 +67,6 @@ export abstract class AttackResolver {
     abstract update(dt: number, move: Vec2, aimAngle: number): void;
 
     abstract draw(dt: number, move: Vec2, aimAngle: number): void;
-
-    getGfx(): Graphics[] {
-        return [];
-    }
 
     /** Mark `c` as struck so it is not hit again this cycle. */
     markHitEnemy(c: Chaser): void {
@@ -132,11 +130,16 @@ export class SwingAttackResolver extends AttackResolver {
     /** Callbacks invoked each time a swing fires; used by ShockwaveResolver. */
     private readonly _fireListeners: ((angle: number) => void)[] = [];
 
-    constructor(props: AttackProps) {
+    constructor(
+        private readonly player: Player,
+        props: AttackProps
+    ) {
         super();
         this.props = props;
         this.attackCooldown = props.cooldown * 0.5;
         this.swingGfx = new Graphics();
+        this.player.backgroundFx.addChild(this.swingGfx);
+
     }
 
     /** Effective half-angle after all Wide Cleave stacks. */
@@ -154,10 +157,6 @@ export class SwingAttackResolver extends AttackResolver {
             return undefined;
         }
         return (this.props.duration - this.swingTimer) / this.props.duration;
-    }
-
-    override getGfx(): Graphics[] {
-        return [this.swingGfx];
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number) {
@@ -239,7 +238,7 @@ export class SwingAttackResolver extends AttackResolver {
             return;
         }
 
-        const { duration, color } = KnightConsts.autoAttack;
+        const { duration, color } = KnightConsts.swing;
         const effectiveRange = this.effectiveRange;
         const effectiveHalfAngle = this.effectiveHalfAngle;
 
@@ -275,9 +274,14 @@ export class SwingAttackResolver extends AttackResolver {
     }
 }
 
-export function getAttackResolver(attack: AttackProps): AttackResolver {
+/*export function getAttackResolver(player: Player, attack: AttackProps): AttackResolver {
     switch (attack.type) {
         case "swing":
-            return new SwingAttackResolver(attack);
+            return new SwingAttackResolver(player, attack);
+        case "aura":
+            return new AuraResolver(this, attack);
+        case "sword_shockwave":
+            const swingResolver = player.getResolver(SwingAttackResolver);
+            return swingResolver ? new ShockwaveResolver(this, swingResolver) : undefined;
     }
-}
+}*/

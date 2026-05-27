@@ -1,12 +1,12 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
 import { ArenaConsts, KnightConsts, PhysicsConsts, XpGemConsts } from '../constants';
-import { AttackResolver, getAttackResolver, HitInfo, SwingAttackResolver } from './attacks';
+import { AttackResolver, HitInfo, SwingAttackResolver } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
 import { AuraResolver } from './aura-resolver';
 import { Chaser } from './chaser';
-import { wrapAngle } from '../common-utils';
+import { Constructor, wrapAngle } from '../common-utils';
 
 /**
  * Abstract base for all player classes.
@@ -227,6 +227,10 @@ export abstract class Player {
 
     // ── Public methods ───────────────────────────────────────────────────────
 
+    getResolver<T extends AttackResolver>(TargetClass: Constructor<T>): T {
+        return this.resolvers.find((resolver): resolver is T => resolver instanceof TargetClass);
+    }
+
     /** Check whether any attack should fire this tick (called once per tick, before update). */
     tryAttack(_dt: number, _aimAngle: number): void {
     }
@@ -372,8 +376,7 @@ export class KnightPlayer extends Player {
         super(parent);
 
         // Swing resolver is always present; ShockwaveResolver etc. are added on demand.
-        this.attackResolvers.push(getAttackResolver(KnightConsts.autoAttack));
-        this.container.addChild(...this.attackResolvers.flatMap(r => r.getGfx()));
+        this.attackResolvers.push(new SwingAttackResolver(this, KnightConsts.swing));
 
         this.body = new Graphics();
         this.drawBody();
@@ -418,11 +421,7 @@ export class KnightPlayer extends Player {
      */
     override enableAura(): void {
         if (this.attackResolvers.some(r => r instanceof AuraResolver)) return;
-        const aura = new AuraResolver(this);
-        // Insert the aura ring at the back of the container stack so it renders
-        // behind the swing arc, body circle, and shield arc.
-        this.container.addChildAt(aura.getGfx()[0], 0);
-        this.attackResolvers.push(aura);
+        this.attackResolvers.push(new AuraResolver(this, KnightConsts.aura));
     }
 
     // ── Core loop ────────────────────────────────────────────────────────────

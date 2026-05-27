@@ -74,7 +74,7 @@ export class ShockwaveResolver extends AttackResolver {
 
     private onSwingFired(angle: number): void {
         this._attacksFired++;
-        if (this._attacksFired % KnightConsts.SHOCKWAVE_EVERY_N === 0) {
+        if (this._attacksFired % KnightConsts.swordShockwave.everyN === 0) {
             this._pendingAngle = angle;
             for (const cb of this._fireListeners) {
                 cb(angle);
@@ -90,7 +90,7 @@ export class ShockwaveResolver extends AttackResolver {
             this.clearHitSet();
             const shockwave = new ShockwaveEffect(
                 this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
-                this.halfAngle, this.innerRadius, KnightConsts.SHOCKWAVE_RANGE, 0x88aaff, 0.38
+                this.halfAngle, this.innerRadius, KnightConsts.swordShockwave.range, KnightConsts.swordShockwave.color, KnightConsts.swordShockwave.duration
             );
             this.shockwaveEffects.push(shockwave);
         }
@@ -101,7 +101,7 @@ export class ShockwaveResolver extends AttackResolver {
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.shockwaveEffects) {
-            const outerRadius = this.innerRadius + KnightConsts.SHOCKWAVE_RANGE;
+            const outerRadius = this.innerRadius + KnightConsts.swordShockwave.range;
             const dx = _chaser.posX - se.x;
             const dy = _chaser.posY - se.y;
             const dist = Math.hypot(dx, dy);
@@ -117,7 +117,9 @@ export class ShockwaveResolver extends AttackResolver {
 
             const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);
             const ny = dist > 0.001 ? dy / dist : (Math.random() * 2 - 1);
-            hitInfo.addKnockback(nx * KnightConsts.SHOCKWAVE_FORCE, ny * KnightConsts.SHOCKWAVE_FORCE);
+            hitInfo
+                .addDamage(KnightConsts.swordShockwave.damage)
+                .addKnockback(nx * KnightConsts.swordShockwave.knockback, ny * KnightConsts.swordShockwave.knockback);
         }
 
         return hitInfo;
