@@ -5,7 +5,7 @@ import { AttackResolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
-import { getDirectionTo, wrapAngle } from "../common-utils";
+import { getDirectionTo } from "../common-utils";
 
 /**
  * Fires a second, smaller shockwave cone aftershock.delay seconds after each

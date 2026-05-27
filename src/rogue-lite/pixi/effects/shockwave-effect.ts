@@ -55,10 +55,7 @@ export class ShockwaveEffect extends Effect {
         super();
 
         this.gfx = new Graphics();
-        // parent is backgroundFxContainer, which lives inside player.container.
-        // player.container is already positioned at (x, y) in world space, so the
-        // cone apex belongs at the local origin — no extra offset needed.
-        this.gfx.position.set(0, 0);
+        this.gfx.position.set(x, y);
         parent.addChild(this.gfx);
     }
 

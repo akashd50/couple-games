@@ -1,12 +1,13 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
 import { ArenaConsts, KnightConsts, PhysicsConsts, XpGemConsts } from '../constants';
-import { AttackResolver, HitInfo, SwingAttackResolver } from './attacks';
+import { AttackResolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
 import { AuraResolver } from './aura-resolver';
 import { Chaser } from './chaser';
 import { Constructor, wrapAngle } from '../common-utils';
+import { SwingAttackResolver } from "./swing-resolver";
 
 /**
  * Abstract base for all player classes.
@@ -93,8 +94,8 @@ export abstract class Player {
         this.backgroundFxContainer = new Container();
         this.backgroundFxContainer.label = "bg_fx";
 
-        this.container.addChild(this.backgroundFxContainer);
         parent.addChild(this.container);
+        parent.addChild(this.backgroundFxContainer);
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import type { Player } from './player';
 import type { Chaser } from './chaser';
 import type { Vec2 } from '../types';
-import { AttackResolver, HitInfo, SwingAttackResolver } from './attacks';
+import { AttackResolver, HitInfo } from './attacks';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { getDirectionTo, wrapAngle } from "../common-utils";
+import { SwingAttackResolver } from "./swing-resolver";
 
 /**
  * Fires a shockwave on every Nth sword swing.
