@@ -92,7 +92,6 @@ export abstract class Player {
 
         this.backgroundFxContainer = new Container();
         this.backgroundFxContainer.label = "bg_fx";
-        // this.backgroundFxContainer.position.set(this.posX, this.posY);
 
         this.container.addChild(this.backgroundFxContainer);
         parent.addChild(this.container);
