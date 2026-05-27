@@ -82,7 +82,7 @@ export class KnightProps implements PlayerProps {
         delay: 0.5,
         range: 140,
         knockback: 220,
-        color: 0x88aaff,
+        color: 0xD1A96B,
         duration: 0.2,
         damage: 5
     };

@@ -5,7 +5,7 @@ import { AttackResolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
-import { wrapAngle } from "../common-utils";
+import { getDirectionTo, wrapAngle } from "../common-utils";
 
 /**
  * Fires a second, smaller shockwave cone aftershock.delay seconds after each
@@ -86,23 +86,12 @@ export class AftershockResolver extends AttackResolver {
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.shockwaveEffects) {
-            const outerRadius = this.innerRadius + KnightConsts.aftershock.range;
-            const dx = _chaser.posX - se.x;
-            const dy = _chaser.posY - se.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist > outerRadius + _chaser.radius) {
-                continue;
+            if (se.isInRange(_chaser)) {
+                const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY });
+                hitInfo
+                    .setDamage(KnightConsts.aftershock.damage)
+                    .setKnockback(dir.x * KnightConsts.aftershock.knockback, dir.y * KnightConsts.aftershock.knockback);
             }
-
-            const enemyAngle = Math.atan2(dy, dx);
-            const angleDiff = Math.abs(wrapAngle(enemyAngle - se.aimAngle));
-            if (angleDiff > se.halfAngle + 0.15) {
-                continue;
-            }
-
-            hitInfo
-                .setDamage(KnightConsts.aftershock.damage)
-                .setKnockback(KnightConsts.aftershock.knockback, KnightConsts.aftershock.knockback);
         }
 
         return hitInfo;

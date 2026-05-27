@@ -4,7 +4,7 @@ import type { Vec2 } from '../types';
 import { AttackResolver, HitInfo, SwingAttackResolver } from './attacks';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
-import { wrapAngle } from "../common-utils";
+import { getDirectionTo, wrapAngle } from "../common-utils";
 
 /**
  * Fires a shockwave on every Nth sword swing.
@@ -88,8 +88,7 @@ export class ShockwaveResolver extends AttackResolver {
         const angle = this.consumePending();
         if (angle !== null) {
             this.clearHitSet();
-            const shockwave = new ShockwaveEffect(
-                this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
+            const shockwave = new ShockwaveEffect(this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
                 this.halfAngle, this.innerRadius, KnightConsts.swordShockwave.range, KnightConsts.swordShockwave.color, KnightConsts.swordShockwave.duration
             );
             this.shockwaveEffects.push(shockwave);
@@ -101,25 +100,12 @@ export class ShockwaveResolver extends AttackResolver {
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.shockwaveEffects) {
-            const outerRadius = this.innerRadius + KnightConsts.swordShockwave.range;
-            const dx = _chaser.posX - se.x;
-            const dy = _chaser.posY - se.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist > outerRadius + _chaser.radius) {
-                continue;
+            if (se.isInRange(_chaser)) {
+                const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY })
+                hitInfo
+                    .addDamage(KnightConsts.swordShockwave.damage)
+                    .addKnockback(dir.x * KnightConsts.swordShockwave.knockback, dir.y * KnightConsts.swordShockwave.knockback);
             }
-
-            const enemyAngle = Math.atan2(dy, dx);
-            const angleDiff = Math.abs(wrapAngle(enemyAngle - se.aimAngle));
-            if (angleDiff > se.halfAngle + 0.15) {
-                continue;
-            }
-
-            const nx = dist > 0.001 ? dx / dist : (Math.random() * 2 - 1);
-            const ny = dist > 0.001 ? dy / dist : (Math.random() * 2 - 1);
-            hitInfo
-                .addDamage(KnightConsts.swordShockwave.damage)
-                .addKnockback(nx * KnightConsts.swordShockwave.knockback, ny * KnightConsts.swordShockwave.knockback);
         }
 
         return hitInfo;

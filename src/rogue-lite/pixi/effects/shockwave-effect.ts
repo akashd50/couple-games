@@ -1,12 +1,15 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from "../types";
 import { wrapAngle } from "../common-utils";
+import { Effect } from "./effect";
+import { KnightConsts } from "../constants";
+import { Chaser } from "../entities/chaser";
 
 /**
  * Expanding cone-shaped shockwave visual.
  *
  * The cone's inner edge starts at `innerRadius` (matching the sword arc) and
- * its outer edge expands by `expansion` units over `duration` seconds.
+ * its outer edge expands by `range` units over `duration` seconds.
  * The angular width is 2 × `halfAngle` and the whole cone faces `aimAngle`.
  *
  * This matches the design spec: "Shockwave starts past the sword range.
@@ -22,7 +25,7 @@ import { wrapAngle } from "../common-utils";
  * Position is fixed at construction in world space — the cone stays at the
  * origin point even if the player moves.
  */
-export class ShockwaveEffect {
+export class ShockwaveEffect extends Effect {
     private readonly gfx: Graphics;
     private elapsed = 0;
     private _done = false;
@@ -34,7 +37,7 @@ export class ShockwaveEffect {
      * @param aimAngle    Direction the cone faces (radians).
      * @param halfAngle   Half angular width of the cone (matches sword cone).
      * @param innerRadius Distance from apex where the cone starts (sword range).
-     * @param expansion   How far beyond `innerRadius` the outer edge expands.
+     * @param range   How far beyond `innerRadius` the outer edge expands.
      * @param color       Stroke / fill colour (0xRRGGBB).
      * @param duration    Total animation time in seconds (default 0.35).
      */
@@ -45,10 +48,12 @@ export class ShockwaveEffect {
         public readonly aimAngle: number,
         public readonly halfAngle: number,
         private readonly innerRadius: number,
-        private readonly expansion: number,
+        private readonly range: number,
         private readonly color: number,
         private readonly duration = 0.35,
     ) {
+        super();
+
         this.gfx = new Graphics();
         // parent is backgroundFxContainer, which lives inside player.container.
         // player.container is already positioned at (x, y) in world space, so the
@@ -76,7 +81,7 @@ export class ShockwaveEffect {
         }
 
         const innerR = this.innerRadius;
-        const outerR = innerR + this.expansion * t;
+        const outerR = innerR + this.range * t;
         const alpha = (1 - t) * 0.85;
         const aStart = this.aimAngle - this.halfAngle;
         const aEnd = this.aimAngle + this.halfAngle;
@@ -109,6 +114,20 @@ export class ShockwaveEffect {
         g.moveTo(cosEnd * innerR, sinEnd * innerR);
         g.lineTo(cosEnd * outerR, sinEnd * outerR);
         g.stroke({ color: this.color, width: 2, alpha: alpha * 0.4 });
+    }
+
+    isInRange(chaser: Chaser): boolean {
+        const outerRadius = this.innerRadius + this.range;
+        const dx = chaser.posX - this.x;
+        const dy = chaser.posY - this.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > outerRadius + chaser.radius) {
+            return false;
+        }
+
+        const enemyAngle = Math.atan2(dy, dx);
+        const angleDiff = Math.abs(wrapAngle(enemyAngle - this.aimAngle));
+        return angleDiff <= this.halfAngle + 0.15;
     }
 
     destroy(): void {
