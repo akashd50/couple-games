@@ -15,8 +15,8 @@ import { DeathParticleSystem } from './effects/death-particle';
 import { InputManager } from './input-manager';
 import { ALL_UPGRADES } from './upgrades/upgrade-registry';
 import {
-    ArenaConsts, ChaserConsts, TankConsts, HexBossConsts,
-    KnightConsts, ProjectileConsts, SimConsts, SpawnerConsts, VfxConsts,
+    ArenaConsts, ChaserConsts, EnemyLevelConsts, TankConsts, HexBossConsts,
+    KnightConsts, ProjectileConsts, SimConsts, VfxConsts,
 } from './constants';
 import { wrapAngle } from './common-utils';
 import type { Vec2, WorldCallbacks } from './types';
@@ -110,16 +110,11 @@ export class World {
 
         // ── Systems ────────────────────────────────────────────────────────
         this.spawner = new SpawnerSystem((x, y, type) => {
-            const ramps = Math.floor(this._runTime / SpawnerConsts.COUNT_RAMP_INTERVAL);
-
+            const level = EnemyLevelConsts.levelFromTime(this._runTime);
             if (type === 'tank') {
-                const hpMult    = 1 + ramps * TankConsts.HP_RAMP_PER_INTERVAL;
-                const speedMult = 1 + ramps * TankConsts.SPEED_RAMP_PER_INTERVAL;
-                this.enemies.push(new Tank(this.enemyLayer, x, y, { hpMult, speedMult }));
+                this.enemies.push(new Tank(this.enemyLayer, x, y, level));
             } else {
-                const hpMult    = 1 + ramps * ChaserConsts.HP_RAMP_PER_INTERVAL;
-                const speedMult = 1 + ramps * ChaserConsts.SPEED_RAMP_PER_INTERVAL;
-                this.enemies.push(new Chaser(this.enemyLayer, x, y, { hpMult, speedMult }));
+                this.enemies.push(new Chaser(this.enemyLayer, x, y, level));
             }
         });
 
@@ -346,9 +341,10 @@ export class World {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /** Spawn a HexBoss and wire its projectile callback to the ProjectileSystem. */
+    /** Spawn a HexBoss at the current enemy level and wire its projectile callback. */
     private spawnBoss(x: number, y: number): void {
-        this.boss = new HexBoss(this.enemyLayer, x, y, (bx, by, dx, dy) => {
+        const level = EnemyLevelConsts.levelFromTime(this._runTime);
+        this.boss = new HexBoss(this.enemyLayer, x, y, level, (bx, by, dx, dy) => {
             this.projectileSystem.add({
                 x: bx, y: by,
                 dx, dy,
@@ -377,12 +373,13 @@ export class World {
 
         for (let i = 0; i < enemy.xpDropCount; i++) {
             // Scatter gems slightly around the death point
-            const angle  = (Math.PI * 2 * i) / enemy.xpDropCount;
+            const angle   = (Math.PI * 2 * i) / enemy.xpDropCount;
             const scatter = 18;
             this.gems.push(new XpGem(
                 this.gemLayer,
                 enemy.posX + Math.cos(angle) * scatter,
                 enemy.posY + Math.sin(angle) * scatter,
+                enemy.xpGemValue,
             ));
         }
     }
@@ -402,15 +399,16 @@ export class World {
             300, // higher speed
         );
 
-        // Scatter XP gems in a ring
+        // Scatter XP gems in a ring — value is level-scaled via boss.xpGemValue
         const gemCount = HexBossConsts.XP_DROP_COUNT;
         for (let i = 0; i < gemCount; i++) {
-            const angle  = (Math.PI * 2 * i) / gemCount;
+            const angle   = (Math.PI * 2 * i) / gemCount;
             const scatter = VfxConsts.BOSS_GEM_SCATTER_RADIUS * (0.6 + Math.random() * 0.8);
             this.gems.push(new XpGem(
                 this.gemLayer,
                 boss.posX + Math.cos(angle) * scatter,
                 boss.posY + Math.sin(angle) * scatter,
+                boss.xpGemValue,
             ));
         }
 

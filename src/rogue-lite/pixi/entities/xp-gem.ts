@@ -19,10 +19,20 @@ export class XpGem {
 
     private _collected = false;
     private readonly container: Container;
+    private readonly _value: number;
 
-    constructor(parent: Container, x: number, y: number) {
+    /**
+     * @param parent  Pixi container to attach the gem graphic to.
+     * @param x       World-space X of the drop position.
+     * @param y       World-space Y of the drop position.
+     * @param value   XP awarded when collected.  Defaults to {@link XpGemConsts.XP_VALUE}
+     *                for backwards compatibility; callers should pass the enemy's
+     *                `xpGemValue` so that higher-level enemies are worth more.
+     */
+    constructor(parent: Container, x: number, y: number, value: number = XpGemConsts.XP_VALUE) {
         this.posX = x;
         this.posY = y;
+        this._value = value;
 
         this.container = new Container();
         this.container.position.set(x, y);
@@ -51,7 +61,7 @@ export class XpGem {
 
     get isCollected(): boolean { return this._collected; }
     /** XP value awarded when this gem is collected. */
-    get value(): number { return XpGemConsts.XP_VALUE; }
+    get value(): number { return this._value; }
 
     /**
      * Advance the gem's position/collection state.

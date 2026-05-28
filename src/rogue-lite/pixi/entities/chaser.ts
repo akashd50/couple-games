@@ -7,25 +7,17 @@ const enum ChaserState {
     CHASE,
 }
 
-/** Optional per-enemy stat overrides applied at spawn time (Phase 4 difficulty ramp). */
-export interface ChaserStats {
-    /** Multiplier applied to base HP (e.g. 1.3 = 30% more HP). */
-    hpMult?: number;
-    /** Multiplier applied to both wander and chase speed. */
-    speedMult?: number;
-}
-
 /**
  * Red triangle enemy.
  * - Wanders randomly until the player enters CHASER_AGGRO_RANGE
  * - Then chases in a straight line
  * - Falls back to wander if the player escapes CHASER_DEAGGRO_RANGE
  *
+ * Accepts a `level` (derived from run time) and scales HP, speed, and XP gem
+ * value internally — the caller never needs to compute raw multipliers.
+ *
  * Outer container holds position + HP bar (never rotated).
  * Inner bodyContainer holds the triangle graphic and rotates to face movement.
- *
- * Phase 5: extends Enemy — vx/vy/friction/applyKnockback/flashTimer are all
- * managed by the base class.  This class calls tickPhysics(dt) in update().
  */
 export class Chaser extends Enemy {
     readonly xpDropCount = 1;
@@ -43,16 +35,25 @@ export class Chaser extends Enemy {
     private wanderAngle: number;
     private wanderTimer = 0;
 
-    /** Instance-level speeds set at spawn time (may be scaled for difficulty ramp). */
     private readonly speedWander: number;
     private readonly speedChase: number;
+    private readonly _level: number;
 
-    constructor(parent: Container, x: number, y: number, stats: ChaserStats = {}) {
+    /**
+     * @param parent  Pixi container to attach graphics to.
+     * @param x       World-space spawn X.
+     * @param y       World-space spawn Y.
+     * @param level   Enemy level derived from run time (≥ 1).
+     *                Level 1 = base stats; each additional level scales HP, speed, and XP drop.
+     */
+    constructor(parent: Container, x: number, y: number, level = 1) {
         super(x, y);
 
-        // Apply stat scaling supplied by the spawner (difficulty ramp)
-        const hpMult    = stats.hpMult    ?? 1;
-        const speedMult = stats.speedMult ?? 1;
+        this._level = level;
+
+        // Derive multipliers from level — all scaling knowledge lives here
+        const hpMult    = 1 + (level - 1) * ChaserConsts.HP_SCALE_PER_LEVEL;
+        const speedMult = 1 + (level - 1) * ChaserConsts.SPEED_SCALE_PER_LEVEL;
         const scaledHp  = Math.round(ChaserConsts.HP * hpMult);
 
         this._hp    = scaledHp;
@@ -98,11 +99,16 @@ export class Chaser extends Enemy {
         this.container.addChild(this.hpBarGfx);
     }
 
-    get position() { return { x: this.posX, y: this.posY }; }
-    get radius(): number  { return ChaserConsts.RADIUS; }
-    get hp(): number      { return this._hp; }
-    get maxHp(): number   { return this._maxHp; }
+    get position()       { return { x: this.posX, y: this.posY }; }
+    get radius(): number { return ChaserConsts.RADIUS; }
+    get hp(): number     { return this._hp; }
+    get maxHp(): number  { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
+
+    /** XP awarded per gem dropped; scales with spawn level. */
+    get xpGemValue(): number {
+        return ChaserConsts.XP_VALUE_BASE + (this._level - 1) * ChaserConsts.XP_VALUE_PER_LEVEL;
+    }
 
     /**
      * Advance the Chaser's AI and physics by one sim step.

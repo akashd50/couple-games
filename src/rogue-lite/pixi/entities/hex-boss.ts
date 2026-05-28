@@ -35,6 +35,7 @@ export class HexBoss extends Enemy {
 
     private _hp: number;
     private readonly _maxHp: number;
+    private readonly _level: number;
 
     // ── Pixi containers ───────────────────────────────────────────────────────
     private readonly container: Container;
@@ -48,17 +49,29 @@ export class HexBoss extends Enemy {
     /** Slow rotation angle (radians), updated each tick. */
     private rotation = 0;
 
+    /**
+     * @param parent             Pixi container to attach graphics to.
+     * @param x                  World-space spawn X.
+     * @param y                  World-space spawn Y.
+     * @param level              Enemy level derived from run time (≥ 1).
+     *                           Higher levels yield proportionally more HP and XP.
+     * @param onFireProjectile   Called once per projectile during the burst phase.
+     */
     constructor(
         parent: Container,
         x: number,
         y: number,
-        /** Called once per projectile when the burst fires. */
+        level = 1,
         private readonly onFireProjectile: BossFireCallback,
     ) {
         super(x, y);
 
-        this._hp = HexBossConsts.HP;
-        this._maxHp = HexBossConsts.HP;
+        this._level = level;
+
+        const hpMult = 1 + (level - 1) * HexBossConsts.HP_SCALE_PER_LEVEL;
+        const scaledHp = Math.round(HexBossConsts.HP * hpMult);
+        this._hp = scaledHp;
+        this._maxHp = scaledHp;
         this.stateTimer = HexBossConsts.CHARGE_DURATION;
 
         // Outer container — holds world position + HP bar
@@ -90,6 +103,11 @@ export class HexBoss extends Enemy {
     get hp(): number      { return this._hp; }
     get maxHp(): number   { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
+
+    /** XP awarded per gem dropped; scales with spawn level. */
+    get xpGemValue(): number {
+        return HexBossConsts.XP_VALUE_BASE + (this._level - 1) * HexBossConsts.XP_VALUE_PER_LEVEL;
+    }
 
     // ── Core loop ─────────────────────────────────────────────────────────────
 

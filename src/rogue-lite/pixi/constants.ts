@@ -1,3 +1,26 @@
+// ─── Enemy level (time-based difficulty) ─────────────────────────────────────
+/**
+ * Converts run-time to a discrete enemy level used by every enemy type to
+ * derive its HP, speed, and XP gem value.  Level is independent of player
+ * level — it is purely a function of elapsed run time.
+ *
+ * Level 1 at t = 0 s, then +1 every SECONDS_PER_LEVEL.
+ */
+export class EnemyLevelConsts {
+    /** Seconds of run time per enemy-level increment. */
+    static readonly SECONDS_PER_LEVEL = 30;
+    /** Hard cap so stats don't explode in very long runs. */
+    static readonly MAX_LEVEL = 20;
+
+    /** Compute the current enemy level from elapsed run time. */
+    static levelFromTime(runTime: number): number {
+        return Math.min(
+            1 + Math.floor(runTime / EnemyLevelConsts.SECONDS_PER_LEVEL),
+            EnemyLevelConsts.MAX_LEVEL,
+        );
+    }
+}
+
 // ─── Arena ───────────────────────────────────────────────────────────────────
 export class ArenaConsts {
     static readonly SIZE = 4000;
@@ -132,17 +155,21 @@ export class ChaserConsts {
     /** How many Chasers to spawn when a run starts. */
     static readonly SPAWN_COUNT = 6;
 
-    // ── Difficulty ramp (Phase 4) ─────────────────────────────────────────────
+    // ── Level-based scaling ───────────────────────────────────────────────────
     /**
-     * Fraction of base HP added per completed {@link SpawnerConsts.COUNT_RAMP_INTERVAL}.
-     * After 1 min (2 ramps): HP ×1.30; after 2 min (4 ramps): HP ×1.60.
+     * Fractional HP increase per enemy level above 1.
+     * Level 1 → ×1.00 | Level 5 → ×1.60 | Level 10 → ×2.35
      */
-    static readonly HP_RAMP_PER_INTERVAL = 0.15;
+    static readonly HP_SCALE_PER_LEVEL = 0.15;
     /**
-     * Fraction of base speed added per ramp interval.
-     * After 2 min enemies move ~14% faster than baseline.
+     * Fractional speed increase per enemy level above 1.
+     * Level 5 → ×1.28 — faster but not overwhelming.
      */
-    static readonly SPEED_RAMP_PER_INTERVAL = 0.07;
+    static readonly SPEED_SCALE_PER_LEVEL = 0.07;
+    /** Base XP value of each gem dropped at level 1. */
+    static readonly XP_VALUE_BASE = 10;
+    /** Additional XP per gem awarded per level above 1. */
+    static readonly XP_VALUE_PER_LEVEL = 2;
 }
 
 // ─── XP gems ─────────────────────────────────────────────────────────────────
@@ -155,7 +182,7 @@ export class XpGemConsts {
     /** Default pickup radius (player must walk within this range to collect). */
     static readonly BASE_PICKUP_RADIUS = 40;
     /** XP awarded per collected gem. */
-    static readonly XP_VALUE = 5;
+    static readonly XP_VALUE = 10;
 }
 
 // ─── Tank enemy ───────────────────────────────────────────────────────────────
@@ -176,9 +203,15 @@ export class TankConsts {
     /** XP gems dropped on death (Tanks are worth more than Chasers). */
     static readonly XP_DROP_COUNT = 3;
 
-    // ── Difficulty ramp (mirrors Chaser ramp) ────────────────────────────────
-    static readonly HP_RAMP_PER_INTERVAL = 0.15;
-    static readonly SPEED_RAMP_PER_INTERVAL = 0.07;
+    // ── Level-based scaling ───────────────────────────────────────────────────
+    /** Fractional HP increase per enemy level above 1. */
+    static readonly HP_SCALE_PER_LEVEL = 0.15;
+    /** Fractional speed increase per enemy level above 1. */
+    static readonly SPEED_SCALE_PER_LEVEL = 0.07;
+    /** Base XP value of each gem dropped at level 1. */
+    static readonly XP_VALUE_BASE = 15;
+    /** Additional XP per gem awarded per level above 1. */
+    static readonly XP_VALUE_PER_LEVEL = 3;
 }
 
 // ─── Hexagon Boss ─────────────────────────────────────────────────────────────
@@ -208,6 +241,18 @@ export class HexBossConsts {
     // ── How far the boss gets knocked back relative to received impulse ───────
     /** Multiplier on incoming knockback (boss is heavy). */
     static readonly KNOCKBACK_RECEIVED_MULT = 0.25;
+
+    // ── Level-based scaling ───────────────────────────────────────────────────
+    /**
+     * Fractional HP increase per enemy level above 1.
+     * Boss at level 5 (120 s): 500 × 1.80 = 900 HP.
+     * Boss at level 9 (240 s): 500 × 2.60 = 1 300 HP.
+     */
+    static readonly HP_SCALE_PER_LEVEL = 0.20;
+    /** Base XP value per gem dropped at level 1. */
+    static readonly XP_VALUE_BASE = 30;
+    /** Additional XP per gem awarded per level above 1. */
+    static readonly XP_VALUE_PER_LEVEL = 5;
 }
 
 // ─── Boss spawner ─────────────────────────────────────────────────────────────
@@ -244,30 +289,28 @@ export class VfxConsts {
 export class SpawnerConsts {
     /** Seconds between enemy-count checks. */
     static readonly TICK_INTERVAL = 1.0;
-    /** Initial enemy cap when runTime=0. */
-    static readonly BASE_COUNT = 6;
-    /** Additional enemies unlocked each ramp period. */
-    static readonly COUNT_RAMP_STEP = 2;
-    /** Seconds between count ramps. */
-    static readonly COUNT_RAMP_INTERVAL = 30;
+    /** Initial enemy cap at enemy level 1. */
+    static readonly BASE_COUNT = 10;
+    /** Additional enemies added to the cap per enemy level above 1. */
+    static readonly COUNT_RAMP_STEP = 5;
     /** Hard cap on simultaneous enemies (bosses are counted separately). */
-    static readonly MAX_COUNT = 30;
+    static readonly MAX_COUNT = 60;
     /** Minimum spawn distance from the player (world units). */
     static readonly SPAWN_RING_MIN = 650;
     /** Maximum spawn distance from the player (world units). */
     static readonly SPAWN_RING_MAX = 950;
 
-    // ── Tank ramp ─────────────────────────────────────────────────────────────
+    // ── Tank mix (level-based) ────────────────────────────────────────────────
     /**
-     * Run-time (seconds) before Tanks begin to appear in the spawn pool.
-     * At exactly this time the Tank ratio is 0 and ramps up linearly.
+     * Enemy level at which Tanks first appear in the spawn pool.
+     * Equivalent to ~60 s with SECONDS_PER_LEVEL = 30 (level = 1 + 60/30 = 3).
      */
-    static readonly TANK_START_TIME = 60;
+    static readonly TANK_START_LEVEL = 3;
     /**
-     * Run-time (seconds) at which the Tank ratio reaches its maximum.
-     * Between TANK_START_TIME and this value the ratio is lerped 0 → TANK_MAX_RATIO.
+     * Enemy level at which the Tank ratio reaches its maximum.
+     * Equivalent to ~180 s (level = 1 + 180/30 = 7).
      */
-    static readonly TANK_RAMP_TIME = 180;
+    static readonly TANK_FULL_RATIO_LEVEL = 7;
     /** Maximum fraction of new spawns that can be Tanks (0.30 = 30%). */
     static readonly TANK_MAX_RATIO = 0.30;
 }

@@ -7,18 +7,15 @@ const enum TankState {
     CHASE,
 }
 
-/** Optional per-tank stat overrides applied at spawn time (difficulty ramp). */
-export interface TankStats {
-    hpMult?: number;
-    speedMult?: number;
-}
-
 /**
  * Blue-purple square enemy.
  *
  * - Wanders randomly until the player enters AGGRO_RANGE.
  * - Chases in a straight line; de-aggros when far enough away.
  * - Slower and tankier than the Chaser; hits harder and knocks back more.
+ *
+ * Accepts a `level` (derived from run time) and scales HP, speed, and XP gem
+ * value internally — the caller never needs to compute raw multipliers.
  *
  * Outer container holds position + HP bar (never rotated).
  * Inner bodyContainer holds the square graphic and rotates to face movement.
@@ -41,12 +38,22 @@ export class Tank extends Enemy {
 
     private readonly speedWander: number;
     private readonly speedChase: number;
+    private readonly _level: number;
 
-    constructor(parent: Container, x: number, y: number, stats: TankStats = {}) {
+    /**
+     * @param parent  Pixi container to attach graphics to.
+     * @param x       World-space spawn X.
+     * @param y       World-space spawn Y.
+     * @param level   Enemy level derived from run time (≥ 1).
+     *                Level 1 = base stats; each additional level scales HP, speed, and XP drop.
+     */
+    constructor(parent: Container, x: number, y: number, level = 1) {
         super(x, y);
 
-        const hpMult    = stats.hpMult    ?? 1;
-        const speedMult = stats.speedMult ?? 1;
+        this._level = level;
+
+        const hpMult    = 1 + (level - 1) * TankConsts.HP_SCALE_PER_LEVEL;
+        const speedMult = 1 + (level - 1) * TankConsts.SPEED_SCALE_PER_LEVEL;
         const scaledHp  = Math.round(TankConsts.HP * hpMult);
 
         this._hp    = scaledHp;
@@ -87,11 +94,16 @@ export class Tank extends Enemy {
         this.container.addChild(this.hpBarGfx);
     }
 
-    get radius(): number { return TankConsts.RADIUS; }
-    get hp(): number     { return this._hp; }
-    get maxHp(): number  { return this._maxHp; }
+    get radius(): number  { return TankConsts.RADIUS; }
+    get hp(): number      { return this._hp; }
+    get maxHp(): number   { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
-    get position() { return { x: this.posX, y: this.posY }; }
+    get position()        { return { x: this.posX, y: this.posY }; }
+
+    /** XP awarded per gem dropped; scales with spawn level. */
+    get xpGemValue(): number {
+        return TankConsts.XP_VALUE_BASE + (this._level - 1) * TankConsts.XP_VALUE_PER_LEVEL;
+    }
 
     update(dt: number, playerX: number, playerY: number): void {
         this.tickPhysics(dt);

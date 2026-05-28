@@ -48,6 +48,12 @@ export abstract class Enemy {
     /** Number of XP gems to drop on death. */
     abstract readonly xpDropCount: number;
 
+    /**
+     * XP value each dropped gem should carry.
+     * Derived from the enemy's spawn level so higher-level enemies are worth more.
+     */
+    abstract readonly xpGemValue: number;
+
     /** Raw HP damage applied to the player on body contact. */
     abstract readonly contactDamage: number;
 

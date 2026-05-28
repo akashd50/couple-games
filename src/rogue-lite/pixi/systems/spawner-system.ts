@@ -1,4 +1,4 @@
-import { ArenaConsts, SpawnerConsts } from '../constants';
+import { ArenaConsts, EnemyLevelConsts, SpawnerConsts } from '../constants';
 import type { Vec2 } from '../types';
 
 /** Enemy types the spawner can request. */
@@ -8,12 +8,10 @@ export type SpawnType = 'chaser' | 'tank';
  * Periodically tops up the live enemy count to match `targetCount(runTime)`.
  *
  * Spawn points are chosen on a ring around the player — always outside the
- * visible viewport but within arena bounds.  Enemies ramp up every
- * {@link SpawnerConsts.COUNT_RAMP_INTERVAL} seconds.
- *
- * Phase 5: Tanks begin appearing at {@link SpawnerConsts.TANK_START_TIME}
- * and their share of new spawns ramps linearly to {@link SpawnerConsts.TANK_MAX_RATIO}
- * by {@link SpawnerConsts.TANK_RAMP_TIME}.
+ * visible viewport but within arena bounds.  Both the enemy cap and the tank
+ * mix ratio are derived from the current enemy level
+ * (see {@link EnemyLevelConsts.levelFromTime}) so all difficulty scaling uses
+ * a single unified timeline.
  */
 export class SpawnerSystem {
     /** Counts down to the next spawn check. Starts at 0 so the first
@@ -45,11 +43,12 @@ export class SpawnerSystem {
         if (this.spawnTimer > 0) return;
         this.spawnTimer += SpawnerConsts.TICK_INTERVAL;
 
-        const target = this.targetCount(runTime);
+        const level = EnemyLevelConsts.levelFromTime(runTime);
+        const target = this.targetCount(level);
         const toSpawn = Math.max(0, target - currentCount);
         for (let i = 0; i < toSpawn; i++) {
             const pos = this.pickSpawnPoint(playerX, playerY);
-            const type = this.pickType(runTime);
+            const type = this.pickType(level);
             this.spawnEnemy(pos.x, pos.y, type);
         }
     }
@@ -57,13 +56,12 @@ export class SpawnerSystem {
     // ── Private ──────────────────────────────────────────────────────────────
 
     /**
-     * Enemy cap that grows over time:
-     *   `BASE_COUNT + floor(runTime / RAMP_INTERVAL) * RAMP_STEP`, capped at MAX.
+     * Enemy cap derived from the current enemy level:
+     *   `BASE_COUNT + (level − 1) * COUNT_RAMP_STEP`, capped at MAX_COUNT.
      */
-    private targetCount(runTime: number): number {
-        const ramps = Math.floor(runTime / SpawnerConsts.COUNT_RAMP_INTERVAL);
+    private targetCount(level: number): number {
         return Math.min(
-            SpawnerConsts.BASE_COUNT + ramps * SpawnerConsts.COUNT_RAMP_STEP,
+            SpawnerConsts.BASE_COUNT + (level - 1) * SpawnerConsts.COUNT_RAMP_STEP,
             SpawnerConsts.MAX_COUNT,
         );
     }
@@ -72,17 +70,15 @@ export class SpawnerSystem {
      * Choose whether to spawn a Chaser or Tank for this slot.
      *
      * Tank ratio ramps linearly from 0 to {@link SpawnerConsts.TANK_MAX_RATIO}
-     * between {@link SpawnerConsts.TANK_START_TIME} and
-     * {@link SpawnerConsts.TANK_RAMP_TIME}.
+     * between {@link SpawnerConsts.TANK_START_LEVEL} and
+     * {@link SpawnerConsts.TANK_FULL_RATIO_LEVEL}.
      */
-    private pickType(runTime: number): SpawnType {
-        const { TANK_START_TIME, TANK_RAMP_TIME, TANK_MAX_RATIO } = SpawnerConsts;
-        if (runTime < TANK_START_TIME) return 'chaser';
+    private pickType(level: number): SpawnType {
+        const { TANK_START_LEVEL, TANK_FULL_RATIO_LEVEL, TANK_MAX_RATIO } = SpawnerConsts;
+        if (level < TANK_START_LEVEL) return 'chaser';
 
-        const t = Math.min(1, (runTime - TANK_START_TIME) / (TANK_RAMP_TIME - TANK_START_TIME));
-        const tankRatio = t * TANK_MAX_RATIO;
-
-        return Math.random() < tankRatio ? 'tank' : 'chaser';
+        const t = Math.min(1, (level - TANK_START_LEVEL) / (TANK_FULL_RATIO_LEVEL - TANK_START_LEVEL));
+        return Math.random() < t * TANK_MAX_RATIO ? 'tank' : 'chaser';
     }
 
     /**
