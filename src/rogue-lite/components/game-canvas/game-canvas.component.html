@@ -1,7 +1,64 @@
 <div #host class="game-canvas__host"></div>
 
+<!-- ── Class-select overlay (shown before the run starts) ───────────────── -->
+@if (!gameStarted()) {
+    <div class="class-select" role="dialog" aria-modal="true" aria-label="Choose your class">
+        <div class="class-select__modal">
+            <h2 class="class-select__title">Choose your class</h2>
+            <p class="class-select__sub">Your build space for this run</p>
+            <div class="class-select__options">
+
+                <button class="class-select__option" type="button" (click)="startGame('knight')">
+                    <div class="class-select__icon class-select__icon--knight">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="18" fill="#e8e8f0"/>
+                            <path d="M32 24 A10 10 0 0 1 22 24" stroke="#5599ff" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="class-select__info">
+                        <div class="class-select__name">Knight</div>
+                        <div class="class-select__desc">
+                            Frontline melee warrior.<br>
+                            Sword cleaves, shockwaves, and a trusty shield arc block incoming hits.
+                        </div>
+                        <div class="class-select__tags">
+                            <span class="class-select__tag">Melee</span>
+                            <span class="class-select__tag">Tanky</span>
+                            <span class="class-select__tag">Cleave</span>
+                        </div>
+                    </div>
+                </button>
+
+                <button class="class-select__option" type="button" (click)="startGame('summoner')">
+                    <div class="class-select__icon class-select__icon--summoner">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="18" fill="#9944cc"/>
+                            <circle cx="24" cy="24" r="7" fill="#dd99ff" opacity="0.7"/>
+                            <circle cx="35" cy="24" r="3" fill="#ee99ff"/>
+                            <circle cx="13" cy="24" r="3" fill="#ee99ff"/>
+                        </svg>
+                    </div>
+                    <div class="class-select__info">
+                        <div class="class-select__name">Summoner</div>
+                        <div class="class-select__desc">
+                            Dark arts ranged spellcaster.<br>
+                            Raises fallen enemies as minions — the dead fight for you.
+                        </div>
+                        <div class="class-select__tags">
+                            <span class="class-select__tag">Ranged</span>
+                            <span class="class-select__tag">Minions</span>
+                            <span class="class-select__tag">Corpses</span>
+                        </div>
+                    </div>
+                </button>
+
+            </div>
+        </div>
+    </div>
+}
+
 <!-- ── XP bar: full-width, pinned to very top of screen ────────────────── -->
-@if (!runEnded()) {
+@if (gameStarted() && !runEnded()) {
     <div class="xp-bar" role="progressbar"
          [attr.aria-valuenow]="xp()"
          [attr.aria-valuemax]="xpToNext()"
@@ -12,7 +69,7 @@
 }
 
 <!-- ── HUD: HP bar + run timer (below XP bar) ───────────────────────────── -->
-@if (!runEnded()) {
+@if (gameStarted() && !runEnded()) {
     <div class="hud" aria-label="HUD">
         <div class="hud__hp-section">
             <div class="hud__hp-bar" role="progressbar"

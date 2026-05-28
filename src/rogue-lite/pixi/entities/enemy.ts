@@ -45,6 +45,12 @@ export abstract class Enemy {
     abstract readonly maxHp: number;
     abstract readonly isDead: boolean;
 
+    /**
+     * The spawn level of this enemy (1-based, derived from run time).
+     * Used by CorpseSystem to set the resulting Minion's stats.
+     */
+    abstract readonly level: number;
+
     /** Number of XP gems to drop on death. */
     abstract readonly xpDropCount: number;
 

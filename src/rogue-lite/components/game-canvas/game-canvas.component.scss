@@ -22,6 +22,137 @@
     }
 }
 
+// ── Class-select overlay ──────────────────────────────────────────────────────
+
+.class-select {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 6, 24, 0.97);
+    z-index: 30;
+}
+
+.class-select__modal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: min(760px, 96vw);
+}
+
+.class-select__title {
+    margin: 0;
+    font-size: 2rem;
+    color: #fff;
+    font-family: monospace;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+}
+
+.class-select__sub {
+    margin: -1rem 0 0;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.42);
+    font-family: monospace;
+}
+
+.class-select__options {
+    display: flex;
+    gap: 1.2rem;
+    width: 100%;
+}
+
+.class-select__option {
+    flex: 1;
+    display: flex;
+    gap: 1.1rem;
+    align-items: flex-start;
+    padding: 1.4rem 1.3rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 14px;
+    color: #fff;
+    text-align: left;
+    cursor: pointer;
+    font-family: monospace;
+    transition: background 0.16s, border-color 0.16s, transform 0.12s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(255, 255, 255, 0.3);
+        transform: translateY(-3px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+.class-select__icon {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &--knight {
+        background: rgba(232, 232, 240, 0.12);
+        box-shadow: 0 0 16px rgba(232, 232, 240, 0.15);
+    }
+
+    &--summoner {
+        background: rgba(153, 68, 204, 0.18);
+        box-shadow: 0 0 16px rgba(153, 68, 204, 0.3);
+    }
+}
+
+.class-select__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.class-select__name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    letter-spacing: 0.03em;
+
+    .class-select__option:nth-child(1) & {
+        color: #e8e8f0;
+    }
+    .class-select__option:nth-child(2) & {
+        color: #cc88ff;
+    }
+}
+
+.class-select__desc {
+    font-size: 0.76rem;
+    color: rgba(255, 255, 255, 0.57);
+    line-height: 1.5;
+}
+
+.class-select__tags {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.2rem;
+}
+
+.class-select__tag {
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.67rem;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.65);
+}
+
 // ── XP bar ───────────────────────────────────────────────────────────────────
 
 .xp-bar {

@@ -1,6 +1,6 @@
 import { LevelConsts } from '../constants';
 import type { UpgradeDefinition } from '../upgrades/upgrade-types';
-import type { UpgradeChoice } from '../types';
+import type { PlayerClass, UpgradeChoice } from '../types';
 import type { Player } from '../entities/player';
 
 /**
@@ -43,6 +43,8 @@ export class LevelSystem {
          */
         private readonly onLevelUp: (level: number, choices: UpgradeChoice[]) => void,
         private readonly onXpChange: (xp: number, xpToNext: number, level: number) => void,
+        /** Only upgrades with matching (or absent) playerClass will appear in rolls. */
+        private readonly playerClass: PlayerClass = 'knight',
     ) {
         this._xpToNext = xpForLevel(this._level);
     }
@@ -93,12 +95,14 @@ export class LevelSystem {
 
     /**
      * Pick up to {@link LevelConsts.UPGRADE_CHOICES} random entries from the
-     * eligible pool (not fully stacked, all `requires` satisfied).
+     * eligible pool (not fully stacked, all `requires` satisfied, matching class).
      */
     private rollChoices(): UpgradeChoice[] {
         const eligible = this.allUpgrades.filter(def => {
             const stacks = this.owned.get(def.id) ?? 0;
             if (stacks >= def.maxStacks) return false;
+            // Class filter — undefined means available to all classes
+            if (def.playerClass && def.playerClass !== this.playerClass) return false;
             if (def.requires?.some(req => !(this.owned.get(req) ?? 0))) return false;
             return true;
         });

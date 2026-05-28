@@ -1,6 +1,7 @@
 import { Application, Container } from 'pixi.js';
 import { buildArena } from './graphics/arena-graphics';
 import { KnightPlayer, Player } from './entities/player';
+import { SummonerPlayer } from './entities/summoner-player';
 import { Enemy } from './entities/enemy';
 import { Chaser } from './entities/chaser';
 import { Tank } from './entities/tank';
@@ -11,6 +12,7 @@ import { SpawnerSystem } from './systems/spawner-system';
 import { BossSpawnerSystem } from './systems/boss-spawner-system';
 import { LevelSystem } from './systems/level-system';
 import { ProjectileSystem } from './systems/projectile-system';
+import { CorpseSystem } from './systems/corpse-system';
 import { DeathParticleSystem } from './effects/death-particle';
 import { InputManager } from './input-manager';
 import { ALL_UPGRADES } from './upgrades/upgrade-registry';
@@ -19,22 +21,23 @@ import {
     KnightConsts, ProjectileConsts, SimConsts, VfxConsts,
 } from './constants';
 import { wrapAngle } from './common-utils';
-import type { Vec2, WorldCallbacks } from './types';
+import type { PlayerClass, Vec2, WorldCallbacks } from './types';
 
 /**
  * Orchestrates all Pixi entities and systems for a single run.
  *
  * Lifecycle:
- *   const world = new World(app, worldRoot, host, inputManager, callbacks);
+ *   const world = new World(app, worldRoot, host, inputManager, callbacks, playerClass);
  *   world.destroy();   // when done
  *
- * Phase 5 additions over Phase 4:
- *   - enemies: Enemy[]  (replaces chasers: Chaser[] — unified for Chaser/Tank/HexBoss)
- *   - ProjectileSystem  — boss radial bursts target the player
- *   - BossSpawnerSystem — fires a HexBoss at 120s, 240s, …
- *   - DeathParticleSystem — particle burst on every enemy death
- *   - CameraSystem.shake() — triggered when boss hits the player
- *   - Boss-death reward: XP-gem burst + player heal
+ * Phase 6 additions over Phase 5:
+ *   - playerClass param: 'knight' | 'summoner'
+ *   - SummonerPlayer entity (ranged + minion army)
+ *   - CorpseSystem: enemies leave fading nodes when Summoner is playing
+ *   - MinionSystem (owned by SummonerPlayer): auto-summons minions from corpses
+ *   - playerProjectileSystem: second ProjectileSystem for Summoner bullets → enemies
+ *   - minionLayer: Container between enemyLayer and playerLayer
+ *   - Dust-cloud VFX on both player classes (managed inside each Player subclass)
  */
 export class World {
     private readonly player: Player;
@@ -48,7 +51,9 @@ export class World {
 
     // ── Layers (bottom → top) ─────────────────────────────────────────────────
     private readonly gemLayer: Container;
+    private readonly corpseLayer: Container;   // corpses between gems and enemies
     private readonly enemyLayer: Container;
+    private readonly minionLayer: Container;   // friendly minions above enemies
     private readonly projectileLayer: Container;
     private readonly particleLayer: Container;
 
@@ -56,15 +61,18 @@ export class World {
     private readonly spawner: SpawnerSystem;
     private readonly bossSpawner: BossSpawnerSystem;
     private readonly levelSystem: LevelSystem;
-    private readonly projectileSystem: ProjectileSystem;
+    private readonly projectileSystem: ProjectileSystem;        // enemy → player
+    private readonly playerProjectileSystem: ProjectileSystem;  // Summoner → enemies
     private readonly deathParticles: DeathParticleSystem;
+    /** Only created when playerClass === 'summoner'. */
+    private readonly corpseSystem: CorpseSystem | null;
 
     private accumulator = 0;
     private lastAim: Vec2 = { x: 1, y: 0 };
     private _runTime = 0;
     private runEnded = false;
     private isPaused = false;
-    private lastNotifiedHp = KnightConsts.hp;
+    private lastNotifiedHp: number;
 
     private readonly tickerFn: () => void;
 
@@ -78,6 +86,7 @@ export class World {
         host: HTMLElement,
         private readonly inputManager: InputManager,
         private readonly callbacks: WorldCallbacks = {},
+        playerClass: PlayerClass = 'knight',
     ) {
         this.worldRoot = worldRoot;
 
@@ -88,6 +97,10 @@ export class World {
         this.gemLayer.label = 'gems';
         worldRoot.addChild(this.gemLayer);
 
+        this.corpseLayer = new Container();
+        this.corpseLayer.label = 'corpses';
+        worldRoot.addChild(this.corpseLayer);
+
         this.particleLayer = new Container();
         this.particleLayer.label = 'particles';
         worldRoot.addChild(this.particleLayer);
@@ -95,6 +108,10 @@ export class World {
         this.enemyLayer = new Container();
         this.enemyLayer.label = 'enemies';
         worldRoot.addChild(this.enemyLayer);
+
+        this.minionLayer = new Container();
+        this.minionLayer.label = 'minions';
+        worldRoot.addChild(this.minionLayer);
 
         this.projectileLayer = new Container();
         this.projectileLayer.label = 'projectiles';
@@ -104,8 +121,24 @@ export class World {
         playerLayer.label = 'players';
         worldRoot.addChild(playerLayer);
 
-        // ── Entities ───────────────────────────────────────────────────────
-        this.player = new KnightPlayer(playerLayer);
+        // ── Player ─────────────────────────────────────────────────────────
+        if (playerClass === 'summoner') {
+            this.player = new SummonerPlayer(
+                playerLayer,
+                this.minionLayer,
+                (spec) => this.playerProjectileSystem.add(spec),
+            );
+        } else {
+            this.player = new KnightPlayer(playerLayer);
+        }
+
+        this.lastNotifiedHp = this.player.hp;
+
+        // ── Corpse system (Summoner only) ──────────────────────────────────
+        this.corpseSystem = playerClass === 'summoner'
+            ? new CorpseSystem(this.corpseLayer)
+            : null;
+
         this.camera = new CameraSystem(worldRoot, ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
 
         // ── Systems ────────────────────────────────────────────────────────
@@ -129,10 +162,12 @@ export class World {
             (xp, xpToNext, level) => {
                 this.callbacks.onXpChange?.(xp, xpToNext, level);
             },
+            playerClass,
         );
 
         this.projectileSystem = new ProjectileSystem(this.projectileLayer);
-        this.deathParticles   = new DeathParticleSystem(this.particleLayer);
+        this.playerProjectileSystem = new ProjectileSystem(this.projectileLayer);
+        this.deathParticles = new DeathParticleSystem(this.particleLayer);
 
         // ── Ticker ─────────────────────────────────────────────────────────
         this.tickerFn = () => {
@@ -179,7 +214,9 @@ export class World {
         for (const gem of this.gems) gem.destroy();
         this.gems.length = 0;
         this.projectileSystem.destroy();
+        this.playerProjectileSystem.destroy();
         this.deathParticles.destroy();
+        this.corpseSystem?.destroy();
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
@@ -238,7 +275,7 @@ export class World {
                 );
             }
 
-            // Player attacks → enemy
+            // Player attacks → enemy (melee / resolvers)
             const hitInfo = this.player.checkHit(enemy);
             if (hitInfo.success) {
                 enemy.takeDamage(hitInfo.damage, hitInfo.knockback.x, hitInfo.knockback.y);
@@ -267,7 +304,7 @@ export class World {
                 }
             }
 
-            // Player attacks → boss
+            // Player attacks → boss (melee / resolvers)
             const bossHit = this.player.checkHit(this.boss);
             if (bossHit.success) {
                 this.boss.takeDamage(bossHit.damage, bossHit.knockback.x, bossHit.knockback.y);
@@ -275,7 +312,7 @@ export class World {
             }
         }
 
-        // ── Boss projectiles ↔ player ──────────────────────────────────────
+        // ── Enemy projectiles (boss bursts) ↔ player ──────────────────────
         this.projectileSystem.update(
             dt,
             pp.x, pp.y, pr,
@@ -287,6 +324,46 @@ export class World {
                 return hit;
             },
         );
+
+        // ── Summoner-specific systems ──────────────────────────────────────
+        if (this.player instanceof SummonerPlayer) {
+            const summoner = this.player;
+            const allEnemies: Enemy[] = [
+                ...this.enemies,
+                ...(this.boss && !this.boss.isDead ? [this.boss] : []),
+            ];
+
+            // Player projectiles → enemies
+            this.playerProjectileSystem.updateAgainstEnemies(
+                dt,
+                allEnemies,
+                (enemy, kbx, kby, damage) => {
+                    if (enemy.isDead) return false;
+                    enemy.takeDamage(damage, kbx, kby);
+                    summoner.healFromDamageDealt(damage);
+                    return true;
+                },
+            );
+
+            // Corpse fading
+            this.corpseSystem?.update(dt);
+
+            // Auto-summon from nearby corpses
+            if (this.corpseSystem) {
+                summoner.minionSystem.trySummon(
+                    dt,
+                    pp.x, pp.y,
+                    summoner.summonRadius,
+                    this.corpseSystem,
+                );
+            }
+
+            // Minion AI + lifesteal
+            const minionDamage = summoner.minionSystem.update(dt, pp.x, pp.y, allEnemies);
+            if (minionDamage > 0 && summoner.minionLifestealPct > 0) {
+                summoner.healBy(minionDamage * summoner.minionLifestealPct);
+            }
+        }
 
         // ── Death particles update ─────────────────────────────────────────
         this.deathParticles.update(dt);
@@ -362,6 +439,7 @@ export class World {
      * Handle the death of a regular enemy (Chaser or Tank):
      *   - Emit death particles (color varies by type).
      *   - Drop xpDropCount XP gems at the death position.
+     *   - (Summoner) Spawn a corpse node.
      */
     private onEnemyDeath(enemy: Enemy): void {
         const color = enemy instanceof Tank ? TankConsts.COLOR : ChaserConsts.COLOR;
@@ -372,7 +450,6 @@ export class World {
         );
 
         for (let i = 0; i < enemy.xpDropCount; i++) {
-            // Scatter gems slightly around the death point
             const angle   = (Math.PI * 2 * i) / enemy.xpDropCount;
             const scatter = 18;
             this.gems.push(new XpGem(
@@ -382,6 +459,9 @@ export class World {
                 enemy.xpGemValue,
             ));
         }
+
+        // Summoner: leave a corpse for minion summoning
+        this.corpseSystem?.addCorpse(enemy.posX, enemy.posY, enemy.level);
     }
 
     /**
@@ -389,17 +469,17 @@ export class World {
      *   - Large particle burst.
      *   - XP-gem burst scattered around the corpse.
      *   - Immediate player heal.
+     *   - (Summoner) Spawn a high-level corpse.
      */
     private onBossDeath(boss: HexBoss): void {
         this.deathParticles.emitBurst(
             boss.posX, boss.posY,
             HexBossConsts.OUTLINE_COLOR,
             VfxConsts.BOSS_DEATH_PARTICLE_COUNT,
-            6,   // larger particles
-            300, // higher speed
+            6,
+            300,
         );
 
-        // Scatter XP gems in a ring — value is level-scaled via boss.xpGemValue
         const gemCount = HexBossConsts.XP_DROP_COUNT;
         for (let i = 0; i < gemCount; i++) {
             const angle   = (Math.PI * 2 * i) / gemCount;
@@ -412,8 +492,10 @@ export class World {
             ));
         }
 
-        // Heal player
         this.player.healBy(HexBossConsts.HEAL_ON_KILL);
         this.callbacks.onHpChange?.(this.player.hp, this.player.maxHp);
+
+        // Summoner: the boss corpse grants a high-level minion
+        this.corpseSystem?.addCorpse(boss.posX, boss.posY, boss.level);
     }
 }

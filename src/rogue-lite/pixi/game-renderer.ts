@@ -1,8 +1,8 @@
 import { Application, Container } from 'pixi.js';
 import { InputManager } from './input-manager';
 import { World } from './world';
-import { ArenaConsts } from './constants';
-import type { Vec2, WorldCallbacks } from './types';
+import { ArenaConsts, KnightConsts, SummonerConsts } from './constants';
+import type { PlayerClass, Vec2, WorldCallbacks } from './types';
 
 export class GameRenderer {
     private app: Application | null = null;
@@ -11,6 +11,9 @@ export class GameRenderer {
     private resizeObserver: ResizeObserver | null = null;
     private world: World | null = null;
     private inputManager: InputManager | null = null;
+
+    /** The class selected for the current (or most recent) run. */
+    private currentClass: PlayerClass = 'knight';
 
     /**
      * Shared callback bag. Passed by reference to each World, so callbacks
@@ -41,9 +44,10 @@ export class GameRenderer {
 
     // ── Public API ───────────────────────────────────────────────────────────
 
-    async init(host: HTMLElement): Promise<void> {
+    async init(host: HTMLElement, playerClass: PlayerClass = 'knight'): Promise<void> {
         if (this.app) return;
         this.host = host;
+        this.currentClass = playerClass;
 
         const app = new Application();
         await app.init({
@@ -67,14 +71,23 @@ export class GameRenderer {
 
         this.isTouchDevice = InputManager.isTouchDevice();
 
-        this.world = new World(app, worldRoot, host, inputManager, this._callbacks);
+        this.world = new World(app, worldRoot, host, inputManager, this._callbacks, playerClass);
 
         this.resizeObserver = new ResizeObserver(() => app.resize());
         this.resizeObserver.observe(host);
     }
 
     /**
-     * Tear down the current World, clear the stage, and start a fresh run.
+     * Starting HP for the current class — used by GameCanvasComponent to
+     * initialise the HP signal before the first World tick fires.
+     */
+    getStartHp(): number {
+        return this.currentClass === 'summoner' ? SummonerConsts.hp : KnightConsts.hp;
+    }
+
+    /**
+     * Tear down the current World, clear the stage, and start a fresh run
+     * with the same player class as before.
      * Callbacks already set on this renderer are automatically re-used.
      */
     restart(): void {
@@ -94,7 +107,10 @@ export class GameRenderer {
         this.app.stage.addChild(worldRoot);
         this.worldRoot = worldRoot;
 
-        this.world = new World(this.app, worldRoot, this.host, this.inputManager, this._callbacks);
+        this.world = new World(
+            this.app, worldRoot, this.host, this.inputManager,
+            this._callbacks, this.currentClass,
+        );
     }
 
     /** Returns the number of seconds elapsed in the current run. */

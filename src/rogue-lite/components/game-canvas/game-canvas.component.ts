@@ -13,9 +13,8 @@ import {
 } from '@angular/core';
 import { GameRenderer } from '../../pixi/game-renderer';
 import { JoystickComponent } from '../joystick/joystick.component';
-import { KnightConsts } from '../../pixi/constants';
 import { xpForLevel } from '../../pixi/systems/level-system';
-import type { UpgradeChoice, Vec2 } from '../../pixi/types';
+import type { PlayerClass, UpgradeChoice, Vec2 } from '../../pixi/types';
 import { SettingMenuService } from "../../../shared/services/settings-menu.service";
 
 @Component({
@@ -37,9 +36,13 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
 
     // ── Signals ──────────────────────────────────────────────────────────────
 
+    /** True once the player has chosen a class and the game has started. */
+    readonly gameStarted = signal(false);
+    readonly selectedClass = signal<PlayerClass>('knight');
+
     readonly isTouchDevice = signal(false);
-    readonly playerHp = signal(KnightConsts.hp);
-    readonly maxPlayerHp = signal(KnightConsts.hp);
+    readonly playerHp = signal(100);
+    readonly maxPlayerHp = signal(100);
     readonly runTime = signal(0);   // integer seconds, updated by interval
     readonly runEnded = signal(false);
 
@@ -73,7 +76,24 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Lifecycle ────────────────────────────────────────────────────────────
 
     ngAfterViewInit(): void {
-        void this.renderer.init(this.hostRef.nativeElement).then(() => {
+        // Game does NOT start until startGame() is called (class-select step).
+        this.cdr.markForCheck();
+    }
+
+    /**
+     * Called when the player picks a class on the class-select screen.
+     * Initialises Pixi and starts the run.
+     */
+    startGame(playerClass: PlayerClass): void {
+        this.selectedClass.set(playerClass);
+        this.gameStarted.set(true);
+
+        // Initialise HP display to the correct starting value for the chosen class
+        const startHp = playerClass === 'summoner' ? 80 : 100;
+        this.playerHp.set(startHp);
+        this.maxPlayerHp.set(startHp);
+
+        void this.renderer.init(this.hostRef.nativeElement, playerClass).then(() => {
             this.isTouchDevice.set(this.renderer.isTouchDevice);
 
             // HP changes fire from the Pixi ticker (outside Angular zone)
@@ -113,9 +133,9 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
             }, 1_000);
 
             this.menuService.addMenuItem({
-                id: "grant-xp",
-                text: "Grant xp +200",
-                click: () => this.renderer.grantXpDebug()
+                id: 'grant-xp',
+                text: 'Grant xp +200',
+                click: () => this.renderer.grantXpDebug(),
             });
             this.cdr.markForCheck();
         });
@@ -131,7 +151,9 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     // ── Actions ──────────────────────────────────────────────────────────────
 
     restart(): void {
-        this.playerHp.set(KnightConsts.hp);
+        const startHp = this.renderer.getStartHp();
+        this.playerHp.set(startHp);
+        this.maxPlayerHp.set(startHp);
         this.runTime.set(0);
         this.runEnded.set(false);
         this.level.set(1);

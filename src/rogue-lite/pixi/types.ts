@@ -1,3 +1,6 @@
+/** Identifies which player class is selected for a run. */
+export type PlayerClass = 'knight' | 'summoner';
+
 export interface Vec2 {
     x: number;
     y: number;

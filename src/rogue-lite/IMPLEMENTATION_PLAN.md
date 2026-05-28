@@ -124,6 +124,7 @@ killing it feels satisfying.
 ✅ **Phase 5 complete** (2026-05-27)
 
 **New files:**
+
 - `pixi/entities/enemy.ts` — abstract `Enemy` base class (posX/posY, vx/vy, flashTimer, applyKnockback)
 - `pixi/entities/tank.ts` — blue-purple square; slow/tanky, first appears at 60s
 - `pixi/entities/hex-boss.ts` — hexagon boss; CHARGE→TELEGRAPH→BURST→RECOVER FSM, fires 8-way projectiles
@@ -132,7 +133,8 @@ killing it feels satisfying.
 - `pixi/systems/boss-spawner-system.ts` — spawns boss at 120s/240s/…, one alive at a time
 - `pixi/effects/death-particle.ts` — radial particle burst on enemy death
 
-**Key architecture change:** All resolvers/effects now use `Enemy` (not `Chaser`) for hit-set and checkHit. `Resolver.hitSet: Set<Enemy>`, `Effect.isInRange(enemy: Enemy)`, `Player.checkHit(enemy: Enemy)`.
+**Key architecture change:** All resolvers/effects now use `Enemy` (not `Chaser`) for hit-set and checkHit.
+`Resolver.hitSet: Set<Enemy>`, `Effect.isInRange(enemy: Enemy)`, `Player.checkHit(enemy: Enemy)`.
 
 **New constants:** `TankConsts`, `HexBossConsts`, `BossSpawnerConsts`, `ProjectileConsts`, `VfxConsts`
 
@@ -143,16 +145,51 @@ killing it feels satisfying.
 **Goal:** real class variety; the second pillar of the design.
 
 - Class-select step on run start (lobby → choose class → start).
-- `Summoner` entity: ranged projectile auto-attack (small triangle bullets).
-- Corpse system: enemies leave a fading corpse node for a few seconds on death.
+- `Summoner` entity: ranged projectile auto-attack (small triangle bullets glowy looking to make them feel like magic,
+  should leave a faint trail that dissipates quickly).
+- Corpse system: enemies leave a fading corpse node for a few seconds on death (only visible to summoner + they also
+  leave the xp gems).
 - Minion mechanic: Summoner secondary consumes nearby corpses → friendly
-  `Minion` entity (small square) that auto-engages nearest enemy.
+  `Minion` entity (small square) that auto-engages nearest enemy. Always shows a circular area around the summoner (it
+  should be a dark violet'ish color, dark line around the edge and translucent glowy area) and
+  on a fixed cooldown it will consume corpses to summon minions. The summons stats are based on the dead enemy and its
+  level. If the capacity is full, it will kill the least powerful minion (minions will have a constant level derived
+  from the level of the enemy that spawned the minion)
 - Summoner upgrade pool (~6 upgrades): Legion (+minion cap), Empowered Undead,
   Explosive Demise, Vampiric Link, etc.
 - Minion AI: follow Summoner, peel off to attack within range, respawn cap.
+- Another vibe addition, summoner should leave a light purple dust clouds as she walks (dissipate quickly, maybe
+  circular clouds that reduce in size/alpha overtime)
+- Knight should emit similar dust clouds as he walks.
 
 **Done when:** Summoner is fully playable end-to-end, has its own build space,
 and reads visually distinct from Knight in the arena.
+
+✅ **Phase 6 complete** (2026-05-27)
+
+**New files:**
+
+- `pixi/effects/dust-cloud.ts` — `DustCloudSystem`: puff particle emitter used by both Knight and Summoner while walking
+- `pixi/entities/corpse.ts` — `Corpse`: fading disc left on enemy death; consumed by Summoner's minion system
+- `pixi/entities/minion.ts` — `Minion`: friendly purple-square unit; level-scaled HP + damage; FOLLOW / ATTACK AI states
+- `pixi/systems/corpse-system.ts` — `CorpseSystem`: manages active Corpse nodes, provides range-sorted lookup
+- `pixi/systems/minion-system.ts` — `MinionSystem`: minion pool + auto-summon cooldown; owned by SummonerPlayer
+- `pixi/entities/summoner-player.ts` — `SummonerPlayer extends Player`: ranged triangle projectiles with trail, orbiting dots, summon area ring, dust clouds, minion upgrade stubs
+
+**Key architecture changes:**
+
+- **Class-select screen** added to `GameCanvasComponent`: shown on run start, triggers `startGame(playerClass)` which then inits Pixi — renderer/world are never created until the player has chosen.
+- **`Player` base**: `_baseSpeed` protected field (replacing hard-coded `KnightConsts.speed` in `update()`); `_prevPosX/_prevPosY` for dust delta; no-op upgrade stubs (`multiplyProjCooldown`, `addProjDamage`, `addMinionCap`, `addSummonRadius`, `addMinionLifesteal`, `empowerMinions`) so typed `UpgradeDefinition.apply(player)` compiles without casts.
+- **`Enemy` abstract contract** extended with `abstract readonly level: number`; Chaser / Tank / HexBoss each implement `get level()`.
+- **`Projectile` + `ProjectileSpec`** extended with optional `shape: 'circle' | 'triangle'` and `trailColor`; triangle bullets draw via `drawTriangle()` and record a trailing dot ring buffer.
+- **`ProjectileSystem`** gains `updateAgainstEnemies(dt, enemies, onHit)` — used by Summoner's player-owned `playerProjectileSystem` to hit enemies.
+- **`UpgradeDefinition`** gains optional `playerClass?: PlayerClass` field; `LevelSystem.rollChoices()` filters by class so Knight-only and Summoner-only upgrades never cross.
+- **`World`** conditionally creates `CorpseSystem` (Summoner only), `minionLayer` container, and `playerProjectileSystem`; `lastNotifiedHp` init reads `this.player.hp` instead of a hard-coded constant; `onEnemyDeath` / `onBossDeath` feed `corpseSystem?.addCorpse(...)`.
+- **`GameRenderer`** stores `currentClass`, exposes `getStartHp()`, threads class into `World` + `restart()`.
+
+**New constants:** `SummonerConsts`, `MinionConsts`, `CorpseConsts`, `SummonAreaConsts`, `DustCloudConsts`
+
+**Summoner upgrade pool (6 upgrades):** Legion (+minion cap), Spectral Haste (proj cooldown), Arcane Barrage (+proj damage), Expanded Grave (+summon radius), Vampiric Link (+minion lifesteal), Empowered Undead (requires Legion → +proj count +minion cap)
 
 ---
 

@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
-import { ArenaConsts, KnightConsts, KnightProps, PhysicsConsts, XpGemConsts } from '../constants';
+import { ArenaConsts, DustCloudConsts, KnightConsts, KnightProps, PhysicsConsts, XpGemConsts } from '../constants';
 import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
@@ -9,6 +9,7 @@ import { Enemy } from './enemy';
 import { Constructor, wrapAngle } from '../common-utils';
 import { SwingAttackResolver } from "./swing-resolver";
 import { HealTickResolver } from "./heal-tick-resolver";
+import { DustCloudSystem } from '../effects/dust-cloud';
 
 /**
  * Abstract base for all player classes.
@@ -58,6 +59,18 @@ export abstract class Player {
     /** Stored each tick so takeDamage() can determine the shield-facing side. */
     protected _aimAngle = 0;
 
+    // ── Previous-frame position (for effective-speed computation in draw()) ──
+    protected _prevPosX: number;
+    protected _prevPosY: number;
+
+    // ── Base movement speed (subclasses override in their constructors) ────────
+    /**
+     * World units / second before any multipliers.
+     * KnightPlayer uses KnightConsts.speed; SummonerPlayer uses SummonerConsts.speed.
+     * Set by subclass constructor after super() returns.
+     */
+    protected _baseSpeed = KnightConsts.speed;
+
     // ── Upgrade-mutable stats ─────────────────────────────────────────────────
     protected _radiusBonus = 0;
     protected _pickupRadius = XpGemConsts.BASE_PICKUP_RADIUS;
@@ -87,6 +100,10 @@ export abstract class Player {
         this.posY = ArenaConsts.SIZE / 2;
         this._hp = KnightConsts.hp;
         this._maxHp = KnightConsts.hp;
+
+        // Prev-pos initialised to spawn point; subclasses may adjust in their ctors
+        this._prevPosX = this.posX;
+        this._prevPosY = this.posY;
 
         this.container = new Container();
         this.container.label = 'player';
@@ -211,6 +228,23 @@ export abstract class Player {
     enableAura(): void {
     }
 
+    // ── Summoner-specific upgrade stubs (no-ops; SummonerPlayer overrides) ───
+    // Placed here so UpgradeDefinition.apply(player: Player) compiles without
+    // requiring unsafe casts in the upgrade registry.
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    multiplyProjCooldown(_factor: number): void {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    addProjDamage(_amount: number): void {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    addMinionCap(_n: number): void {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    addSummonRadius(_n: number): void {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    addMinionLifesteal(_pct: number): void {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    empowerMinions(_factor: number): void {}
+
     // ── Public methods ───────────────────────────────────────────────────────
 
     getResolver<T extends Resolver>(TargetClass: Constructor<T>): T {
@@ -237,6 +271,10 @@ export abstract class Player {
 
         this.issueUpdate(dt, move, aimAngle);
 
+        // Record pre-move position for per-frame speed computation (used by dust clouds)
+        this._prevPosX = this.posX;
+        this._prevPosY = this.posY;
+
         // Knockback decay
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
         this.vx *= friction;
@@ -249,7 +287,7 @@ export abstract class Player {
             const dot = move.x * Math.cos(this._aimAngle) + move.y * Math.sin(this._aimAngle);
             if (dot > 0) speedBonus = dot * KnightConsts.DIRECTIONAL_SPEED_BONUS;
         }
-        const effectiveSpeed = KnightConsts.speed * this._movementSpeedMult * (1 + speedBonus);
+        const effectiveSpeed = this._baseSpeed * this._movementSpeedMult * (1 + speedBonus);
 
         this.posX += (move.x * effectiveSpeed + this.vx) * dt;
         this.posY += (move.y * effectiveSpeed + this.vy) * dt;
@@ -345,6 +383,7 @@ export abstract class Player {
 
     destroy(): void {
         this.container.destroy({ children: true });
+        this.backgroundFxContainer.destroy({ children: true });
     }
 
     protected abstract issueUpdate(dt: number, move: Vec2, aimAngle: number): void;
@@ -362,6 +401,8 @@ export class KnightPlayer extends Player {
     private body: Graphics;
     /** Shield arc redrawn every sim tick. */
     private readonly arcGfx: Graphics;
+    /** Dust-cloud puffs emitted as the Knight walks. */
+    private readonly dustSystem: DustCloudSystem;
 
     constructor(parent: Container) {
         super(parent);
@@ -377,6 +418,8 @@ export class KnightPlayer extends Player {
         this.container.addChild(this.arcGfx);
 
         this.drawShieldArc(0);
+
+        this.dustSystem = new DustCloudSystem(this.backgroundFxContainer, DustCloudConsts.KNIGHT_COLOR);
     }
 
     // ── Upgrade enablers ─────────────────────────────────────────────────────
@@ -437,10 +480,21 @@ export class KnightPlayer extends Player {
         for (const r of this.attackResolvers) {
             r.draw(dt, move, aimAngle);
         }
+
+        // Dust clouds — compute effective speed from actual position delta this tick
+        const speed = dt > 0
+            ? Math.hypot(this.posX - this._prevPosX, this.posY - this._prevPosY) / dt
+            : 0;
+        this.dustSystem.update(dt, this.posX, this.posY, speed);
     }
 
     protected override onRadiusChanged(): void {
         this.drawBody();
+    }
+
+    override destroy(): void {
+        this.dustSystem.destroy();
+        super.destroy();
     }
 
     // ── Private draw helpers ─────────────────────────────────────────────────

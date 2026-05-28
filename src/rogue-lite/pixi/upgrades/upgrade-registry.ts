@@ -2,6 +2,7 @@ import type { UpgradeDefinition } from './upgrade-types';
 import { SwingAttackResolver } from "../entities/swing-resolver";
 import { AuraResolver } from "../entities/aura-resolver";
 
+
 /**
  * Flurry — attack speed.
  * Each stack multiplies the cooldown by 0.85 (−15 %).
@@ -10,6 +11,7 @@ import { AuraResolver } from "../entities/aura-resolver";
 const flurry: UpgradeDefinition = {
     id: 'flurry',
     name: 'Flurry',
+    playerClass: 'knight',
     maxStacks: 5,
     describe: (nextStacks) => {
         const pct = Math.round((1 - Math.pow(0.85, nextStacks)) * 100);
@@ -70,6 +72,7 @@ const magnet: UpgradeDefinition = {
 const wideCleave: UpgradeDefinition = {
     id: 'wide_cleave',
     name: 'Wide Cleave',
+    playerClass: 'knight',
     maxStacks: 3,
     describe: (nextStacks) => {
         const coneTotal = 60 + nextStacks * 10;
@@ -117,12 +120,12 @@ const lifesteal: UpgradeDefinition = {
 
 /**
  * HealOverTime — heal over time.
- * Each stack adds 0.25 heal over time
- * Five stacks: 1.25 per second
+ * Each stack adds 0.1 heal over time (Knight only — Summoner uses Vampiric Link).
  */
 const healOverTime: UpgradeDefinition = {
     id: 'healOverTime',
     name: 'Heal over time',
+    playerClass: 'knight',
     maxStacks: 5,
     describe: (nextStacks) => `Heal +0.1 (${nextStacks * 0.1}) hp every second`,
     apply: (player) => player.enableHealTickResolver(0.1),
@@ -137,6 +140,7 @@ const healOverTime: UpgradeDefinition = {
 const shockwave: UpgradeDefinition = {
     id: 'shockwave',
     name: 'Shockwave',
+    playerClass: 'knight',
     maxStacks: 1,
     describe: () =>
         `Every 5th attack releases a Shockwave, knocking back all nearby enemies.`,
@@ -151,6 +155,7 @@ const shockwave: UpgradeDefinition = {
 const aftershock: UpgradeDefinition = {
     id: 'aftershock',
     name: 'Aftershock',
+    playerClass: 'knight',
     maxStacks: 1,
     requires: ['shockwave'],
     describe: () =>
@@ -167,6 +172,7 @@ const aftershock: UpgradeDefinition = {
 const auraShield: UpgradeDefinition = {
     id: 'aura_shield',
     name: 'Aura Shield',
+    playerClass: 'knight',
     maxStacks: 5,
     describe: (nextStacks) => {
         // Base 20% + upgrade stacks * 5%
@@ -186,6 +192,7 @@ const auraShield: UpgradeDefinition = {
 const aura: UpgradeDefinition = {
     id: 'aura',
     name: 'Aura',
+    playerClass: 'knight',
     maxStacks: 1,
     describe: () =>
         `Emit a pulsing ring every 2 s that deals ${8} damage and pushes back `
@@ -196,6 +203,7 @@ const aura: UpgradeDefinition = {
 const auraRangeUpgrade: UpgradeDefinition = {
     id: 'increase-aura-area',
     name: 'Increase Aura Range',
+    playerClass: 'knight',
     maxStacks: 5,
     describe: () => `Increase the range of your aura by 20%`,
     apply: (player) => {
@@ -207,6 +215,7 @@ const auraRangeUpgrade: UpgradeDefinition = {
 const auraPulseUpgrade: UpgradeDefinition = {
     id: 'aura-pulse-upgrade',
     name: 'Faster Aura Pulses',
+    playerClass: 'knight',
     maxStacks: 5,
     describe: () => `Increase the speed of your aura pulses by 10%`,
     apply: (player) => {
@@ -216,25 +225,141 @@ const auraPulseUpgrade: UpgradeDefinition = {
     requires: ["aura"]
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  Summoner-only upgrades
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Legion — expand the minion army.
+ * Each stack raises the simultaneous minion cap by 1.
+ * Three stacks: cap grows from 3 → 6.
+ */
+const legion: UpgradeDefinition = {
+    id: 'legion',
+    name: 'Legion',
+    playerClass: 'summoner',
+    maxStacks: 3,
+    describe: (nextStacks) =>
+        `Command up to ${3 + nextStacks} minions at once (currently ${2 + nextStacks} cap, +1 per stack).`,
+    apply: (player) => player.addMinionCap(1),
+};
+
+/**
+ * Spectral Haste — fire projectiles faster.
+ * Each stack reduces the shot cooldown by 15% (multiplicative).
+ * Four stacks: 0.85^4 ≈ 0.52 × base cooldown.
+ */
+const spectralHaste: UpgradeDefinition = {
+    id: 'spectral_haste',
+    name: 'Spectral Haste',
+    playerClass: 'summoner',
+    maxStacks: 4,
+    describe: (nextStacks) => {
+        const pct = Math.round((1 - Math.pow(0.85, nextStacks)) * 100);
+        return `Fire projectiles ${pct}% faster (−15% cooldown per stack, stacks multiply).`;
+    },
+    apply: (player) => player.multiplyProjCooldown(0.85),
+};
+
+/**
+ * Arcane Barrage — stronger projectiles.
+ * Each stack adds +10 flat damage per bullet.
+ * Four stacks: +40 damage (from 22 to 62 base).
+ */
+const arcaneBarrage: UpgradeDefinition = {
+    id: 'arcane_barrage',
+    name: 'Arcane Barrage',
+    playerClass: 'summoner',
+    maxStacks: 4,
+    describe: (nextStacks) =>
+        `Each projectile deals +${nextStacks * 10} bonus damage (+10 per stack).`,
+    apply: (player) => player.addProjDamage(10),
+};
+
+/**
+ * Expanded Grave — widen the summon area.
+ * Each stack adds 30 world units to the corpse-detection radius.
+ * Three stacks: radius grows from 190 → 280.
+ */
+const expandedGrave: UpgradeDefinition = {
+    id: 'expanded_grave',
+    name: 'Expanded Grave',
+    playerClass: 'summoner',
+    maxStacks: 3,
+    describe: (nextStacks) =>
+        `Summon area radius increased to ${190 + nextStacks * 30} units (+30 per stack).`,
+    apply: (player) => player.addSummonRadius(30),
+};
+
+/**
+ * Vampiric Link — lifesteal through your minions.
+ * Each stack adds 5% healing from damage your minions deal.
+ * Three stacks: 15% of all minion damage returns as HP.
+ */
+const vampiricLink: UpgradeDefinition = {
+    id: 'vampiric_link',
+    name: 'Vampiric Link',
+    playerClass: 'summoner',
+    maxStacks: 3,
+    describe: (nextStacks) =>
+        `Heal ${nextStacks * 5}% of all damage your minions deal.`,
+    apply: (player) => player.addMinionLifesteal(0.05),
+};
+
+/**
+ * Empowered Undead — sharper minions.
+ * One-shot.  Requires at least 1 stack of Legion (you need minions first).
+ * Grants +1 extra projectile in a spread fan (one-time; to keep the pool varied
+ * we re-use addProjCount for the Summoner's "chain" feel).
+ *
+ * NOTE: full minion-damage multiplier is deferred; for now this adds a bonus
+ * projectile and a minion-cap bump to keep the upgrade meaningful.
+ */
+const empoweredUndead: UpgradeDefinition = {
+    id: 'empowered_undead',
+    name: 'Empowered Undead',
+    playerClass: 'summoner',
+    maxStacks: 2,
+    requires: ['legion'],
+    describe: (nextStacks) =>
+        `Your projectiles arc into ${1 + nextStacks}-way spreads and your minions fight harder.`,
+    apply: (player) => {
+        (player as import('../entities/summoner-player').SummonerPlayer).addProjCount(1);
+        player.addMinionCap(1);
+    },
+};
+
 /**
  * All upgrade definitions available in a run.
  *
  * `LevelSystem` reads this array to build the roll pool on each level-up.
+ * Upgrades with `playerClass` set are filtered to the matching class only.
  * To add a new upgrade: define it above and append it here — no other
  * files need to change.
  */
 export const ALL_UPGRADES: UpgradeDefinition[] = [
-    flurry,
+    // ── Universal (both classes) ───────────────────────────────────────────
     juggernaut,
     magnet,
-    wideCleave,
     ironSkin,
     lifesteal,
+
+    // ── Knight-only ───────────────────────────────────────────────────────
+    flurry,
+    wideCleave,
     healOverTime,
     shockwave,
     aftershock,
     auraShield,
     aura,
     auraRangeUpgrade,
-    auraPulseUpgrade
+    auraPulseUpgrade,
+
+    // ── Summoner-only ─────────────────────────────────────────────────────
+    legion,
+    spectralHaste,
+    arcaneBarrage,
+    expandedGrave,
+    vampiricLink,
+    empoweredUndead,
 ];

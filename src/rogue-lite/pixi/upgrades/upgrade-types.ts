@@ -1,9 +1,12 @@
 import type { Player } from '../entities/player';
+import type { PlayerClass } from '../types';
 
 /**
  * Defines a single upgrade available in the level-up pool.
  *
  * Extensibility notes:
+ *  - `playerClass`: when set, the upgrade only appears for the matching class.
+ *    Omit (or set to undefined) for upgrades available to all classes.
  *  - `requires`: gate upgrades behind earlier ones.
  *    Example: `requires: ['shockwave']` on Aftershock prevents it from
  *    appearing until the player owns at least 1 stack of Shockwave.
@@ -14,12 +17,17 @@ import type { Player } from '../entities/player';
  *    is needed inside `apply`.
  *  - `apply` receives the live `Player` instance and may call any of the
  *    public upgrade-facing mutator methods (`addMaxHp`, `addRadiusBonus`,
- *    `addMagnetRadius`, `multiplyAttackCooldown`).
+ *    `addMagnetRadius`, etc.).
  */
 export interface UpgradeDefinition {
     id: string;
     name: string;
     maxStacks: number;
+    /**
+     * When set, this upgrade only appears in the roll pool when the player is
+     * playing the specified class.  Undefined = available to all classes.
+     */
+    playerClass?: PlayerClass;
     /**
      * IDs of upgrades the player must already own ≥1 stack of before this
      * upgrade can appear in the roll pool.

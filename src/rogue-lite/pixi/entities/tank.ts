@@ -98,6 +98,7 @@ export class Tank extends Enemy {
     get hp(): number      { return this._hp; }
     get maxHp(): number   { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
+    get level(): number   { return this._level; }
     get position()        { return { x: this.posX, y: this.posY }; }
 
     /** XP awarded per gem dropped; scales with spawn level. */

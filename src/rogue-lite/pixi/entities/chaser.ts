@@ -99,11 +99,12 @@ export class Chaser extends Enemy {
         this.container.addChild(this.hpBarGfx);
     }
 
-    get position()       { return { x: this.posX, y: this.posY }; }
-    get radius(): number { return ChaserConsts.RADIUS; }
-    get hp(): number     { return this._hp; }
-    get maxHp(): number  { return this._maxHp; }
+    get position()        { return { x: this.posX, y: this.posY }; }
+    get radius(): number  { return ChaserConsts.RADIUS; }
+    get hp(): number      { return this._hp; }
+    get maxHp(): number   { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
+    get level(): number   { return this._level; }
 
     /** XP awarded per gem dropped; scales with spawn level. */
     get xpGemValue(): number {
