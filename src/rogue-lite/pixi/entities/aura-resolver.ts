@@ -5,20 +5,21 @@ import { Resolver, HitInfo } from './attacks';
 import { IProps } from '../constants';
 import { AuraEffect } from '../effects/aura-effect';
 import { getDirectionTo } from "../common-utils";
-import { all1sProps, applyMultiplier } from "../props-utils";
+import { applyMultiplier } from "../props-utils";
 
 /**
- * Pulsing damage ring that sweeps outward from the player every aura.duration seconds.
+ * Pulsing damage ring that sweeps outward from the player.
  *
- * Hit detection is NOT handled via the standard checkHit() path because it is
- * radius-band-based rather than single-target.  Instead World reads prevRadius /
- * currentRadius each tick, tests each live enemy against the swept band, and
- * applies damage + knockback directly.  hasHitEnemy / markHitEnemy prevent
- * double-hitting within the same cycle.
+ * With `props.cooldown = 0` a single ring cycles continuously (original behaviour).
+ * With `props.cooldown > 0` a new ring is spawned every `cooldown` seconds so
+ * multiple rings can be active and sweeping at the same time.
  *
- * Graphics:
- *   getGfx() returns [_gfx] — KnightPlayer.enableAura() inserts it at z-index 0
- *   in the player container so the ring renders behind the body and sword arc.
+ * Hit detection:
+ *   Per-pulse hit sets inside AuraEffect ensure each ring can strike an enemy
+ *   at most once per pass, while still allowing overlapping rings to
+ *   independently deal damage.  For this reason hasHitEnemy() always returns
+ *   false — the resolver-level hit set is intentionally bypassed in favour of
+ *   AuraEffect's finer-grained per-pulse tracking.
  *
  * Upgrades:
  *   Aura (1 stack) — KnightPlayer.enableAura() creates this resolver.
@@ -40,22 +41,36 @@ export class AuraResolver extends Resolver {
 
     // ── AttackResolver contract (passive — world handles hit detection) ───────
     override tryAttack(_dt: number, _aimAngle: number): number | undefined {
-        if (this.effects.length == 0) {
-            const auraEffect = new AuraEffect(this.player.backgroundFx, this.player.position, applyMultiplier(this.props, this.multiplier), true, true);
-
-            auraEffect.onLoop$.subscribe(() => {
-                this.clearHitSet();
-            });
-
+        if (this.effects.length === 0) {
+            const auraEffect = new AuraEffect(
+                this.player.backgroundFx,
+                this.player.position,
+                applyMultiplier(this.props, this.multiplier),
+                true,  // loop
+                true,  // track player position
+            );
             this.effects.push(auraEffect);
         }
 
         return undefined;
     }
 
+    /**
+     * Always returns `false`.
+     *
+     * Normally the player skips a resolver if it has already struck a chaser
+     * this tick.  For the aura we bypass that guard entirely — AuraEffect tracks
+     * hits per-pulse, so each active ring can independently detect a hit without
+     * the resolver-level set interfering.
+     */
+    override hasHitEnemy(_c: Chaser): boolean {
+        return false;
+    }
+
     override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
-        if (this.effects[0]?.isInRange(_chaser)) {
-            const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY })
+        const effect = this.effects[0] as AuraEffect | undefined;
+        if (effect?.isInRange(_chaser)) {
+            const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY });
             return new HitInfo()
                 .setDamage(this.props.damage)
                 .setKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);

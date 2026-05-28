@@ -63,7 +63,7 @@ export class KnightProps implements PlayerProps {
         damage: 8,
         knockback: 200,
         color: 0x88ff88,
-        cooldown: 0,
+        cooldown: 2,
     };
 
     swordShockwave: IProps = {
