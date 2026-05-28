@@ -1,5 +1,5 @@
 import type { Player } from './player';
-import type { Chaser } from './chaser';
+import type { Enemy } from './enemy';
 import type { Vec2 } from '../types';
 import { Resolver, HitInfo } from './attacks';
 import { IProps } from '../constants';
@@ -58,19 +58,19 @@ export class AuraResolver extends Resolver {
     /**
      * Always returns `false`.
      *
-     * Normally the player skips a resolver if it has already struck a chaser
+     * Normally the player skips a resolver if it has already struck an enemy
      * this tick.  For the aura we bypass that guard entirely — AuraEffect tracks
      * hits per-pulse, so each active ring can independently detect a hit without
      * the resolver-level set interfering.
      */
-    override hasHitEnemy(_c: Chaser): boolean {
+    override hasHitEnemy(_e: Enemy): boolean {
         return false;
     }
 
-    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
+    override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
         const effect = this.effects[0] as AuraEffect | undefined;
-        if (effect?.isInRange(_chaser)) {
-            const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY });
+        if (effect?.isInRange(enemy)) {
+            const dir = getDirectionTo(this.player.position, { x: enemy.posX, y: enemy.posY });
             return new HitInfo()
                 .setDamage(this.props.damage)
                 .setKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);

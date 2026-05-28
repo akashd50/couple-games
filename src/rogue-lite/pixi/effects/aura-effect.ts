@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import { Effect } from "./effect";
-import { Chaser } from "../entities/chaser";
+import { Enemy } from "../entities/enemy";
 import { Vec2 } from "../types";
 import { IProps } from "../constants";
 
@@ -12,11 +12,11 @@ interface AuraPulse {
     /** Ring radius at the start of the last sim tick (world units). */
     prevRadius: number;
     /**
-     * Per-pulse hit set. Enemies are added here when the ring sweeps through
+     * Per-pulse hit set.  Enemies are added here when the ring sweeps through
      * them so they cannot be struck twice by the same pass.
      * Discarded automatically when the pulse is removed.
      */
-    hitSet: Set<Chaser>;
+    hitSet: Set<Enemy>;
 }
 
 export class AuraEffect extends Effect {
@@ -127,24 +127,24 @@ export class AuraEffect extends Effect {
     }
 
     /**
-     * Returns `true` if `chaser` falls within the swept band of **any** active
-     * pulse that has not already hit it this pass.  The chaser is immediately
+     * Returns `true` if `enemy` falls within the swept band of **any** active
+     * pulse that has not already hit it this pass.  The enemy is immediately
      * recorded in that pulse's hit set so subsequent calls this pass return
      * `false` — no double-damage from a single ring.
      *
      * Because hit dedup is tracked per-pulse, overlapping pulses can each
      * independently strike the same enemy.
      */
-    isInRange(chaser: Chaser): boolean {
-        const dx = chaser.posX - this.lastPos.x;
-        const dy = chaser.posY - this.lastPos.y;
+    isInRange(enemy: Enemy): boolean {
+        const dx = enemy.posX - this.lastPos.x;
+        const dy = enemy.posY - this.lastPos.y;
         const dist = Math.hypot(dx, dy);
 
         for (const p of this.pulses) {
-            if (p.hitSet.has(chaser)) continue;
-            if (dist <  p.currentRadius + chaser.radius &&
-                dist >= Math.max(0, p.prevRadius - chaser.radius)) {
-                p.hitSet.add(chaser);
+            if (p.hitSet.has(enemy)) continue;
+            if (dist <  p.currentRadius + enemy.radius &&
+                dist >= Math.max(0, p.prevRadius - enemy.radius)) {
+                p.hitSet.add(enemy);
                 return true;
             }
         }
@@ -152,7 +152,7 @@ export class AuraEffect extends Effect {
     }
 
     destroy(): void {
-        // Clear pulses so Chaser refs inside hitSets can be GC'd.
+        // Clear pulses so Enemy refs inside hitSets can be GC'd.
         this.pulses = [];
         this.gfx.destroy();
     }

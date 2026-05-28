@@ -1,5 +1,5 @@
 import type { Player } from './player';
-import type { Chaser } from './chaser';
+import type { Enemy } from './enemy';
 import type { Vec2 } from '../types';
 import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
@@ -81,11 +81,11 @@ export class AftershockResolver extends Resolver {
         return angle;
     }
 
-    override checkHit(_player: Player, _chaser: Chaser): HitInfo | undefined {
+    override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
-            if (se.isInRange(_chaser)) {
-                const dir = getDirectionTo(this.player.position, { x: _chaser.posX, y: _chaser.posY });
+            if (se.isInRange(enemy)) {
+                const dir = getDirectionTo(this.player.position, { x: enemy.posX, y: enemy.posY });
                 hitInfo
                     .setDamage(KnightConsts.aftershock.damage)
                     .setKnockback(dir.x * KnightConsts.aftershock.knockback, dir.y * KnightConsts.aftershock.knockback);

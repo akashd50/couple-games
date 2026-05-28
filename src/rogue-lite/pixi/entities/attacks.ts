@@ -1,5 +1,5 @@
-import { Chaser } from "./chaser";
 import { Player } from "./player";
+import { Enemy } from "./enemy";
 import { Vec2 } from "../types";
 import { Effect } from "../effects/effect";
 import { IProps } from "../constants";
@@ -55,7 +55,7 @@ export class HitInfo {
 }
 
 export abstract class Resolver {
-    protected hitSet = new Set<Chaser>();
+    protected hitSet = new Set<Enemy>();
     protected effects: Effect[] = [];
     protected multiplier: IProps = all1sProps();
     protected additive: IProps = all0sProps();
@@ -68,7 +68,7 @@ export abstract class Resolver {
         return this.additive;
     }
 
-    checkHit(player: Player, chaser: Chaser): HitInfo | undefined {
+    checkHit(player: Player, enemy: Enemy): HitInfo | undefined {
         return undefined;
     }
 
@@ -81,14 +81,14 @@ export abstract class Resolver {
     draw(dt: number, move: Vec2, aimAngle: number): void {
     }
 
-    /** Mark `c` as struck so it is not hit again this cycle. */
-    markHitEnemy(c: Chaser): void {
-        this.hitSet.add(c);
+    /** Mark `enemy` as struck so it is not hit again this cycle. */
+    markHitEnemy(enemy: Enemy): void {
+        this.hitSet.add(enemy);
     }
 
-    /** Returns true if `c` was already struck during the current pulse cycle. */
-    hasHitEnemy(c: Chaser): boolean {
-        return this.hitSet.has(c);
+    /** Returns true if `enemy` was already struck during the current pulse cycle. */
+    hasHitEnemy(enemy: Enemy): boolean {
+        return this.hitSet.has(enemy);
     }
 
     protected clearHitSet() {

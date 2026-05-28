@@ -158,6 +158,88 @@ export class XpGemConsts {
     static readonly XP_VALUE = 5;
 }
 
+// ─── Tank enemy ───────────────────────────────────────────────────────────────
+export class TankConsts {
+    static readonly RADIUS = 22;
+    static readonly HP = 100;
+    static readonly SPEED_WANDER = 35;
+    static readonly SPEED_CHASE = 75;
+    /** Distance at which a wandering Tank aggros. */
+    static readonly AGGRO_RANGE = 380;
+    /** Distance at which a chasing Tank de-aggros. */
+    static readonly DEAGGRO_RANGE = 520;
+    static readonly COLOR = 0x5566ff;
+    /** Outline color of the square body. */
+    static readonly OUTLINE_COLOR = 0x99aaff;
+    static readonly HIT_DAMAGE = 25;
+    static readonly KNOCKBACK = 220;
+    /** XP gems dropped on death (Tanks are worth more than Chasers). */
+    static readonly XP_DROP_COUNT = 3;
+
+    // ── Difficulty ramp (mirrors Chaser ramp) ────────────────────────────────
+    static readonly HP_RAMP_PER_INTERVAL = 0.15;
+    static readonly SPEED_RAMP_PER_INTERVAL = 0.07;
+}
+
+// ─── Hexagon Boss ─────────────────────────────────────────────────────────────
+export class HexBossConsts {
+    static readonly RADIUS = 40;
+    static readonly HP = 500;
+    static readonly COLOR = 0xcc2200;
+    static readonly OUTLINE_COLOR = 0xff6644;
+    /** Movement speed while charging. */
+    static readonly SPEED_CHARGE = 145;
+    /** Contact damage dealt to the player. */
+    static readonly HIT_DAMAGE = 35;
+    /** Knockback impulse applied to the player on contact. */
+    static readonly KNOCKBACK = 280;
+    /** XP gems spawned in a burst on boss death. */
+    static readonly XP_DROP_COUNT = 12;
+    /** HP restored to the player when the boss is killed. */
+    static readonly HEAL_ON_KILL = 20;
+    /** Number of projectiles in each radial burst. */
+    static readonly BURST_COUNT = 8;
+
+    // ── State-machine durations (seconds) ────────────────────────────────────
+    static readonly CHARGE_DURATION = 3.0;
+    static readonly TELEGRAPH_DURATION = 0.55;
+    static readonly RECOVER_DURATION = 1.1;
+
+    // ── How far the boss gets knocked back relative to received impulse ───────
+    /** Multiplier on incoming knockback (boss is heavy). */
+    static readonly KNOCKBACK_RECEIVED_MULT = 0.25;
+}
+
+// ─── Boss spawner ─────────────────────────────────────────────────────────────
+export class BossSpawnerConsts {
+    /** Seconds between boss-spawn attempts. */
+    static readonly SPAWN_INTERVAL = 120;
+}
+
+// ─── Projectile ───────────────────────────────────────────────────────────────
+export class ProjectileConsts {
+    static readonly SPEED = 320;
+    static readonly DAMAGE = 20;
+    static readonly KNOCKBACK = 350;
+    static readonly RADIUS = 10;
+    static readonly LIFETIME = 4.0;
+    static readonly COLOR = 0xff5522;
+}
+
+// ─── VFX ─────────────────────────────────────────────────────────────────────
+export class VfxConsts {
+    /** Screenshake intensity (world units of random offset). */
+    static readonly SHAKE_INTENSITY = 8;
+    /** Duration of screenshake in seconds. */
+    static readonly SHAKE_DURATION = 0.35;
+    /** Default particle burst count for regular enemies. */
+    static readonly DEATH_PARTICLE_COUNT = 8;
+    /** Particle burst count for the boss. */
+    static readonly BOSS_DEATH_PARTICLE_COUNT = 24;
+    /** How far boss XP gems are scattered on death (world units). */
+    static readonly BOSS_GEM_SCATTER_RADIUS = 80;
+}
+
 // ─── Spawner ──────────────────────────────────────────────────────────────────
 export class SpawnerConsts {
     /** Seconds between enemy-count checks. */
@@ -168,12 +250,26 @@ export class SpawnerConsts {
     static readonly COUNT_RAMP_STEP = 2;
     /** Seconds between count ramps. */
     static readonly COUNT_RAMP_INTERVAL = 30;
-    /** Hard cap on simultaneous enemies. */
+    /** Hard cap on simultaneous enemies (bosses are counted separately). */
     static readonly MAX_COUNT = 30;
     /** Minimum spawn distance from the player (world units). */
     static readonly SPAWN_RING_MIN = 650;
     /** Maximum spawn distance from the player (world units). */
     static readonly SPAWN_RING_MAX = 950;
+
+    // ── Tank ramp ─────────────────────────────────────────────────────────────
+    /**
+     * Run-time (seconds) before Tanks begin to appear in the spawn pool.
+     * At exactly this time the Tank ratio is 0 and ramps up linearly.
+     */
+    static readonly TANK_START_TIME = 60;
+    /**
+     * Run-time (seconds) at which the Tank ratio reaches its maximum.
+     * Between TANK_START_TIME and this value the ratio is lerped 0 → TANK_MAX_RATIO.
+     */
+    static readonly TANK_RAMP_TIME = 180;
+    /** Maximum fraction of new spawns that can be Tanks (0.30 = 30%). */
+    static readonly TANK_MAX_RATIO = 0.30;
 }
 
 // ─── Level / XP ──────────────────────────────────────────────────────────────

@@ -1,12 +1,19 @@
 import { ArenaConsts, SpawnerConsts } from '../constants';
 import type { Vec2 } from '../types';
 
+/** Enemy types the spawner can request. */
+export type SpawnType = 'chaser' | 'tank';
+
 /**
  * Periodically tops up the live enemy count to match `targetCount(runTime)`.
  *
  * Spawn points are chosen on a ring around the player — always outside the
  * visible viewport but within arena bounds.  Enemies ramp up every
  * {@link SpawnerConsts.COUNT_RAMP_INTERVAL} seconds.
+ *
+ * Phase 5: Tanks begin appearing at {@link SpawnerConsts.TANK_START_TIME}
+ * and their share of new spawns ramps linearly to {@link SpawnerConsts.TANK_MAX_RATIO}
+ * by {@link SpawnerConsts.TANK_RAMP_TIME}.
  */
 export class SpawnerSystem {
     /** Counts down to the next spawn check. Starts at 0 so the first
@@ -15,15 +22,15 @@ export class SpawnerSystem {
 
     constructor(
         /** Called once per enemy that needs to be spawned this tick. */
-        private readonly spawnChaser: (x: number, y: number) => void,
+        private readonly spawnEnemy: (x: number, y: number, type: SpawnType) => void,
     ) {}
 
     /**
-     * Advance the spawn timer and emit new Chasers as needed.
+     * Advance the spawn timer and emit new enemies as needed.
      *
      * @param dt           Fixed sim delta (seconds).
      * @param runTime      Total run time elapsed (seconds) — used to compute ramp.
-     * @param currentCount Live enemy count at the start of this tick.
+     * @param currentCount Live enemy count at the start of this tick (bosses excluded).
      * @param playerX      Player world X — centre of the spawn ring.
      * @param playerY      Player world Y.
      */
@@ -42,7 +49,8 @@ export class SpawnerSystem {
         const toSpawn = Math.max(0, target - currentCount);
         for (let i = 0; i < toSpawn; i++) {
             const pos = this.pickSpawnPoint(playerX, playerY);
-            this.spawnChaser(pos.x, pos.y);
+            const type = this.pickType(runTime);
+            this.spawnEnemy(pos.x, pos.y, type);
         }
     }
 
@@ -58,6 +66,23 @@ export class SpawnerSystem {
             SpawnerConsts.BASE_COUNT + ramps * SpawnerConsts.COUNT_RAMP_STEP,
             SpawnerConsts.MAX_COUNT,
         );
+    }
+
+    /**
+     * Choose whether to spawn a Chaser or Tank for this slot.
+     *
+     * Tank ratio ramps linearly from 0 to {@link SpawnerConsts.TANK_MAX_RATIO}
+     * between {@link SpawnerConsts.TANK_START_TIME} and
+     * {@link SpawnerConsts.TANK_RAMP_TIME}.
+     */
+    private pickType(runTime: number): SpawnType {
+        const { TANK_START_TIME, TANK_RAMP_TIME, TANK_MAX_RATIO } = SpawnerConsts;
+        if (runTime < TANK_START_TIME) return 'chaser';
+
+        const t = Math.min(1, (runTime - TANK_START_TIME) / (TANK_RAMP_TIME - TANK_START_TIME));
+        const tankRatio = t * TANK_MAX_RATIO;
+
+        return Math.random() < tankRatio ? 'tank' : 'chaser';
     }
 
     /**

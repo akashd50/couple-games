@@ -5,7 +5,7 @@ import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
 import { AuraResolver } from './aura-resolver';
-import { Chaser } from './chaser';
+import { Enemy } from './enemy';
 import { Constructor, wrapAngle } from '../common-utils';
 import { SwingAttackResolver } from "./swing-resolver";
 import { HealTickResolver } from "./heal-tick-resolver";
@@ -272,17 +272,17 @@ export abstract class Player {
             : 1.0;
     }
 
-    /** Check all active resolvers for a hit against `chaser`. */
-    checkHit(chaser: Chaser): HitInfo {
+    /** Check all active resolvers for a hit against `enemy`. */
+    checkHit(enemy: Enemy): HitInfo {
         const hitInfo = new HitInfo();
         for (const r of this.attackResolvers) {
-            if (r.hasHitEnemy(chaser)) {
+            if (r.hasHitEnemy(enemy)) {
                 continue;
             }
 
-            const h = r.checkHit(this, chaser);
+            const h = r.checkHit(this, enemy);
             if (h?.success) {
-                r.markHitEnemy(chaser);
+                r.markHitEnemy(enemy);
             }
 
             hitInfo.add(h);

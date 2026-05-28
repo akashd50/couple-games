@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
-import { ArenaConsts, ChaserConsts, PhysicsConsts } from '../constants';
-import type { Vec2 } from '../types';
+import { ArenaConsts, ChaserConsts } from '../constants';
+import { Enemy } from './enemy';
 
 const enum ChaserState {
     WANDER,
@@ -23,18 +23,19 @@ export interface ChaserStats {
  *
  * Outer container holds position + HP bar (never rotated).
  * Inner bodyContainer holds the triangle graphic and rotates to face movement.
+ *
+ * Phase 5: extends Enemy — vx/vy/friction/applyKnockback/flashTimer are all
+ * managed by the base class.  This class calls tickPhysics(dt) in update().
  */
-export class Chaser {
-    /** Exposed so World can read position for collision checks. */
-    posX: number;
-    posY: number;
+export class Chaser extends Enemy {
+    readonly xpDropCount = 1;
+    readonly contactDamage = ChaserConsts.HIT_DAMAGE;
+    readonly contactKnockback = ChaserConsts.KNOCKBACK;
 
     private readonly container: Container;
     private readonly bodyContainer: Container;
     private readonly hpBarGfx: Graphics;
-
-    private vx = 0;
-    private vy = 0;
+    private readonly flashGfx: Graphics;
 
     private _hp: number;
     private readonly _maxHp: number;
@@ -47,8 +48,7 @@ export class Chaser {
     private readonly speedChase: number;
 
     constructor(parent: Container, x: number, y: number, stats: ChaserStats = {}) {
-        this.posX = x;
-        this.posY = y;
+        super(x, y);
 
         // Apply stat scaling supplied by the spawner (difficulty ramp)
         const hpMult    = stats.hpMult    ?? 1;
@@ -83,14 +83,25 @@ export class Chaser {
             .fill({ color: ChaserConsts.COLOR });
         this.bodyContainer.addChild(body);
 
+        // White flash overlay — same triangle shape, alpha driven by flashTimer
+        this.flashGfx = new Graphics();
+        this.flashGfx.moveTo(r, 0)
+            .lineTo(-r * 0.75, -r * 0.65)
+            .lineTo(-r * 0.75, r * 0.65)
+            .lineTo(r, 0)
+            .fill({ color: 0xffffff });
+        this.flashGfx.alpha = 0;
+        this.bodyContainer.addChild(this.flashGfx);
+
         // HP bar — child of outer container so it stays horizontal
         this.hpBarGfx = new Graphics();
         this.container.addChild(this.hpBarGfx);
-        // HP bar only drawn when HP < max (starts invisible)
     }
 
-    get position(): Vec2 { return { x: this.posX, y: this.posY }; }
-    get radius(): number { return ChaserConsts.RADIUS; }
+    get position() { return { x: this.posX, y: this.posY }; }
+    get radius(): number  { return ChaserConsts.RADIUS; }
+    get hp(): number      { return this._hp; }
+    get maxHp(): number   { return this._maxHp; }
     get isDead(): boolean { return this._hp <= 0; }
 
     /**
@@ -100,11 +111,17 @@ export class Chaser {
      * @param playerY   Player world Y.
      */
     update(dt: number, playerX: number, playerY: number): void {
+        // Decay knockback velocity and advance flash timer (base class)
+        this.tickPhysics(dt);
+
+        // Update flash overlay
+        this.flashGfx.alpha = this.flashAlpha;
+
         const dx = playerX - this.posX;
         const dy = playerY - this.posY;
         const dist = Math.hypot(dx, dy);
 
-        // ── State machine ──────────────────────────────────────────────────
+        // ── State machine ──────────────────────────────────────────────────────
         if (this.state === ChaserState.WANDER && dist < ChaserConsts.AGGRO_RANGE) {
             this.state = ChaserState.CHASE;
         } else if (this.state === ChaserState.CHASE && dist > ChaserConsts.DEAGGRO_RANGE) {
@@ -113,7 +130,7 @@ export class Chaser {
             this.wanderTimer = 1.0 + Math.random();
         }
 
-        // ── Movement direction ─────────────────────────────────────────────
+        // ── Movement direction ─────────────────────────────────────────────────
         let moveX = 0;
         let moveY = 0;
 
@@ -136,11 +153,7 @@ export class Chaser {
             ? this.speedChase
             : this.speedWander;
 
-        // ── Physics ────────────────────────────────────────────────────────
-        const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.vx *= friction;
-        this.vy *= friction;
-
+        // ── Physics ────────────────────────────────────────────────────────────
         this.posX += (moveX * speed + this.vx) * dt;
         this.posY += (moveY * speed + this.vy) * dt;
 
@@ -168,15 +181,8 @@ export class Chaser {
         this._hp = Math.max(0, this._hp - amount);
         this.vx += kbx;
         this.vy += kby;
+        this.startFlash();
         this.drawHpBar();
-    }
-
-    /**
-     * Apply a knockback impulse without dealing damage (used by Shockwave).
-     */
-    applyKnockback(kbx: number, kby: number): void {
-        this.vx += kbx;
-        this.vy += kby;
     }
 
     destroy(): void {

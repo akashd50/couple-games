@@ -121,6 +121,21 @@ play, and a clean run reaches ~5 minutes without trivializing the game.
 **Done when:** the second-minute boss arrives, has a learnable pattern, and
 killing it feels satisfying.
 
+✅ **Phase 5 complete** (2026-05-27)
+
+**New files:**
+- `pixi/entities/enemy.ts` — abstract `Enemy` base class (posX/posY, vx/vy, flashTimer, applyKnockback)
+- `pixi/entities/tank.ts` — blue-purple square; slow/tanky, first appears at 60s
+- `pixi/entities/hex-boss.ts` — hexagon boss; CHARGE→TELEGRAPH→BURST→RECOVER FSM, fires 8-way projectiles
+- `pixi/entities/projectile.ts` — generic projectile entity (reusable for Phase 6 Summoner)
+- `pixi/systems/projectile-system.ts` — manages active projectiles with pluggable hit handler
+- `pixi/systems/boss-spawner-system.ts` — spawns boss at 120s/240s/…, one alive at a time
+- `pixi/effects/death-particle.ts` — radial particle burst on enemy death
+
+**Key architecture change:** All resolvers/effects now use `Enemy` (not `Chaser`) for hit-set and checkHit. `Resolver.hitSet: Set<Enemy>`, `Effect.isInRange(enemy: Enemy)`, `Player.checkHit(enemy: Enemy)`.
+
+**New constants:** `TankConsts`, `HexBossConsts`, `BossSpawnerConsts`, `ProjectileConsts`, `VfxConsts`
+
 ---
 
 ## Phase 6 — Summoner class + class select

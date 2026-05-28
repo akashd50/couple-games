@@ -3,7 +3,7 @@ import type { Vec2 } from "../types";
 import { wrapAngle } from "../common-utils";
 import { Effect } from "./effect";
 import { KnightConsts } from "../constants";
-import { Chaser } from "../entities/chaser";
+import { Enemy } from "../entities/enemy";
 
 /**
  * Expanding cone-shaped shockwave visual.
@@ -108,12 +108,12 @@ export class ShockwaveEffect extends Effect {
         g.stroke({ color: this.color, width: 2, alpha: alpha * 0.4 });
     }
 
-    isInRange(chaser: Chaser): boolean {
+    isInRange(enemy: Enemy): boolean {
         const outerRadius = this.innerRadius + this.range;
-        const dx = chaser.posX - this.x;
-        const dy = chaser.posY - this.y;
+        const dx = enemy.posX - this.x;
+        const dy = enemy.posY - this.y;
         const dist = Math.hypot(dx, dy);
-        if (dist > outerRadius + chaser.radius) {
+        if (dist > outerRadius + enemy.radius) {
             return false;
         }
 

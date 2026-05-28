@@ -1,4 +1,4 @@
-import { Chaser } from "../entities/chaser";
+import { Enemy } from "../entities/enemy";
 import { Vec2 } from "../types";
 import { BehaviorSubject } from "rxjs";
 import { IProps } from "../constants";
@@ -17,5 +17,5 @@ export abstract class Effect {
 
     abstract destroy(): void;
 
-    abstract isInRange(chaser: Chaser): boolean;
+    abstract isInRange(enemy: Enemy): boolean;
 }

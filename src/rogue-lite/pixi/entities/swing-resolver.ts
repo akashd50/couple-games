@@ -2,7 +2,7 @@ import { Graphics } from "pixi.js";
 import { IProps, KnightConsts } from "../constants";
 import { Player } from "./player";
 import { Resolver, HitInfo } from "./attacks";
-import { Chaser } from "./chaser";
+import { Enemy } from "./enemy";
 import { isInAttackCone } from "../systems/attack-system";
 import { Vec2 } from "../types";
 import { lerp } from "../common-utils";
@@ -103,23 +103,23 @@ export class SwingAttackResolver extends Resolver {
         this._fireListeners.push(cb);
     }
 
-    override checkHit(player: Player, chaser: Chaser): HitInfo | undefined {
-        if (this.swingTimer <= 0 || this.hitSet.has(chaser)) {
+    override checkHit(player: Player, enemy: Enemy): HitInfo | undefined {
+        if (this.swingTimer <= 0 || this.hitSet.has(enemy)) {
             return undefined;
         }
 
         if (isInAttackCone(
             player.position.x, player.position.y,
             this.arcStart, this.arcEnd,
-            chaser.posX, chaser.posY, chaser.radius,
+            enemy.posX, enemy.posY, enemy.radius,
             this.effectiveRange,
         )) {
-            const dx2 = chaser.posX - player.position.x;
-            const dy2 = chaser.posY - player.position.y;
+            const dx2 = enemy.posX - player.position.x;
+            const dy2 = enemy.posY - player.position.y;
             const d2 = Math.hypot(dx2, dy2);
             const kbx = d2 > 0.001 ? (dx2 / d2) * this.props.knockback : this.props.knockback;
             const kby = d2 > 0.001 ? (dy2 / d2) * this.props.knockback : 0;
-            this.hitSet.add(chaser);
+            this.hitSet.add(enemy);
 
             return {
                 damage: this.props.damage,

@@ -1,5 +1,5 @@
 import { Resolver, HitInfo } from "./attacks";
-import { Chaser } from "./chaser";
+import { Enemy } from "./enemy";
 import { Vec2 } from "../types";
 import { Player } from "./player";
 import { IProps } from "../constants";
@@ -15,15 +15,15 @@ export class HealTickResolver extends Resolver {
         super();
     }
 
-    override checkHit(player: Player, chaser: Chaser): HitInfo | undefined {
+    override checkHit(_player: Player, _enemy: Enemy): HitInfo | undefined {
         return undefined;
     }
 
-    override tryAttack(dt: number, aimAngle: number): number | undefined {
+    override tryAttack(_dt: number, _aimAngle: number): number | undefined {
         return undefined;
     }
 
-    override update(dt: number, move: Vec2, aimAngle: number) {
+    override update(dt: number, _move: Vec2, _aimAngle: number) {
         this.healCooldown -= dt;
         if (this.healCooldown <= 0) {
             const effective = applyAM(this.props, this.additive, this.multiplier);
@@ -32,6 +32,6 @@ export class HealTickResolver extends Resolver {
         }
     }
 
-    override draw(dt: number, move: Vec2, aimAngle: number) {
+    override draw(_dt: number, _move: Vec2, _aimAngle: number) {
     }
 }
