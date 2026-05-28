@@ -233,17 +233,28 @@ export abstract class Player {
     // requiring unsafe casts in the upgrade registry.
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    multiplyProjCooldown(_factor: number): void {}
+    multiplyProjCooldown(_factor: number): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    addProjDamage(_amount: number): void {}
+    addProjDamage(_amount: number): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    addMinionCap(_n: number): void {}
+    addMinionCap(_n: number): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    addSummonRadius(_n: number): void {}
+    addSummonRadius(_n: number): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    addMinionLifesteal(_pct: number): void {}
+    addMinionLifesteal(_pct: number): void {
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    empowerMinions(_factor: number): void {}
+    empowerMinions(_factor: number): void {
+    }
 
     // ── Public methods ───────────────────────────────────────────────────────
 
@@ -334,7 +345,7 @@ export abstract class Player {
      */
     healFromDamageDealt(damage: number): void {
         if (this._lifestealPct <= 0) return;
-        this._hp = Math.min(this._maxHp, this._hp + damage * this._lifestealPct);
+        this.healBy(damage * this._lifestealPct);
     }
 
 

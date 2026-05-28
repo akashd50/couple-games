@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { ArenaConsts, ChaserMinionConsts } from '../constants';
 import type { Enemy } from './enemy';
 import type { IMinionLike } from './knight-minion';
+import { HitInfo } from "./attacks";
 
 const enum ChaserMinionState {
     WANDER,
@@ -141,6 +142,25 @@ export class ChaserMinion implements IMinionLike {
         this.drawHpBar();
     }
 
+    checkHit(enemy: Enemy, hitInfo: HitInfo) {
+        const dx = enemy.posX - this.posX;
+        const dy = enemy.posY - this.posY;
+        const dist = Math.hypot(dx, dy);
+        if (dist < this.radius + enemy.radius) {
+            // ChaserMinion takes damage (sets iframes — short, so it dies fast)
+            const minionDmg = Math.max(1, Math.round(enemy.contactDamage * ChaserMinionConsts.CONTACT_DAMAGE_MULT));
+            this.takeDamage(minionDmg);
+
+            // Enemy takes damage + strong knockback away from minion
+            const nx = dist > 0.001 ? dx / dist : 1;
+            const ny = dist > 0.001 ? dy / dist : 0;
+            const enemyDmg = Math.max(1, Math.round(this._damage * ChaserMinionConsts.CONTACT_ENEMY_DAMAGE_MULT));
+            hitInfo
+                .addDamage(enemyDmg)
+                .addKnockback(nx * ChaserMinionConsts.CONTACT_ENEMY_KNOCKBACK, ny * ChaserMinionConsts.CONTACT_ENEMY_KNOCKBACK);
+        }
+    }
+
     /**
      * Advance this minion by one sim step.
      *
@@ -161,38 +181,9 @@ export class ChaserMinion implements IMinionLike {
             this.flashGfx.alpha = 0;
         }
 
-        // ── Body contact — bidirectional (gated by iframes) ───────────────
-        // ChaserMinions deal ALL their damage through contact (no sword swing).
-        let damageDealt = 0;
-        if (this.iframes <= 0) {
-            for (const enemy of enemies) {
-                if (enemy.isDead) continue;
-                const dx = enemy.posX - this.posX;
-                const dy = enemy.posY - this.posY;
-                const dist = Math.hypot(dx, dy);
-                if (dist < this.radius + enemy.radius) {
-                    // ChaserMinion takes damage (sets iframes — short, so it dies fast)
-                    const minionDmg = Math.max(1, Math.round(
-                        enemy.contactDamage * ChaserMinionConsts.CONTACT_DAMAGE_MULT));
-                    this.takeDamage(minionDmg);
-
-                    // Enemy takes damage + strong knockback away from minion
-                    const nx = dist > 0.001 ? dx / dist : 1;
-                    const ny = dist > 0.001 ? dy / dist : 0;
-                    const enemyDmg = Math.max(1, Math.round(
-                        this._damage * ChaserMinionConsts.CONTACT_ENEMY_DAMAGE_MULT));
-                    enemy.takeDamage(
-                        enemyDmg,
-                        nx * ChaserMinionConsts.CONTACT_ENEMY_KNOCKBACK,
-                        ny * ChaserMinionConsts.CONTACT_ENEMY_KNOCKBACK,
-                    );
-                    damageDealt += enemyDmg;
-                    break; // one contact event per iframes window
-                }
-            }
+        if (this._hp <= 0) {
+            return 0;
         }
-
-        if (this._hp <= 0) return damageDealt;
 
         // ── Find nearest alive enemy ───────────────────────────────────────
         let nearestEnemy: Enemy | null = null;
@@ -277,7 +268,7 @@ export class ChaserMinion implements IMinionLike {
         this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
 
         this.container.position.set(this.posX, this.posY);
-        return damageDealt;
+        return 0;
     }
 
     destroy(): void {

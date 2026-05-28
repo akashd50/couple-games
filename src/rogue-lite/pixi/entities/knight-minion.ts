@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { ArenaConsts, MinionConsts } from '../constants';
 import type { Enemy } from './enemy';
+import { HitInfo } from "./attacks";
 
 // ── Shared interface ──────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ export interface IMinionLike {
     kill(): void;
 
     takeDamage(amount: number): void;
+
+    checkHit(enemy: Enemy, hitInfo: HitInfo): void;
 
     update(dt: number, summX: number, summY: number, enemies: Enemy[]): number;
 
@@ -151,6 +154,11 @@ export class KnightMinion implements IMinionLike {
     }
 
     // ── Public ────────────────────────────────────────────────────────────────
+
+    checkHit(enemy: Enemy, hitInfo: HitInfo) {
+
+    }
+
 
     /** Force-kill (used when the Summoner's cap is exceeded). */
     kill(): void {

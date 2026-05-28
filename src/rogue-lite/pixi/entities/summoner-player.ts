@@ -5,6 +5,11 @@ import type { Vec2 } from '../types';
 import type { ProjectileSpec } from './projectile';
 import { DustCloudSystem } from '../effects/dust-cloud';
 import { MinionSystem } from '../systems/minion-system';
+import { ProjectileSystem } from "../systems/projectile-system";
+import { Enemy } from "./enemy";
+import { HitInfo } from "./attacks";
+import { CorpseSystem } from "../systems/corpse-system";
+import { WorldData } from "../systems/world-data";
 
 /**
  * The Summoner player class.
@@ -31,10 +36,10 @@ import { MinionSystem } from '../systems/minion-system';
  */
 export class SummonerPlayer extends Player {
     // ── Projectile attack stats ────────────────────────────────────────────────
-    private projFireTimer  = 0; // seconds until next shot (counts DOWN from cooldown)
-    private _projCooldown  = SummonerConsts.PROJ_COOLDOWN;
-    private _projDamage    = SummonerConsts.PROJ_DAMAGE;
-    private _projCount     = 1;
+    private projFireTimer = 0; // seconds until next shot (counts DOWN from cooldown)
+    private _projCooldown = SummonerConsts.PROJ_COOLDOWN;
+    private _projDamage = SummonerConsts.PROJ_DAMAGE;
+    private _projCount = 1;
     /** Spread half-angle between extra projectiles when _projCount > 1. */
     private readonly PROJ_SPREAD = Math.PI / 14;
 
@@ -55,17 +60,19 @@ export class SummonerPlayer extends Player {
     // ── Effects ───────────────────────────────────────────────────────────────
     private readonly dustSystem: DustCloudSystem;
     private orbitAngle = 0;
+    private projectileSystem: ProjectileSystem;
 
     constructor(
         parent: Container,
         minionLayer: Container,
-        private readonly onFireProjectile: (spec: ProjectileSpec) => void,
+        projectileLayer: Container,
     ) {
         super(parent);
+        this.projectileSystem = new ProjectileSystem(projectileLayer);
 
         // Override HP/speed from base (Summoner has different stats than Knight)
-        this._hp       = SummonerConsts.hp;
-        this._maxHp    = SummonerConsts.hp;
+        this._hp = SummonerConsts.hp;
+        this._maxHp = SummonerConsts.hp;
         this._baseSpeed = SummonerConsts.speed;
 
         // ── Minion system ─────────────────────────────────────────────────
@@ -97,8 +104,13 @@ export class SummonerPlayer extends Player {
         return SummonerConsts.radius + this._radiusBonus;
     }
 
-    get summonRadius(): number { return this._summonRadius; }
-    get minionLifestealPct(): number { return this._minionLifestealPct; }
+    get summonRadius(): number {
+        return this._summonRadius;
+    }
+
+    get minionLifestealPct(): number {
+        return this._minionLifestealPct;
+    }
 
     // ── Upgrade mutators (override Player stubs) ──────────────────────────────
 
@@ -127,9 +139,22 @@ export class SummonerPlayer extends Player {
         this._minionLifestealPct += pct;
     }
 
+    override healFromDamageDealt(damage: number): void {
+        super.healFromDamageDealt(damage);
+
+        if (this.minionLifestealPct <= 0) return;
+        this.healBy(damage * this.minionLifestealPct);
+    }
+
     // empowerMinions is deferred — MinionSystem would need a damage multiplier field
 
     // ── Core loop ────────────────────────────────────────────────────────────
+
+    override checkHit(enemy: Enemy): HitInfo {
+        const hitInfo = this.projectileSystem.checkHit(enemy);
+        this.minionSystem.checkHit(enemy, hitInfo);
+        return hitInfo;
+    }
 
     override tryAttack(dt: number, aimAngle: number): void {
         this.projFireTimer = Math.max(0, this.projFireTimer - dt);
@@ -140,6 +165,10 @@ export class SummonerPlayer extends Player {
 
     protected override issueUpdate(dt: number, _move: Vec2, _aimAngle: number): void {
         this.orbitAngle += dt * 2.4; // rotate orbit dots
+        this.projectileSystem.tUpdate(dt);
+
+        this.minionSystem.update(dt, this.posX, this.posY, [...WorldData.enemies, ...(WorldData.boss ? [WorldData.boss] : [])]);
+        this.minionSystem.trySummon(dt, this.position.x, this.position.y, this.summonRadius, WorldData.corpseSystem);
     }
 
     protected override draw(dt: number, _move: Vec2, _aimAngle: number): void {
@@ -160,6 +189,7 @@ export class SummonerPlayer extends Player {
     override destroy(): void {
         this.dustSystem.destroy();
         this.minionSystem.destroy();
+        this.projectileSystem.destroy();
         super.destroy();
     }
 
@@ -175,15 +205,15 @@ export class SummonerPlayer extends Player {
             const dy = Math.sin(angle);
             const spawnDist = this.radius + SummonerConsts.PROJ_RADIUS + 2;
 
-            this.onFireProjectile({
+            this.projectileSystem.add({
                 x: this.posX + dx * spawnDist,
                 y: this.posY + dy * spawnDist,
                 dx, dy,
-                speed:    SummonerConsts.PROJ_SPEED,
-                damage:   this._projDamage,
+                speed: SummonerConsts.PROJ_SPEED,
+                damage: this._projDamage,
                 knockback: SummonerConsts.PROJ_KNOCKBACK,
-                radius:   SummonerConsts.PROJ_RADIUS,
-                color:    SummonerConsts.PROJ_COLOR,
+                radius: SummonerConsts.PROJ_RADIUS,
+                color: SummonerConsts.PROJ_COLOR,
                 lifetime: SummonerConsts.PROJ_LIFETIME,
                 trailColor: SummonerConsts.PROJ_TRAIL_COLOR,
                 shape: 'triangle',
@@ -207,7 +237,7 @@ export class SummonerPlayer extends Player {
         const g = this.orbitGfx;
         g.clear();
         const orbitR = this.radius + 9;
-        const dotR   = 3.5;
+        const dotR = 3.5;
         // Two diametrically opposite dots
         for (let k = 0; k < 2; k++) {
             const a = this.orbitAngle + k * Math.PI;

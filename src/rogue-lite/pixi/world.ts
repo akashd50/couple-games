@@ -23,6 +23,7 @@ import {
 } from './constants';
 import { wrapAngle } from './common-utils';
 import type { PlayerClass, Vec2, WorldCallbacks } from './types';
+import { WorldData } from "./systems/world-data";
 
 /**
  * Orchestrates all Pixi entities and systems for a single run.
@@ -42,10 +43,6 @@ import type { PlayerClass, Vec2, WorldCallbacks } from './types';
  */
 export class World {
     private readonly player: Player;
-    /** All regular enemies (Chasers + Tanks).  Boss is tracked separately. */
-    private readonly enemies: Enemy[] = [];
-    /** Active boss — null if not yet spawned or already dead this interval. */
-    private boss: HexBoss | null = null;
     private readonly gems: XpGem[] = [];
     private readonly camera: CameraSystem;
     private readonly worldRoot: Container;
@@ -63,11 +60,7 @@ export class World {
     private readonly bossSpawner: BossSpawnerSystem;
     private readonly levelSystem: LevelSystem;
     private readonly projectileSystem: ProjectileSystem;        // enemy → player
-    private readonly playerProjectileSystem: ProjectileSystem;  // Summoner → enemies
     private readonly deathParticles: DeathParticleSystem;
-    /** Only created when playerClass === 'summoner'. */
-    private readonly corpseSystem: CorpseSystem | null;
-
     private accumulator = 0;
     private lastAim: Vec2 = { x: 1, y: 0 };
     private _runTime = 0;
@@ -127,7 +120,7 @@ export class World {
             this.player = new SummonerPlayer(
                 playerLayer,
                 this.minionLayer,
-                (spec) => this.playerProjectileSystem.add(spec),
+                this.projectileLayer
             );
         } else {
             this.player = new KnightPlayer(playerLayer);
@@ -136,7 +129,7 @@ export class World {
         this.lastNotifiedHp = this.player.hp;
 
         // ── Corpse system (Summoner only) ──────────────────────────────────
-        this.corpseSystem = playerClass === 'summoner'
+        WorldData.corpseSystem = playerClass === 'summoner'
             ? new CorpseSystem(this.corpseLayer)
             : null;
 
@@ -146,9 +139,9 @@ export class World {
         this.spawner = new SpawnerSystem((x, y, type) => {
             const level = EnemyLevelConsts.levelFromTime(this._runTime);
             if (type === 'tank') {
-                this.enemies.push(new Tank(this.enemyLayer, x, y, level));
+                WorldData.enemies.push(new Tank(this.enemyLayer, x, y, level));
             } else {
-                this.enemies.push(new Chaser(this.enemyLayer, x, y, level));
+                WorldData.enemies.push(new Chaser(this.enemyLayer, x, y, level));
             }
         });
 
@@ -167,7 +160,6 @@ export class World {
         );
 
         this.projectileSystem = new ProjectileSystem(this.projectileLayer);
-        this.playerProjectileSystem = new ProjectileSystem(this.projectileLayer);
         this.deathParticles = new DeathParticleSystem(this.particleLayer);
 
         // ── Ticker ─────────────────────────────────────────────────────────
@@ -208,16 +200,15 @@ export class World {
     destroy(): void {
         this.app.ticker.remove(this.tickerFn);
         this.player.destroy();
-        for (const e of this.enemies) e.destroy();
-        this.enemies.length = 0;
-        this.boss?.destroy();
-        this.boss = null;
+        for (const e of WorldData.enemies) e.destroy();
+        WorldData.enemies.length = 0;
+        WorldData.boss?.destroy();
+        WorldData.boss = null;
         for (const gem of this.gems) gem.destroy();
         this.gems.length = 0;
         this.projectileSystem.destroy();
-        this.playerProjectileSystem.destroy();
         this.deathParticles.destroy();
-        this.corpseSystem?.destroy();
+        WorldData.corpseSystem?.destroy();
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
@@ -245,12 +236,12 @@ export class World {
         const pr = this.player.radius;
 
         // ── Spawner ────────────────────────────────────────────────────────
-        this.spawner.update(dt, this._runTime, this.enemies.length, pp.x, pp.y);
+        this.spawner.update(dt, this._runTime, WorldData.enemies.length, pp.x, pp.y);
 
         // ── Boss spawner ───────────────────────────────────────────────────
         this.bossSpawner.update(
             this._runTime,
-            this.boss !== null && !this.boss.isDead,
+            WorldData.boss && !WorldData.boss.isDead,
             pp.x, pp.y,
             (x, y) => this.spawnBoss(x, y),
         );
@@ -262,7 +253,7 @@ export class World {
             : [];
 
         // ── Regular enemy updates + player-enemy collisions ────────────────
-        for (const enemy of this.enemies) {
+        for (const enemy of WorldData.enemies) {
             if (enemy.isDead) continue;
 
             // Enemies target the nearest entity — player or any live minion —
@@ -306,14 +297,14 @@ export class World {
         }
 
         // ── Boss update + collisions ───────────────────────────────────────
-        if (this.boss && !this.boss.isDead) {
+        if (WorldData.boss && !WorldData.boss.isDead) {
             // Boss also targets the nearest entity (player or live minion)
             let bossTargetX = pp.x;
             let bossTargetY = pp.y;
             if (liveMinions.length > 0) {
-                let minBossDist = Math.hypot(pp.x - this.boss.posX, pp.y - this.boss.posY);
+                let minBossDist = Math.hypot(pp.x - WorldData.boss.posX, pp.y - WorldData.boss.posY);
                 for (const m of liveMinions) {
-                    const md = Math.hypot(m.posX - this.boss.posX, m.posY - this.boss.posY);
+                    const md = Math.hypot(m.posX - WorldData.boss.posX, m.posY - WorldData.boss.posY);
                     if (md < minBossDist) {
                         minBossDist = md;
                         bossTargetX = m.posX;
@@ -321,19 +312,19 @@ export class World {
                     }
                 }
             }
-            this.boss.update(dt, bossTargetX, bossTargetY);
+            WorldData.boss.update(dt, bossTargetX, bossTargetY);
 
             // Boss body ↔ player contact
-            const bdx = pp.x - this.boss.posX;
-            const bdy = pp.y - this.boss.posY;
+            const bdx = pp.x - WorldData.boss.posX;
+            const bdy = pp.y - WorldData.boss.posY;
             const bdist = Math.hypot(bdx, bdy);
-            if (bdist < pr + this.boss.radius) {
+            if (bdist < pr + WorldData.boss.radius) {
                 const nx = bdist > 0.001 ? bdx / bdist : 1;
                 const ny = bdist > 0.001 ? bdy / bdist : 0;
                 const hit = this.player.takeDamage(
-                    this.boss.contactDamage,
-                    nx * this.boss.contactKnockback,
-                    ny * this.boss.contactKnockback,
+                    WorldData.boss.contactDamage,
+                    nx * WorldData.boss.contactKnockback,
+                    ny * WorldData.boss.contactKnockback,
                 );
                 if (hit) {
                     this.camera.shake(VfxConsts.SHAKE_INTENSITY, VfxConsts.SHAKE_DURATION);
@@ -341,9 +332,9 @@ export class World {
             }
 
             // Player attacks → boss (melee / resolvers)
-            const bossHit = this.player.checkHit(this.boss);
+            const bossHit = this.player.checkHit(WorldData.boss);
             if (bossHit.success) {
-                this.boss.takeDamage(bossHit.damage, bossHit.knockback.x, bossHit.knockback.y);
+                WorldData.boss.takeDamage(bossHit.damage, bossHit.knockback.x, bossHit.knockback.y);
                 this.player.healFromDamageDealt(bossHit.damage);
             }
         }
@@ -362,44 +353,21 @@ export class World {
         );
 
         // ── Summoner-specific systems ──────────────────────────────────────
-        if (this.player instanceof SummonerPlayer) {
+        /*if (this.player instanceof SummonerPlayer) {
             const summoner = this.player;
             const allEnemies: Enemy[] = [
-                ...this.enemies,
-                ...(this.boss && !this.boss.isDead ? [this.boss] : []),
+                ...WorldData.enemies,
+                ...(WorldData.boss && !WorldData.boss.isDead ? [WorldData.boss] : []),
             ];
-
-            // Player projectiles → enemies
-            this.playerProjectileSystem.updateAgainstEnemies(
-                dt,
-                allEnemies,
-                (enemy, kbx, kby, damage) => {
-                    if (enemy.isDead) return false;
-                    enemy.takeDamage(damage, kbx, kby);
-                    summoner.healFromDamageDealt(damage);
-                    return true;
-                },
-            );
-
-            // Corpse fading
-            this.corpseSystem?.update(dt);
-
-            // Auto-summon from nearby corpses
-            if (this.corpseSystem) {
-                summoner.minionSystem.trySummon(
-                    dt,
-                    pp.x, pp.y,
-                    summoner.summonRadius,
-                    this.corpseSystem,
-                );
-            }
 
             // Minion AI + lifesteal
             const minionDamage = summoner.minionSystem.update(dt, pp.x, pp.y, allEnemies);
             if (minionDamage > 0 && summoner.minionLifestealPct > 0) {
                 summoner.healBy(minionDamage * summoner.minionLifestealPct);
             }
-        }
+        }*/
+
+        WorldData.corpseSystem?.update(dt);
 
         // ── Collision separation (push overlapping entities apart) ────────────
         this.separateEntities();
@@ -408,20 +376,20 @@ export class World {
         this.deathParticles.update(dt);
 
         // ── Remove dead regular enemies + drop gems + particles ────────────
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
+        for (let i = WorldData.enemies.length - 1; i >= 0; i--) {
+            const enemy = WorldData.enemies[i];
             if (enemy.isDead) {
                 this.onEnemyDeath(enemy);
                 enemy.destroy();
-                this.enemies.splice(i, 1);
+                WorldData.enemies.splice(i, 1);
             }
         }
 
         // ── Handle dead boss ───────────────────────────────────────────────
-        if (this.boss?.isDead) {
-            this.onBossDeath(this.boss);
-            this.boss.destroy();
-            this.boss = null;
+        if (WorldData.boss?.isDead) {
+            this.onBossDeath(WorldData.boss);
+            WorldData.boss.destroy();
+            WorldData.boss = null;
         }
 
         // ── XP gem updates ─────────────────────────────────────────────────
@@ -460,7 +428,7 @@ export class World {
     /** Spawn a HexBoss at the current enemy level and wire its projectile callback. */
     private spawnBoss(x: number, y: number): void {
         const level = EnemyLevelConsts.levelFromTime(this._runTime);
-        this.boss = new HexBoss(this.enemyLayer, x, y, level, (bx, by, dx, dy) => {
+        WorldData.boss = new HexBoss(this.enemyLayer, x, y, level, (bx, by, dx, dy) => {
             this.projectileSystem.add({
                 x: bx, y: by,
                 dx, dy,
@@ -502,7 +470,7 @@ export class World {
         // Summoner: leave a corpse for minion summoning.
         // Chaser enemies → ChaserMinion; Tank / unknown → KnightMinion.
         const corpseType = enemy instanceof Chaser ? 'chaser' : 'knight';
-        this.corpseSystem?.addCorpse(enemy.posX, enemy.posY, enemy.level, corpseType);
+        WorldData.corpseSystem?.addCorpse(enemy.posX, enemy.posY, enemy.level, corpseType);
     }
 
     /**
@@ -537,7 +505,7 @@ export class World {
         this.callbacks.onHpChange?.(this.player.hp, this.player.maxHp);
 
         // Summoner: the boss corpse grants a high-level KnightMinion
-        this.corpseSystem?.addCorpse(boss.posX, boss.posY, boss.level, 'knight');
+        WorldData.corpseSystem?.addCorpse(boss.posX, boss.posY, boss.level, 'knight');
     }
 
     // ── Collision separation ──────────────────────────────────────────────────
@@ -561,8 +529,8 @@ export class World {
     private separateEntities(): void {
         const ITERS = 3;
 
-        const liveEnemies = this.enemies.filter(e => !e.isDead);
-        const boss: HexBoss | null = (this.boss && !this.boss.isDead) ? this.boss : null;
+        const liveEnemies = WorldData.enemies.filter(e => !e.isDead);
+        const boss: HexBoss | null = (WorldData.boss && !WorldData.boss.isDead) ? WorldData.boss : null;
 
         // Collect live minions when the player is a Summoner.
         const liveMinions: IMinionLike[] = [];

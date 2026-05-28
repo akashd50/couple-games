@@ -4,6 +4,7 @@ import { ChaserMinion } from '../entities/chaser-minion';
 import { SummonAreaConsts } from '../constants';
 import type { CorpseSystem } from './corpse-system';
 import type { Enemy } from '../entities/enemy';
+import { HitInfo } from "../entities/attacks";
 
 /**
  * Manages the Summoner's active Minion pool.
@@ -112,12 +113,10 @@ export class MinionSystem {
      * @param enemies  All active enemies (used for AI targeting and contact).
      * @returns        Total damage dealt by all Minions this tick.
      */
-    update(dt: number, summX: number, summY: number, enemies: Enemy[]): number {
-        let totalDamage = 0;
-
+    update(dt: number, summX: number, summY: number, enemies: Enemy[]): void {
         for (const minion of this.minions) {
             if (!minion.isDead) {
-                totalDamage += minion.update(dt, summX, summY, enemies);
+                minion.update(dt, summX, summY, enemies);
             }
         }
 
@@ -128,8 +127,14 @@ export class MinionSystem {
                 this.minions.splice(i, 1);
             }
         }
+    }
 
-        return totalDamage;
+    checkHit(enemy: Enemy, hitInfo: HitInfo) {
+        for (const minion of this.minions) {
+            if (!minion.isDead) {
+                minion.checkHit(enemy, hitInfo);
+            }
+        }
     }
 
     destroy(): void {

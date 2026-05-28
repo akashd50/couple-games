@@ -1,6 +1,8 @@
 import { Container } from 'pixi.js';
 import { Projectile, ProjectileSpec } from '../entities/projectile';
 import type { Enemy } from '../entities/enemy';
+import { HitInfo } from "../entities/attacks";
+import { getDirectionTo } from "../common-utils";
 
 /**
  * Called when a projectile collides with its target.
@@ -26,7 +28,8 @@ export type ProjectileHitHandler = (kbx: number, kby: number, damage: number) =>
 export class ProjectileSystem {
     private readonly projectiles: Projectile[] = [];
 
-    constructor(private readonly parent: Container) {}
+    constructor(private readonly parent: Container) {
+    }
 
     /** Spawn a new projectile from the given specification. */
     add(spec: ProjectileSpec): void {
@@ -66,6 +69,24 @@ export class ProjectileSystem {
                     p.kill();
                 }
             }
+        }
+
+        // Retire dead projectiles
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            if (this.projectiles[i].isDead) {
+                this.projectiles[i].destroy();
+                this.projectiles.splice(i, 1);
+            }
+        }
+    }
+
+    tUpdate(dt: number) {
+        for (const p of this.projectiles) {
+            if (p.isDead) {
+                continue;
+            }
+
+            p.update(dt);
         }
 
         // Retire dead projectiles
@@ -123,6 +144,34 @@ export class ProjectileSystem {
                 this.projectiles.splice(i, 1);
             }
         }
+    }
+
+    checkHit(enemy: Enemy): HitInfo {
+        const hitInfo = new HitInfo();
+
+        if (enemy.isDead) {
+            return hitInfo;
+        }
+
+        for (const p of this.projectiles) {
+            if (p.isDead) {
+                continue;
+            }
+
+            const dx = enemy.posX - p.posX;
+            const dy = enemy.posY - p.posY;
+            if (Math.hypot(dx, dy) < enemy.radius + p.radius) {
+                p.kill();
+                const dist = Math.hypot(dx, dy) || 1;
+                const nx = dx / dist;
+                const ny = dy / dist;
+                return hitInfo
+                    .addDamage(p.damage)
+                    .addKnockback(nx * p.knockback, ny * p.knockback);
+            }
+        }
+
+        return hitInfo;
     }
 
     /** Number of active (non-dead) projectiles. */
