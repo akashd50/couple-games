@@ -35,7 +35,7 @@ export interface UpgradeChoice {
  * automatically visible to the World.
  */
 export interface WorldCallbacks {
-    onHpChange?: (hp: number) => void;
+    onHpChange?: (hp: number, maxHp: number) => void;
     onRunEnd?: () => void;
     /**
      * Fired when the player levels up and upgrades are available.

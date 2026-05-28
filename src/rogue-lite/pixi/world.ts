@@ -243,9 +243,10 @@ export class World {
 
         // ── HP change notification ─────────────────────────────────────────
         const currentHp = this.player.hp;
+        const currentMaxHp = this.player.maxHp;
         if (currentHp !== this.lastNotifiedHp) {
             this.lastNotifiedHp = currentHp;
-            this.callbacks.onHpChange?.(currentHp);
+            this.callbacks.onHpChange?.(currentHp, currentMaxHp);
         }
     }
 }

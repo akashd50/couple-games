@@ -39,7 +39,7 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
 
     readonly isTouchDevice = signal(false);
     readonly playerHp = signal(KnightConsts.hp);
-    readonly maxPlayerHp = KnightConsts.hp;
+    readonly maxPlayerHp = signal(KnightConsts.hp);
     readonly runTime = signal(0);   // integer seconds, updated by interval
     readonly runEnded = signal(false);
 
@@ -51,7 +51,7 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
     readonly showLevelUp = signal(false);
 
     readonly hpPercent = computed(() =>
-        Math.max(0, (this.playerHp() / this.maxPlayerHp) * 100),
+        Math.max(0, (this.playerHp() / this.maxPlayerHp()) * 100),
     );
 
     readonly xpPercent = computed(() =>
@@ -78,8 +78,9 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
 
             // HP changes fire from the Pixi ticker (outside Angular zone)
             // → must call markForCheck() so OnPush view updates.
-            this.renderer.onHpChange = (hp) => {
+            this.renderer.onHpChange = (hp, maxHp) => {
                 this.playerHp.set(Math.round(hp));
+                this.maxPlayerHp.set(maxHp);
                 this.cdr.markForCheck();
             };
 

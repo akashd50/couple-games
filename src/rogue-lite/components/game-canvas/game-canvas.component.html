@@ -17,10 +17,10 @@
         <div class="hud__hp-section">
             <div class="hud__hp-bar" role="progressbar"
                  [attr.aria-valuenow]="playerHp()"
-                 [attr.aria-valuemax]="maxPlayerHp">
+                 [attr.aria-valuemax]="maxPlayerHp()">
                 <div class="hud__hp-fill" [style.width.%]="hpPercent()"></div>
             </div>
-            <span class="hud__hp-text">{{ playerHp() }} / {{ maxPlayerHp }}</span>
+            <span class="hud__hp-text">{{ playerHp() }} / {{ maxPlayerHp() }}</span>
         </div>
         <div class="hud__timer">{{ runTimeFormatted() }}</div>
     </div>
@@ -81,13 +81,13 @@
 <!-- ── Touch joystick overlays ──────────────────────────────────────────── -->
 @if (isTouchDevice()) {
     <rl-joystick
-        class="joystick--left"
-        (vectorChange)="onMoveVector($event)"
-        (released)="onMoveRelease()"
+            class="joystick--left"
+            (vectorChange)="onMoveVector($event)"
+            (released)="onMoveRelease()"
     />
     <rl-joystick
-        class="joystick--right"
-        (vectorChange)="onAimVector($event)"
-        (released)="onAimRelease()"
+            class="joystick--right"
+            (vectorChange)="onAimVector($event)"
+            (released)="onAimRelease()"
     />
 }

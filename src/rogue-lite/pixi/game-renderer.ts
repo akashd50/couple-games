@@ -23,7 +23,7 @@ export class GameRenderer {
 
     // ── Callback setters ─────────────────────────────────────────────────────
 
-    set onHpChange(fn: ((hp: number) => void) | undefined) {
+    set onHpChange(fn: ((hp: number, maxHp: number) => void) | undefined) {
         this._callbacks.onHpChange = fn;
     }
 
