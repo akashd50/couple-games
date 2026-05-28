@@ -4,6 +4,12 @@ import { Chaser } from "../entities/chaser";
 import { Vec2 } from "../types";
 import { IProps } from "../constants";
 
+interface AuraPulse {
+    phase: number;
+    currentRadius: number;
+    prevRadius: number;
+}
+
 export class AuraEffect extends Effect {
     private readonly gfx: Graphics;
     private elapsed = 0;
@@ -14,6 +20,7 @@ export class AuraEffect extends Effect {
     /** Ring radius at the end of the last sim tick. */
     private _currentRadius = 0;
     private lastPos: Vec2;
+    private pulses: AuraPulse[] = [];
 
     constructor(
         parent: Container,

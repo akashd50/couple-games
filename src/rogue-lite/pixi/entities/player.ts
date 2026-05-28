@@ -417,7 +417,7 @@ export class KnightPlayer extends Player {
 
     override enableHealTickResolver(val: number): void {
         const r = this.getResolver(HealTickResolver) ?? new HealTickResolver(KnightConsts.healTick, this);
-        r.addHealBonus(val);
+        r.getAdditive().healPerTick += val;
         this.attackResolvers.push(r);
     }
 

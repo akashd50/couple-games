@@ -24,8 +24,6 @@ import { all1sProps, applyMultiplier } from "../props-utils";
  *   Aura (1 stack) — KnightPlayer.enableAura() creates this resolver.
  */
 export class AuraResolver extends Resolver {
-    private multipliers: IProps = all1sProps();
-
     constructor(
         private readonly player: Player,
         private readonly props: IProps
@@ -33,12 +31,8 @@ export class AuraResolver extends Resolver {
         super();
     }
 
-    getMultipliers(): IProps {
-        return this.multipliers;
-    }
-
     override update(dt: number, _move: Vec2, _aimAngle: number): void {
-        this.effects[0]?.update(dt, this.player.position, applyMultiplier(this.props, this.multipliers));
+        this.effects[0]?.update(dt, this.player.position, applyMultiplier(this.props, this.multiplier));
     }
 
     override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
@@ -47,7 +41,7 @@ export class AuraResolver extends Resolver {
     // ── AttackResolver contract (passive — world handles hit detection) ───────
     override tryAttack(_dt: number, _aimAngle: number): number | undefined {
         if (this.effects.length == 0) {
-            const auraEffect = new AuraEffect(this.player.backgroundFx, this.player.position, applyMultiplier(this.props, this.multipliers), true, true);
+            const auraEffect = new AuraEffect(this.player.backgroundFx, this.player.position, applyMultiplier(this.props, this.multiplier), true, true);
 
             auraEffect.onLoop$.subscribe(() => {
                 this.clearHitSet();

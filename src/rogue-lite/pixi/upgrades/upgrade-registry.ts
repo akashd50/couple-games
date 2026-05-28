@@ -193,13 +193,24 @@ const aura: UpgradeDefinition = {
     apply: (player) => player.enableAura(),
 };
 
-const auraUpgrades: UpgradeDefinition = {
+const auraRangeUpgrade: UpgradeDefinition = {
     id: 'increase-aura-area',
     name: 'Increase Aura Range',
     maxStacks: 5,
     describe: () => `Increase the range of your aura by 20%`,
     apply: (player) => {
-        player.getResolver(AuraResolver).getMultipliers().range *= 1.2;
+        player.getResolver(AuraResolver).getMultiplier().range *= 1.2;
+    },
+    requires: ["aura"]
+};
+
+const auraPulseUpgrade: UpgradeDefinition = {
+    id: 'aura-pulse-upgrade',
+    name: 'Faster Aura Pulses',
+    maxStacks: 5,
+    describe: () => `Increase the speed of your aura pulses by 10%`,
+    apply: (player) => {
+        player.getResolver(AuraResolver).getMultiplier().duration *= 0.9;
     },
     requires: ["aura"]
 };
@@ -223,5 +234,6 @@ export const ALL_UPGRADES: UpgradeDefinition[] = [
     aftershock,
     auraShield,
     aura,
-    auraUpgrades
+    auraRangeUpgrade,
+    auraPulseUpgrade
 ];
