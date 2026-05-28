@@ -211,7 +211,7 @@ const auraPulseUpgrade: UpgradeDefinition = {
     describe: () => `Increase the speed of your aura pulses by 10%`,
     apply: (player) => {
         player.getResolver(AuraResolver).getMultiplier().duration *= 0.9;
-        player.getResolver(AuraResolver).getMultiplier().cooldown *= 0.9;
+        player.getResolver(AuraResolver).getMultiplier().cooldown *= 0.7;
     },
     requires: ["aura"]
 };

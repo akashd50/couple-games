@@ -79,7 +79,7 @@ export class GameCanvasComponent implements AfterViewInit, OnDestroy {
             // HP changes fire from the Pixi ticker (outside Angular zone)
             // → must call markForCheck() so OnPush view updates.
             this.renderer.onHpChange = (hp) => {
-                this.playerHp.set(hp);
+                this.playerHp.set(Math.round(hp));
                 this.cdr.markForCheck();
             };
 
