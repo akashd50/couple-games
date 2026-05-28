@@ -2,6 +2,14 @@ import { Container, Graphics } from 'pixi.js';
 import { CorpseConsts } from '../constants';
 
 /**
+ * The enemy type that produced this corpse.
+ * Determines which Minion variant MinionSystem will raise from it.
+ *   'chaser' → ChaserMinion (blue triangle, suicide-bomber)
+ *   'knight' → Minion / KnightMinion (purple square, sword swing)
+ */
+export type CorpseEnemyType = 'chaser' | 'knight';
+
+/**
  * A fading "corpse" node left on the ground when an enemy dies.
  *
  * Visible only when the Summoner is playing.  The Summoner's secondary ability
@@ -22,15 +30,27 @@ export class Corpse {
      */
     readonly level: number;
 
+    /**
+     * Which enemy type left this corpse — controls which Minion variant is raised.
+     */
+    readonly enemyType: CorpseEnemyType;
+
     private lifetime: number;
     private readonly gfx: Graphics;
     private _consumed = false;
 
-    constructor(parent: Container, x: number, y: number, level: number) {
-        this.posX    = x;
-        this.posY    = y;
-        this.level   = level;
-        this.lifetime = CorpseConsts.LIFETIME;
+    constructor(
+        parent: Container,
+        x: number,
+        y: number,
+        level: number,
+        enemyType: CorpseEnemyType,
+    ) {
+        this.posX      = x;
+        this.posY      = y;
+        this.level     = level;
+        this.enemyType = enemyType;
+        this.lifetime  = CorpseConsts.LIFETIME;
 
         this.gfx = new Graphics();
         this.drawCorpse(CorpseConsts.ALPHA_START);
@@ -84,9 +104,23 @@ export class Corpse {
         // Dim disc
         g.circle(0, 0, r).fill({ color: CorpseConsts.COLOR, alpha });
 
-        // Small centre mark — glowing dot visible to the Summoner
         if (alpha > 0.05) {
-            g.circle(0, 0, r * 0.38).fill({ color: CorpseConsts.MARK_COLOR, alpha: alpha * 0.85 });
+            // Type-specific centre mark so the Summoner can tell corpses apart
+            if (this.enemyType === 'chaser') {
+                // Small triangle → indicates ChaserMinion will be raised
+                const mr       = r * 0.42;
+                const sqrt3o2  = 0.866;
+                g.poly([
+                     mr,        0,
+                    -mr * 0.5, -mr * sqrt3o2,
+                    -mr * 0.5,  mr * sqrt3o2,
+                ]).fill({ color: CorpseConsts.MARK_COLOR, alpha: alpha * 0.85 });
+            } else {
+                // Small square → indicates KnightMinion will be raised
+                const mr = r * 0.34;
+                g.rect(-mr, -mr, mr * 2, mr * 2)
+                 .fill({ color: CorpseConsts.MARK_COLOR, alpha: alpha * 0.85 });
+            }
         }
     }
 }

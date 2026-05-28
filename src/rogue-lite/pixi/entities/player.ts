@@ -343,6 +343,18 @@ export abstract class Player {
     }
 
     /**
+     * Apply a world-space position delta from the collision-separation pass.
+     * Clamps to arena bounds and syncs the sprite immediately so the visual
+     * is correct in the same frame.
+     */
+    nudge(dx: number, dy: number): void {
+        const r = this.radius;
+        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX + dx));
+        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY + dy));
+        this.container.position.set(this.posX, this.posY);
+    }
+
+    /**
      * Apply a hit — only lands if iframes are not active.
      *
      * Damage pipeline:

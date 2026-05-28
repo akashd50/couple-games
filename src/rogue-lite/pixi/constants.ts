@@ -411,8 +411,83 @@ export class MinionConsts {
     /** Iframes given to a minion after taking contact damage (seconds). */
     static readonly IFRAMES = 0.55;
 
+    // ── Wander AI ─────────────────────────────────────────────────────────────
+    /** World-unit radius from the Summoner within which minions pick wander targets. */
+    static readonly WANDER_RADIUS      = 160;
+    /**
+     * If a minion drifts farther than this from the Summoner it ignores the
+     * wander target and beelines directly back to the Summoner.
+     */
+    static readonly LEASH_DISTANCE     = 350;
+    /** Minion considers itself "arrived" at the wander target within this distance. */
+    static readonly WANDER_ARRIVE_DIST = 25;
+    /** Maximum seconds a minion lingers idle at a wander target before moving. */
+    static readonly WANDER_LINGER_MAX  = 1.2;
+    /** Minimum seconds a minion lingers idle at a wander target before moving. */
+    static readonly WANDER_LINGER_MIN  = 0.3;
+
+    // ── Reciprocal contact damage (minion → enemy on body touch) ─────────────
+    /** Fraction of minion's attack damage applied to an enemy on body contact. */
+    static readonly CONTACT_ENEMY_DAMAGE_MULT = 0.50;
+    /** Knockback impulse on an enemy from minion body contact (world units/s). */
+    static readonly CONTACT_ENEMY_KNOCKBACK   = 50;
+
+    // ── Sword-swing VFX (Knight Minion) ──────────────────────────────────────
+    /** Seconds the golden arc is visible after each sword strike. */
+    static readonly SWING_DURATION   = 0.16;
+    /** Gold fill colour for the swing arc. */
+    static readonly SWING_COLOR      = 0xffcc44;
+    /** Half-angle of the swing wedge (±60° = full 120° arc). */
+    static readonly SWING_HALF_ANGLE = Math.PI / 3;
+
     static readonly COLOR         = 0x7722aa;
     static readonly OUTLINE_COLOR = 0xcc88ff;
+}
+
+// ─── Chaser Minion ────────────────────────────────────────────────────────────
+/**
+ * Stats for ChaserMinion — a fast, fragile suicide-bomber raised from Chaser
+ * enemy corpses.  Its only damage source is body contact: it sprints straight
+ * at enemies, dealing high contact damage while rapidly taking damage in return.
+ */
+export class ChaserMinionConsts {
+    /** Circumradius of the equilateral triangle body (world units). */
+    static readonly BASE_RADIUS         = 9;
+    /** HP at minion level 1. */
+    static readonly BASE_HP             = 18;
+    /** Additional HP per level above 1. */
+    static readonly HP_PER_LEVEL        = 5;
+    /** World units / second — faster than the KnightMinion. */
+    static readonly SPEED               = 265;
+    /** Wander zone radius from the Summoner (tighter than KnightMinion). */
+    static readonly WANDER_RADIUS       = 110;
+    /** Leash-back threshold (world units from Summoner). */
+    static readonly LEASH_DISTANCE      = 380;
+    /** "Arrived" proximity for a wander target. */
+    static readonly WANDER_ARRIVE_DIST  = 22;
+    static readonly WANDER_LINGER_MAX   = 0.35;
+    static readonly WANDER_LINGER_MIN   = 0.05;
+    /** Detection range for switching into charge-attack mode. */
+    static readonly FOLLOW_RANGE        = 420;
+    /** Base damage applied to the enemy per contact window. */
+    static readonly ATTACK_DAMAGE       = 22;
+    /** Additional damage per minion level above 1. */
+    static readonly DAMAGE_PER_LEVEL    = 5;
+    /** Fraction of enemy contactDamage the ChaserMinion takes each contact window. */
+    static readonly CONTACT_DAMAGE_MULT        = 0.65;
+    /** Fraction of _damage dealt to the enemy each contact window. */
+    static readonly CONTACT_ENEMY_DAMAGE_MULT  = 0.85;
+    /** Knockback impulse applied to the enemy on contact (world units/s). */
+    static readonly CONTACT_ENEMY_KNOCKBACK    = 90;
+    /**
+     * Iframes after taking contact damage (very short — ChaserMinions are fragile
+     * and die quickly when they charge into enemies).
+     */
+    static readonly IFRAMES = 0.28;
+    /** Bright blue fill. */
+    static readonly COLOR         = 0x2255ff;
+    /** Light blue outline. */
+    static readonly OUTLINE_COLOR = 0x66aaff;
 }
 
 // ─── Corpse node (Summoner sees these on enemy death) ────────────────────────

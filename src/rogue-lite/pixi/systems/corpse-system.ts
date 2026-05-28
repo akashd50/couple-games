@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
-import { Corpse, } from '../entities/corpse';
+import { Corpse } from '../entities/corpse';
+import type { CorpseEnemyType } from '../entities/corpse';
 import { CorpseConsts } from '../constants';
 
 /**
@@ -15,9 +16,16 @@ export class CorpseSystem {
 
     // ── Mutators ─────────────────────────────────────────────────────────────
 
-    /** Spawn a new corpse at world position (x, y) from an enemy of the given level. */
-    addCorpse(x: number, y: number, level: number): void {
-        this.corpses.push(new Corpse(this.parent, x, y, level));
+    /**
+     * Spawn a new corpse at world position (x, y).
+     *
+     * @param x          World X of the dead enemy.
+     * @param y          World Y of the dead enemy.
+     * @param level      Enemy spawn level (determines resulting Minion stats).
+     * @param enemyType  'chaser' → ChaserMinion; 'knight' → KnightMinion.
+     */
+    addCorpse(x: number, y: number, level: number, enemyType: CorpseEnemyType): void {
+        this.corpses.push(new Corpse(this.parent, x, y, level, enemyType));
     }
 
     // ── Per-tick ─────────────────────────────────────────────────────────────

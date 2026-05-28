@@ -6,6 +6,7 @@ import { Enemy } from './entities/enemy';
 import { Chaser } from './entities/chaser';
 import { Tank } from './entities/tank';
 import { HexBoss } from './entities/hex-boss';
+import type { IMinionLike } from './entities/knight-minion';
 import { XpGem } from './entities/xp-gem';
 import { CameraSystem } from './systems/camera-system';
 import { SpawnerSystem } from './systems/spawner-system';
@@ -254,11 +255,32 @@ export class World {
             (x, y) => this.spawnBoss(x, y),
         );
 
+        // ── Live minions (needed before enemy loop for nearest-entity targeting) ──
+        // Re-used below in the Summoner section without an extra filter pass.
+        const liveMinions: IMinionLike[] = this.player instanceof SummonerPlayer
+            ? this.player.minionSystem.getLiveMinions()
+            : [];
+
         // ── Regular enemy updates + player-enemy collisions ────────────────
         for (const enemy of this.enemies) {
             if (enemy.isDead) continue;
 
-            enemy.update(dt, pp.x, pp.y);
+            // Enemies target the nearest entity — player or any live minion —
+            // so minions naturally act as meatshields.
+            let targetX = pp.x;
+            let targetY = pp.y;
+            if (liveMinions.length > 0) {
+                let minDist = Math.hypot(pp.x - enemy.posX, pp.y - enemy.posY);
+                for (const m of liveMinions) {
+                    const md = Math.hypot(m.posX - enemy.posX, m.posY - enemy.posY);
+                    if (md < minDist) {
+                        minDist = md;
+                        targetX = m.posX;
+                        targetY = m.posY;
+                    }
+                }
+            }
+            enemy.update(dt, targetX, targetY);
 
             // Player ↔ Enemy contact
             const dx = pp.x - enemy.posX;
@@ -285,7 +307,21 @@ export class World {
 
         // ── Boss update + collisions ───────────────────────────────────────
         if (this.boss && !this.boss.isDead) {
-            this.boss.update(dt, pp.x, pp.y);
+            // Boss also targets the nearest entity (player or live minion)
+            let bossTargetX = pp.x;
+            let bossTargetY = pp.y;
+            if (liveMinions.length > 0) {
+                let minBossDist = Math.hypot(pp.x - this.boss.posX, pp.y - this.boss.posY);
+                for (const m of liveMinions) {
+                    const md = Math.hypot(m.posX - this.boss.posX, m.posY - this.boss.posY);
+                    if (md < minBossDist) {
+                        minBossDist = md;
+                        bossTargetX = m.posX;
+                        bossTargetY = m.posY;
+                    }
+                }
+            }
+            this.boss.update(dt, bossTargetX, bossTargetY);
 
             // Boss body ↔ player contact
             const bdx = pp.x - this.boss.posX;
@@ -364,6 +400,9 @@ export class World {
                 summoner.healBy(minionDamage * summoner.minionLifestealPct);
             }
         }
+
+        // ── Collision separation (push overlapping entities apart) ────────────
+        this.separateEntities();
 
         // ── Death particles update ─────────────────────────────────────────
         this.deathParticles.update(dt);
@@ -450,7 +489,7 @@ export class World {
         );
 
         for (let i = 0; i < enemy.xpDropCount; i++) {
-            const angle   = (Math.PI * 2 * i) / enemy.xpDropCount;
+            const angle = (Math.PI * 2 * i) / enemy.xpDropCount;
             const scatter = 18;
             this.gems.push(new XpGem(
                 this.gemLayer,
@@ -460,8 +499,10 @@ export class World {
             ));
         }
 
-        // Summoner: leave a corpse for minion summoning
-        this.corpseSystem?.addCorpse(enemy.posX, enemy.posY, enemy.level);
+        // Summoner: leave a corpse for minion summoning.
+        // Chaser enemies → ChaserMinion; Tank / unknown → KnightMinion.
+        const corpseType = enemy instanceof Chaser ? 'chaser' : 'knight';
+        this.corpseSystem?.addCorpse(enemy.posX, enemy.posY, enemy.level, corpseType);
     }
 
     /**
@@ -482,7 +523,7 @@ export class World {
 
         const gemCount = HexBossConsts.XP_DROP_COUNT;
         for (let i = 0; i < gemCount; i++) {
-            const angle   = (Math.PI * 2 * i) / gemCount;
+            const angle = (Math.PI * 2 * i) / gemCount;
             const scatter = VfxConsts.BOSS_GEM_SCATTER_RADIUS * (0.6 + Math.random() * 0.8);
             this.gems.push(new XpGem(
                 this.gemLayer,
@@ -495,7 +536,142 @@ export class World {
         this.player.healBy(HexBossConsts.HEAL_ON_KILL);
         this.callbacks.onHpChange?.(this.player.hp, this.player.maxHp);
 
-        // Summoner: the boss corpse grants a high-level minion
-        this.corpseSystem?.addCorpse(boss.posX, boss.posY, boss.level);
+        // Summoner: the boss corpse grants a high-level KnightMinion
+        this.corpseSystem?.addCorpse(boss.posX, boss.posY, boss.level, 'knight');
+    }
+
+    // ── Collision separation ──────────────────────────────────────────────────
+
+    /**
+     * Push-apart pass run once per sim tick after all entity movement.
+     *
+     * Pairs resolved (3 iterations each for stability):
+     *   enemy  ↔ enemy       — equal push
+     *   enemy  ↔ boss        — enemy absorbs 90 %, boss 10 % (boss is heavy)
+     *   minion ↔ minion      — equal push
+     *   minion ↔ enemy       — equal push
+     *   minion ↔ boss        — minion absorbs 90 %, boss 10 %
+     *   player ↔ enemy       — equal push; player position synced immediately
+     *   player ↔ boss        — player absorbs 70 %, boss 30 %
+     *
+     * Enemies and minions have posX/posY mutated directly; the sprite lags at
+     * most one tick (≈16 ms at 60 fps — imperceptible).  The player sprite is
+     * synced in the same frame via Player.nudge().
+     */
+    private separateEntities(): void {
+        const ITERS = 3;
+
+        const liveEnemies = this.enemies.filter(e => !e.isDead);
+        const boss: HexBoss | null = (this.boss && !this.boss.isDead) ? this.boss : null;
+
+        // Collect live minions when the player is a Summoner.
+        const liveMinions: IMinionLike[] = [];
+        if (this.player instanceof SummonerPlayer) {
+            liveMinions.push(...this.player.minionSystem.getLiveMinions());
+        }
+
+        // Proxy object lets us feed the player into pushApart without exposing
+        // protected posX/posY, then apply the net delta at the end.
+        const pp = this.player.position;
+        const pProxy = { posX: pp.x, posY: pp.y, radius: this.player.radius };
+
+        for (let iter = 0; iter < ITERS; iter++) {
+            // ── Enemy ↔ Enemy ──────────────────────────────────────────────
+            for (let i = 0; i < liveEnemies.length; i++) {
+                for (let j = i + 1; j < liveEnemies.length; j++) {
+                    World.pushApart(liveEnemies[i], liveEnemies[j], 0.5);
+                }
+            }
+
+            // ── Enemy ↔ Boss ───────────────────────────────────────────────
+            if (boss) {
+                for (const e of liveEnemies) {
+                    World.pushApart(e, boss, 0.9); // boss barely yields
+                }
+            }
+
+            // ── Minion ↔ Minion ────────────────────────────────────────────
+            for (let i = 0; i < liveMinions.length; i++) {
+                for (let j = i + 1; j < liveMinions.length; j++) {
+                    World.pushApart(liveMinions[i], liveMinions[j], 0.5);
+                }
+            }
+
+            // ── Minion ↔ Enemy ─────────────────────────────────────────────
+            for (const minion of liveMinions) {
+                for (const enemy of liveEnemies) {
+                    World.pushApart(minion, enemy, 0.5);
+                }
+            }
+
+            // ── Minion ↔ Boss ──────────────────────────────────────────────
+            if (boss) {
+                for (const minion of liveMinions) {
+                    World.pushApart(minion, boss, 0.9);
+                }
+            }
+
+            // ── Player ↔ Enemy ─────────────────────────────────────────────
+            for (const enemy of liveEnemies) {
+                World.pushApart(pProxy, enemy, 0.5);
+            }
+
+            // ── Player ↔ Boss ──────────────────────────────────────────────
+            if (boss) {
+                World.pushApart(pProxy, boss, 0.7);
+            }
+        }
+
+        // Apply accumulated player delta (nudge handles arena clamping + sprite sync).
+        const pdx = pProxy.posX - pp.x;
+        const pdy = pProxy.posY - pp.y;
+        if (Math.abs(pdx) + Math.abs(pdy) > 0.001) {
+            this.player.nudge(pdx, pdy);
+        }
+
+        // Clamp enemies and minions to arena bounds after separation.
+        const S = ArenaConsts.SIZE;
+        for (const e of liveEnemies) {
+            e.posX = Math.max(e.radius, Math.min(S - e.radius, e.posX));
+            e.posY = Math.max(e.radius, Math.min(S - e.radius, e.posY));
+        }
+        if (boss) {
+            boss.posX = Math.max(boss.radius, Math.min(S - boss.radius, boss.posX));
+            boss.posY = Math.max(boss.radius, Math.min(S - boss.radius, boss.posY));
+        }
+        for (const m of liveMinions) {
+            m.posX = Math.max(m.radius, Math.min(S - m.radius, m.posX));
+            m.posY = Math.max(m.radius, Math.min(S - m.radius, m.posY));
+        }
+    }
+
+    /**
+     * Resolve overlap between two circular entities.
+     *
+     * @param a       First entity (posX, posY, radius — all public/mutable).
+     * @param b       Second entity.
+     * @param shareA  Fraction of the overlap depth pushed onto `a`.
+     *                `b` absorbs the remaining (1 − shareA).
+     */
+    private static pushApart(
+        a: { posX: number; posY: number; readonly radius: number },
+        b: { posX: number; posY: number; readonly radius: number },
+        shareA: number,
+    ): void {
+        const dx = b.posX - a.posX;
+        const dy = b.posY - a.posY;
+        const dist = Math.hypot(dx, dy);
+        const minDist = a.radius + b.radius;
+        if (dist >= minDist) return;   // not overlapping
+
+        const depth = minDist - dist;
+        // Normal pointing from a → b; fall back to +x when perfectly coincident.
+        const nx = dist > 0.001 ? dx / dist : 1;
+        const ny = dist > 0.001 ? dy / dist : 0;
+
+        a.posX -= nx * depth * shareA;
+        a.posY -= ny * depth * shareA;
+        b.posX += nx * depth * (1 - shareA);
+        b.posY += ny * depth * (1 - shareA);
     }
 }

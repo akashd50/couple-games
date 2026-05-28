@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
-import { Minion } from '../entities/minion';
+import { KnightMinion, IMinionLike } from '../entities/knight-minion';
+import { ChaserMinion } from '../entities/chaser-minion';
 import { SummonAreaConsts } from '../constants';
 import type { CorpseSystem } from './corpse-system';
 import type { Enemy } from '../entities/enemy';
@@ -9,12 +10,15 @@ import type { Enemy } from '../entities/enemy';
  *
  * Responsibilities:
  *  - Auto-summon from nearby corpses on a fixed cooldown.
+ *  - Factory: spawns the correct Minion variant based on the corpse's enemyType.
+ *      'chaser' corpse → ChaserMinion  (blue triangle, suicide-bomber contact attacker)
+ *      'knight' corpse → Minion        (purple square, sword-swing melee)
  *  - Kill the weakest Minion when the cap is exceeded.
  *  - Update every Minion's AI each tick.
  *  - Report total damage dealt (for Summoner lifesteal).
  */
 export class MinionSystem {
-    private readonly minions: Minion[] = [];
+    private readonly minions: IMinionLike[] = [];
     private summonCooldown = 0;
     private _cap: number;
 
@@ -27,8 +31,18 @@ export class MinionSystem {
 
     // ── Getters ──────────────────────────────────────────────────────────────
 
-    get count(): number { return this.minions.filter(m => !m.isDead).length; }
-    get cap(): number   { return this._cap; }
+    get count(): number {
+        return this.minions.filter(m => !m.isDead).length;
+    }
+
+    get cap(): number {
+        return this._cap;
+    }
+
+    /** Live Minion instances — used by World for collision separation. */
+    getLiveMinions(): IMinionLike[] {
+        return this.minions.filter(m => !m.isDead);
+    }
 
     /** 0 when cooldown is ready, approaching 1 while waiting. */
     get summonCooldownFrac(): number {
@@ -38,14 +52,18 @@ export class MinionSystem {
     // ── Upgrade mutator ───────────────────────────────────────────────────────
 
     /** Legion upgrade: add n to the maximum simultaneous minion count. */
-    increaseCap(n: number): void { this._cap += n; }
+    increaseCap(n: number): void {
+        this._cap += n;
+    }
 
     // ── Per-tick ─────────────────────────────────────────────────────────────
 
     /**
      * Advance the summon cooldown and try to raise a Minion from a nearby corpse.
      *
-     * Called every sim tick by World when the player is a Summoner.
+     * The corpse's `enemyType` field drives which Minion variant is created:
+     *   'chaser' → ChaserMinion
+     *   'knight' → Minion (KnightMinion)
      *
      * @param dt            Sim delta (seconds).
      * @param summX         Summoner world X.
@@ -73,11 +91,15 @@ export class MinionSystem {
             weakest.kill();
         }
 
-        // Consume nearest corpse and spawn a Minion at its position
+        // Consume nearest corpse and spawn the matching Minion type at its position
         const corpse = nearby[0];
         corpse.consume();
-        this.minions.push(new Minion(this.parent, corpse.posX, corpse.posY, corpse.level));
 
+        const newMinion: IMinionLike = corpse.enemyType === 'chaser'
+            ? new ChaserMinion(this.parent, corpse.posX, corpse.posY, corpse.level)
+            : new KnightMinion(this.parent, corpse.posX, corpse.posY, corpse.level);
+
+        this.minions.push(newMinion);
         this.summonCooldown = SummonAreaConsts.COOLDOWN;
     }
 
