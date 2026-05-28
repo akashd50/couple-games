@@ -1,6 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Vec2 } from '../types';
-import { ArenaConsts, DustCloudConsts, KnightConsts, KnightProps, PhysicsConsts, XpGemConsts } from '../constants';
+import { ArenaConsts, DustCloudConsts, KnightConsts, PhysicsConsts, XpGemConsts } from '../constants';
 import { Resolver, HitInfo } from './attacks';
 import { ShockwaveResolver } from './shockwave-resolver';
 import { AftershockResolver } from './aftershock-resolver';
@@ -10,6 +10,7 @@ import { Constructor, wrapAngle } from '../common-utils';
 import { SwingAttackResolver } from "./swing-resolver";
 import { HealTickResolver } from "./heal-tick-resolver";
 import { DustCloudSystem } from '../effects/dust-cloud';
+import { Entity } from "./entity";
 
 /**
  * Abstract base for all player classes.
@@ -35,21 +36,8 @@ import { DustCloudSystem } from '../effects/dust-cloud';
  * player.resolvers and handles world-space effects (shockwave physics, aura damage)
  * by checking instanceof for specific resolver types.
  */
-export abstract class Player {
-    protected readonly container: Container;
+export abstract class Player extends Entity {
     protected readonly backgroundFxContainer: Container;
-    protected posX: number;
-    protected posY: number;
-
-    // ── Knockback velocity ────────────────────────────────────────────────────
-    protected vx = 0;
-    protected vy = 0;
-
-    // ── HP ────────────────────────────────────────────────────────────────────
-    protected _hp: number;
-    protected _maxHp: number;
-    /** Remaining invincibility seconds after a hit. */
-    protected iframes = 0;
 
     // ── Attack resolvers ──────────────────────────────────────────────────────
     /** All active attack resolvers.  Iterated for tryAttack / checkHit / update / draw. */
@@ -96,23 +84,21 @@ export abstract class Player {
     protected _movementSpeedMult = 1;
 
     constructor(parent: Container) {
-        this.posX = ArenaConsts.SIZE / 2;
-        this.posY = ArenaConsts.SIZE / 2;
+        super(parent);
+
+        this.position = { x: ArenaConsts.SIZE / 2, y: ArenaConsts.SIZE / 2 };
         this._hp = KnightConsts.hp;
         this._maxHp = KnightConsts.hp;
 
         // Prev-pos initialised to spawn point; subclasses may adjust in their ctors
-        this._prevPosX = this.posX;
-        this._prevPosY = this.posY;
+        this._prevPosX = this.position.x;
+        this._prevPosY = this.position.y;
 
-        this.container = new Container();
         this.container.label = 'player';
-        this.container.position.set(this.posX, this.posY);
+        this.container.position.set(this.position.x, this.position.y);
 
         this.backgroundFxContainer = new Container();
         this.backgroundFxContainer.label = "bg_fx";
-
-        parent.addChild(this.container);
         parent.addChild(this.backgroundFxContainer);
     }
 
@@ -122,8 +108,8 @@ export abstract class Player {
         return this.backgroundFxContainer;
     }
 
-    get position(): Vec2 {
-        return { x: this.posX, y: this.posY };
+    getPosition(): Vec2 {
+        return this.position;
     }
 
     get hp(): number {
@@ -283,13 +269,13 @@ export abstract class Player {
         this.issueUpdate(dt, move, aimAngle);
 
         // Record pre-move position for per-frame speed computation (used by dust clouds)
-        this._prevPosX = this.posX;
-        this._prevPosY = this.posY;
+        this._prevPosX = this.position.x;
+        this._prevPosY = this.position.y;
 
         // Knockback decay
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.vx *= friction;
-        this.vy *= friction;
+        this.velocity.x *= friction;
+        this.velocity.y *= friction;
 
         // Movement — directional speed bonus when facing the movement direction
         let speedBonus = 0;
@@ -300,14 +286,14 @@ export abstract class Player {
         }
         const effectiveSpeed = this._baseSpeed * this._movementSpeedMult * (1 + speedBonus);
 
-        this.posX += (move.x * effectiveSpeed + this.vx) * dt;
-        this.posY += (move.y * effectiveSpeed + this.vy) * dt;
+        this.position.x += (move.x * effectiveSpeed + this.velocity.x) * dt;
+        this.position.y += (move.y * effectiveSpeed + this.velocity.y) * dt;
 
         const r = this.radius;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
+        this.position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x));
+        this.position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y));
 
-        this.container.position.set(this.posX, this.posY);
+        this.container.position.set(this.position.x, this.position.y);
 
         for (const r of this.attackResolvers) {
             r.update(dt, move, aimAngle);
@@ -360,9 +346,9 @@ export abstract class Player {
      */
     nudge(dx: number, dy: number): void {
         const r = this.radius;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX + dx));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY + dy));
-        this.container.position.set(this.posX, this.posY);
+        this.position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x + dx));
+        this.position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y + dy));
+        this.container.position.set(this.position.x, this.position.y);
     }
 
     /**
@@ -399,8 +385,8 @@ export abstract class Player {
         this.iframes = KnightConsts.iframesAfterDamage;
 
         const resistFactor = Math.max(0, 1 - this._knockbackResist);
-        this.vx += kbx * resistFactor;
-        this.vy += kby * resistFactor;
+        this.velocity.x += kbx * resistFactor;
+        this.velocity.y += kby * resistFactor;
         return true;
     }
 
@@ -506,9 +492,9 @@ export class KnightPlayer extends Player {
 
         // Dust clouds — compute effective speed from actual position delta this tick
         const speed = dt > 0
-            ? Math.hypot(this.posX - this._prevPosX, this.posY - this._prevPosY) / dt
+            ? Math.hypot(this.position.x - this._prevPosX, this.position.y - this._prevPosY) / dt
             : 0;
-        this.dustSystem.update(dt, this.posX, this.posY, speed);
+        this.dustSystem.update(dt, this.position.x, this.position.y, speed);
     }
 
     protected override onRadiusChanged(): void {

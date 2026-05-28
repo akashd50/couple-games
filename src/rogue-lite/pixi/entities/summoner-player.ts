@@ -167,7 +167,7 @@ export class SummonerPlayer extends Player {
         this.orbitAngle += dt * 2.4; // rotate orbit dots
         this.projectileSystem.tUpdate(dt);
 
-        this.minionSystem.update(dt, this.posX, this.posY, [...WorldData.enemies, ...(WorldData.boss ? [WorldData.boss] : [])]);
+        this.minionSystem.update(dt, this.position.x, this.position.y, [...WorldData.enemies, ...(WorldData.boss ? [WorldData.boss] : [])]);
         this.minionSystem.trySummon(dt, this.position.x, this.position.y, this.summonRadius, WorldData.corpseSystem);
     }
 
@@ -177,9 +177,9 @@ export class SummonerPlayer extends Player {
 
         // Dust puffs — speed from actual position delta
         const speed = dt > 0
-            ? Math.hypot(this.posX - this._prevPosX, this.posY - this._prevPosY) / dt
+            ? Math.hypot(this.position.x - this._prevPosX, this.position.y - this._prevPosY) / dt
             : 0;
-        this.dustSystem.update(dt, this.posX, this.posY, speed);
+        this.dustSystem.update(dt, this.position.x, this.position.y, speed);
     }
 
     protected override onRadiusChanged(): void {
@@ -206,8 +206,8 @@ export class SummonerPlayer extends Player {
             const spawnDist = this.radius + SummonerConsts.PROJ_RADIUS + 2;
 
             this.projectileSystem.add({
-                x: this.posX + dx * spawnDist,
-                y: this.posY + dy * spawnDist,
+                x: this.position.x + dx * spawnDist,
+                y: this.position.y + dy * spawnDist,
                 dx, dy,
                 speed: SummonerConsts.PROJ_SPEED,
                 damage: this._projDamage,
@@ -252,7 +252,7 @@ export class SummonerPlayer extends Player {
         const g = this.summonAreaGfx;
         g.clear();
         // Track player world position
-        g.position.set(this.posX, this.posY);
+        g.position.set(this.position.x, this.position.y);
 
         const r = this._summonRadius;
         // Translucent fill

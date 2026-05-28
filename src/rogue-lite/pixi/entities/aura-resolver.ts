@@ -33,7 +33,7 @@ export class AuraResolver extends Resolver {
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number): void {
-        this.effects[0]?.update(dt, this.player.position, applyMultiplier(this.props, this.multiplier));
+        this.effects[0]?.update(dt, this.player.getPosition(), applyMultiplier(this.props, this.multiplier));
     }
 
     override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
@@ -44,7 +44,7 @@ export class AuraResolver extends Resolver {
         if (this.effects.length === 0) {
             const auraEffect = new AuraEffect(
                 this.player.backgroundFx,
-                this.player.position,
+                this.player.getPosition(),
                 applyMultiplier(this.props, this.multiplier),
                 true,  // loop
                 true,  // track player position
@@ -70,7 +70,7 @@ export class AuraResolver extends Resolver {
     override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
         const effect = this.effects[0] as AuraEffect | undefined;
         if (effect?.isInRange(enemy)) {
-            const dir = getDirectionTo(this.player.position, { x: enemy.posX, y: enemy.posY });
+            const dir = getDirectionTo(this.player.getPosition(), { x: enemy.posX, y: enemy.posY });
             return new HitInfo()
                 .setDamage(this.props.damage)
                 .setKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);

@@ -72,7 +72,7 @@ export class AftershockResolver extends Resolver {
         if (angle !== null) {
             this.clearHitSet();
             const shockwave = new ShockwaveEffect(
-                this.player.backgroundFx, this.player.position.x, this.player.position.y, angle,
+                this.player.backgroundFx, this.player.getPosition().x, this.player.getPosition().y, angle,
                 this.halfAngle, this.innerRadius, KnightConsts.aftershock.range, KnightConsts.aftershock.color, KnightConsts.aftershock.duration
             );
             this.effects.push(shockwave);
@@ -85,7 +85,7 @@ export class AftershockResolver extends Resolver {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
-                const dir = getDirectionTo(this.player.position, { x: enemy.posX, y: enemy.posY });
+                const dir = getDirectionTo(this.player.getPosition(), { x: enemy.posX, y: enemy.posY });
                 hitInfo
                     .setDamage(KnightConsts.aftershock.damage)
                     .setKnockback(dir.x * KnightConsts.aftershock.knockback, dir.y * KnightConsts.aftershock.knockback);

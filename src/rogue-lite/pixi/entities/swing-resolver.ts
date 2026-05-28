@@ -58,7 +58,7 @@ export class SwingAttackResolver extends Resolver {
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number) {
-        this.swingGfx.position.set(this.player.position.x, this.player.position.y);
+        this.swingGfx.position.set(this.player.getPosition().x, this.player.getPosition().y);
 
         if (this.swingTimer > 0) {
             this.swingTimer = Math.max(0, this.swingTimer - dt);
@@ -108,14 +108,15 @@ export class SwingAttackResolver extends Resolver {
             return undefined;
         }
 
+        const position = player.getPosition();
         if (isInAttackCone(
-            player.position.x, player.position.y,
+            position.x, position.y,
             this.arcStart, this.arcEnd,
             enemy.posX, enemy.posY, enemy.radius,
             this.effectiveRange,
         )) {
-            const dx2 = enemy.posX - player.position.x;
-            const dy2 = enemy.posY - player.position.y;
+            const dx2 = enemy.posX - position.x;
+            const dy2 = enemy.posY - position.y;
             const d2 = Math.hypot(dx2, dy2);
             const kbx = d2 > 0.001 ? (dx2 / d2) * this.props.knockback : this.props.knockback;
             const kby = d2 > 0.001 ? (dy2 / d2) * this.props.knockback : 0;

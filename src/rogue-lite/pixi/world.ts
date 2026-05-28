@@ -176,8 +176,7 @@ export class World {
                 }
             }
 
-            this.camera.update(rawDt, this.player.position, this.lastAim,
-                host.clientWidth, host.clientHeight);
+            this.camera.update(rawDt, this.player.getPosition(), this.lastAim, host.clientWidth, host.clientHeight);
         };
 
         app.ticker.add(this.tickerFn);
@@ -218,7 +217,7 @@ export class World {
         if (this.runEnded || this.isPaused) return;
 
         // Resolve player screen position for aim input
-        const wp = this.player.position;
+        const wp = this.player.getPosition();
         const playerScreenX = wp.x + this.worldRoot.position.x;
         const playerScreenY = wp.y + this.worldRoot.position.y;
 
@@ -232,7 +231,7 @@ export class World {
         // ── Player movement ────────────────────────────────────────────────
         this.player.update(dt, move, aimAngle);
 
-        const pp = this.player.position;
+        const pp = this.player.getPosition();
         const pr = this.player.radius;
 
         // ── Spawner ────────────────────────────────────────────────────────
@@ -540,7 +539,7 @@ export class World {
 
         // Proxy object lets us feed the player into pushApart without exposing
         // protected posX/posY, then apply the net delta at the end.
-        const pp = this.player.position;
+        const pp = this.player.getPosition();
         const pProxy = { posX: pp.x, posY: pp.y, radius: this.player.radius };
 
         for (let iter = 0; iter < ITERS; iter++) {
