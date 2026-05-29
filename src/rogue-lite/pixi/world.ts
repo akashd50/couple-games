@@ -17,10 +17,15 @@ import { DeathParticleSystem } from './effects/death-particle';
 import { InputManager } from './input-manager';
 import { ALL_UPGRADES } from './upgrades/upgrade-registry';
 import {
-    ArenaConsts, ChaserConsts, EnemyLevelConsts, TankConsts, HexBossConsts,
-    KnightConsts, ProjectileConsts, SimConsts, VfxConsts,
+    ArenaConsts,
+    ChaserConsts,
+    EnemyLevelConsts,
+    TankConsts,
+    HexBossConsts,
+    ProjectileConsts,
+    SimConsts,
+    VfxConsts
 } from './constants';
-import { wrapAngle } from './common-utils';
 import { PlayerClass, Vec2, WorldCallbacks } from './types';
 import { WorldData } from "./systems/world-data";
 import { Entity } from "./entities/entity";
@@ -43,7 +48,6 @@ import { Minion } from "./entities/knight-minion";
  *   - Dust-cloud VFX on both player classes (managed inside each Player subclass)
  */
 export class World {
-    private readonly player: Player;
     private readonly gems: XpGem[] = [];
     private readonly camera: CameraSystem;
     private readonly worldRoot: Container;
@@ -117,16 +121,16 @@ export class World {
 
         // ── Player ─────────────────────────────────────────────────────────
         if (playerClass === 'summoner') {
-            this.player = new SummonerPlayer(
+            WorldData.player = new SummonerPlayer(
                 playerLayer,
                 this.minionLayer,
                 this.projectileLayer
             );
         } else {
-            this.player = new KnightPlayer(playerLayer);
+            WorldData.player = new KnightPlayer(playerLayer);
         }
 
-        this.lastNotifiedHp = this.player.hp;
+        this.lastNotifiedHp = WorldData.player.hp;
 
         // ── Corpse system (Summoner only) ──────────────────────────────────
         WorldData.corpseSystem = playerClass === 'summoner'
@@ -176,7 +180,7 @@ export class World {
                 }
             }
 
-            this.camera.update(rawDt, this.player.getPosition(), this.lastAim, host.clientWidth, host.clientHeight);
+            this.camera.update(rawDt, WorldData.player.getPosition(), this.lastAim, host.clientWidth, host.clientHeight);
         };
 
         app.ticker.add(this.tickerFn);
@@ -192,13 +196,13 @@ export class World {
      */
     selectUpgrade(id: string): void {
         if (this.runEnded) return;
-        this.levelSystem.applyUpgrade(id, this.player);
+        this.levelSystem.applyUpgrade(id, WorldData.player);
         this.isPaused = false;
     }
 
     destroy(): void {
         this.app.ticker.remove(this.tickerFn);
-        this.player.destroy();
+        WorldData.player.destroy();
         for (const e of WorldData.enemies) e.destroy();
         WorldData.enemies.length = 0;
         WorldData.boss?.destroy();
@@ -217,7 +221,7 @@ export class World {
         if (this.runEnded || this.isPaused) return;
 
         // Resolve player screen position for aim input
-        const wp = this.player.getPosition();
+        const wp = WorldData.player.getPosition();
         const playerScreenX = wp.x + this.worldRoot.position.x;
         const playerScreenY = wp.y + this.worldRoot.position.y;
 
@@ -226,13 +230,13 @@ export class World {
         const aimAngle = Math.atan2(aim.y, aim.x);
 
         // ── Player auto-attack ─────────────────────────────────────────────
-        this.player.tryAttack(dt, aimAngle);
+        WorldData.player.tryAttack(dt, aimAngle);
 
         // ── Player movement ────────────────────────────────────────────────
-        this.player.update(dt, move, aimAngle);
+        WorldData.player.update(dt, move, aimAngle);
 
-        const pp = this.player.getPosition();
-        const pr = this.player.getRadius();
+        const pp = WorldData.player.getPosition();
+        const pr = WorldData.player.getRadius();
 
         // ── Spawner ────────────────────────────────────────────────────────
         this.spawner.update(dt, this._runTime, WorldData.enemies.length, pp.x, pp.y);
@@ -247,8 +251,8 @@ export class World {
 
         // ── Live minions (needed before enemy loop for nearest-entity targeting) ──
         // Re-used below in the Summoner section without an extra filter pass.
-        const liveMinions: Minion[] = this.player instanceof SummonerPlayer
-            ? this.player.minionSystem.getLiveMinions()
+        const liveMinions: Minion[] = WorldData.player instanceof SummonerPlayer
+            ? WorldData.player.minionSystem.getLiveMinions()
             : [];
 
         // ── Regular enemy updates + player-enemy collisions ────────────────
@@ -275,14 +279,14 @@ export class World {
             // Player ↔ Enemy contact
             const contactHit = enemy.checkHit(pp, pr);
             if (contactHit.success) {
-                this.player.takeDamage(contactHit.damage, contactHit.knockback.x, contactHit.knockback.y);
+                WorldData.player.takeDamage(contactHit.damage, contactHit.knockback.x, contactHit.knockback.y);
             }
 
             // Player attacks → enemy (melee / resolvers)
-            const hitInfo = this.player.checkHit(enemy);
+            const hitInfo = WorldData.player.checkHit(enemy);
             if (hitInfo.success) {
                 enemy.takeDamage(hitInfo.damage, hitInfo.knockback.x, hitInfo.knockback.y);
-                this.player.healFromDamageDealt(hitInfo.damage);
+                WorldData.player.healFromDamageDealt(hitInfo.damage);
             }
         }
 
@@ -307,7 +311,7 @@ export class World {
             // Boss body ↔ player contact
             const bossContactHit = WorldData.boss.checkHit(pp, pr);
             if (bossContactHit.success) {
-                const hit = this.player.takeDamage(
+                const hit = WorldData.player.takeDamage(
                     bossContactHit.damage,
                     bossContactHit.knockback.x,
                     bossContactHit.knockback.y,
@@ -318,10 +322,10 @@ export class World {
             }
 
             // Player attacks → boss (melee / resolvers)
-            const bossHit = this.player.checkHit(WorldData.boss);
+            const bossHit = WorldData.player.checkHit(WorldData.boss);
             if (bossHit.success) {
                 WorldData.boss.takeDamage(bossHit.damage, bossHit.knockback.x, bossHit.knockback.y);
-                this.player.healFromDamageDealt(bossHit.damage);
+                WorldData.player.healFromDamageDealt(bossHit.damage);
             }
         }
 
@@ -330,7 +334,7 @@ export class World {
             dt,
             pp.x, pp.y, pr,
             (kbx, kby, damage) => {
-                const hit = this.player.takeDamage(damage, kbx, kby);
+                const hit = WorldData.player.takeDamage(damage, kbx, kby);
                 if (hit) {
                     this.camera.shake(VfxConsts.SHAKE_INTENSITY * 0.6, VfxConsts.SHAKE_DURATION * 0.7);
                 }
@@ -365,8 +369,8 @@ export class World {
         }
 
         // ── XP gem updates ─────────────────────────────────────────────────
-        const pickupR = this.player.pickupRadius;
-        const magnetR = this.player.magnetRadius;
+        const pickupR = WorldData.player.pickupRadius;
+        const magnetR = WorldData.player.magnetRadius;
 
         for (const gem of this.gems) {
             if (gem.isCollected) continue;
@@ -379,7 +383,7 @@ export class World {
         }
 
         // ── Player death ───────────────────────────────────────────────────
-        if (this.player.isDead) {
+        if (WorldData.player.isDead) {
             this.runEnded = true;
             this.isPaused = false;
             this.callbacks.onRunEnd?.();
@@ -387,8 +391,8 @@ export class World {
         }
 
         // ── HP change notification ─────────────────────────────────────────
-        const currentHp = this.player.hp;
-        const currentMaxHp = this.player.maxHp;
+        const currentHp = WorldData.player.hp;
+        const currentMaxHp = WorldData.player.maxHp;
         if (currentHp !== this.lastNotifiedHp) {
             this.lastNotifiedHp = currentHp;
             this.callbacks.onHpChange?.(currentHp, currentMaxHp);
@@ -475,8 +479,8 @@ export class World {
             ));
         }
 
-        this.player.healBy(HexBossConsts.HEAL_ON_KILL);
-        this.callbacks.onHpChange?.(this.player.hp, this.player.maxHp);
+        WorldData.player.healBy(HexBossConsts.HEAL_ON_KILL);
+        this.callbacks.onHpChange?.(WorldData.player.hp, WorldData.player.maxHp);
 
         // Summoner: the boss corpse grants a high-level KnightMinion
         WorldData.corpseSystem?.addCorpse(pos.x, pos.y, boss.level, 'knight');
@@ -506,83 +510,36 @@ export class World {
         const liveEnemies = WorldData.enemies.filter(e => !e.isDead);
         const boss: HexBoss | null = (WorldData.boss && !WorldData.boss.isDead) ? WorldData.boss : null;
 
-        // Collect live minions when the player is a Summoner.
-        const liveMinions: Minion[] = [];
-        if (this.player instanceof SummonerPlayer) {
-            liveMinions.push(...this.player.minionSystem.getLiveMinions());
-        }
+        const allEntities: Entity[] = [
+            ...liveEnemies,
+            ...(boss ? [boss] : []),
+            ...(WorldData.player instanceof SummonerPlayer ? WorldData.player.minionSystem.getLiveMinions() : []),
+            WorldData.player
+        ];
 
-        // Proxy object lets us feed the player into pushApart without exposing
-        // protected posX/posY, then apply the net delta at the end.
-        const pp = this.player.getPosition();
+        const pp = WorldData.player.getPosition();
 
         for (let iter = 0; iter < ITERS; iter++) {
-            // ── Enemy ↔ Enemy ──────────────────────────────────────────────
-            for (let i = 0; i < liveEnemies.length; i++) {
-                for (let j = i + 1; j < liveEnemies.length; j++) {
-                    World.pushApart(liveEnemies[i], liveEnemies[j], 0.5);
+            for (let i = 0; i < allEntities.length; i++) {
+                for (let j = i + 1; j < allEntities.length; j++) {
+                    World.pushApart(allEntities[i], allEntities[j], 0.5);
                 }
-            }
-
-            // ── Enemy ↔ Boss ───────────────────────────────────────────────
-            if (boss) {
-                for (const e of liveEnemies) {
-                    World.pushApart(e, boss, 0.9); // boss barely yields
-                }
-            }
-
-            // ── Minion ↔ Minion ────────────────────────────────────────────
-            for (let i = 0; i < liveMinions.length; i++) {
-                for (let j = i + 1; j < liveMinions.length; j++) {
-                    World.pushApart(liveMinions[i], liveMinions[j], 0.5);
-                }
-            }
-
-            // ── Minion ↔ Enemy ─────────────────────────────────────────────
-            for (const minion of liveMinions) {
-                for (const enemy of liveEnemies) {
-                    World.pushApart(minion, enemy, 0.5);
-                }
-            }
-
-            // ── Minion ↔ Boss ──────────────────────────────────────────────
-            if (boss) {
-                for (const minion of liveMinions) {
-                    World.pushApart(minion, boss, 0.9);
-                }
-            }
-
-            // ── Player ↔ Enemy ─────────────────────────────────────────────
-            for (const enemy of liveEnemies) {
-                World.pushApart(this.player, enemy, 0.5);
-            }
-
-            // ── Player ↔ Boss ──────────────────────────────────────────────
-            if (boss) {
-                World.pushApart(this.player, boss, 0.7);
             }
         }
 
         // Apply accumulated player delta (nudge handles arena clamping + sprite sync).
-        const pdx = this.player.getPosition().x - pp.x;
-        const pdy = this.player.getPosition().y - pp.y;
+        const pdx = WorldData.player.getPosition().x - pp.x;
+        const pdy = WorldData.player.getPosition().y - pp.y;
         if (Math.abs(pdx) + Math.abs(pdy) > 0.001) {
-            this.player.nudge(pdx, pdy);
+            WorldData.player.nudge(pdx, pdy);
         }
 
         // Clamp enemies and minions to arena bounds after separation.
         const S = ArenaConsts.SIZE;
-        for (const e of liveEnemies) {
+        for (const e of allEntities) {
             const pos = e.getPosition();
-            pos.set(Math.max(e.getRadius(), Math.min(S - e.getRadius(), pos.x)), Math.max(e.getRadius(), Math.min(S - e.getRadius(), pos.y)));
-        }
-        if (boss) {
-            const pos = boss.getPosition();
-            pos.set(Math.max(boss.getRadius(), Math.min(S - boss.getRadius(), pos.x)), Math.max(boss.getRadius(), Math.min(S - boss.getRadius(), pos.y)));
-        }
-        for (const m of liveMinions) {
-            m.getPosition().x = Math.max(m.getRadius(), Math.min(S - m.getRadius(), m.getPosition().x));
-            m.getPosition().y = Math.max(m.getRadius(), Math.min(S - m.getRadius(), m.getPosition().y));
+            const r = e.getRadius();
+            pos.set(Math.max(r, Math.min(S - r, pos.x)), Math.max(r, Math.min(S - r, pos.y)));
         }
     }
 
