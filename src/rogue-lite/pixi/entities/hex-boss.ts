@@ -71,27 +71,27 @@ export class HexBoss extends Enemy {
         this.stateTimer = HexBossConsts.CHARGE_DURATION;
 
         // Outer container — holds world position + HP bar
-        this.container.label = 'hex-boss';
-        this.container.position.set(x, y);
-        parent.addChild(this.container);
+        this._container.label = 'hex-boss';
+        this._container.position.set(x, y);
+        parent.addChild(this._container);
 
         // Hexagon body
         this.bodyGfx = new Graphics();
-        this.container.addChild(this.bodyGfx);
+        this._container.addChild(this.bodyGfx);
         this.drawHex(HexBossConsts.COLOR, HexBossConsts.OUTLINE_COLOR);
 
         // White flash overlay (same hex shape, rendered on top)
         this.flashGfx = new Graphics();
-        this.container.addChild(this.flashGfx);
+        this._container.addChild(this.flashGfx);
         this.drawFlashHex();
         this.flashGfx.alpha = 0;
 
         // HP bar
         this.hpBarGfx = new Graphics();
-        this.container.addChild(this.hpBarGfx);
+        this._container.addChild(this.hpBarGfx);
         this.drawHpBar();
-        
-        this.radius = HexBossConsts.RADIUS;
+
+        this._radius = HexBossConsts.RADIUS;
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
@@ -147,20 +147,20 @@ export class HexBoss extends Enemy {
                 break;
         }
 
-        this.container.position.set(this.position.x, this.position.y);
+        this._container.position.set(this._position.x, this._position.y);
     }
 
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
         // Boss is heavy — greatly reduce incoming knockback
-        this.velocity.add(kbx * HexBossConsts.KNOCKBACK_RECEIVED_MULT, kby * HexBossConsts.KNOCKBACK_RECEIVED_MULT);
+        this._velocity.add(kbx * HexBossConsts.KNOCKBACK_RECEIVED_MULT, kby * HexBossConsts.KNOCKBACK_RECEIVED_MULT);
         this.startFlash();
         this.drawHpBar();
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
+        this._container.destroy({ children: true });
     }
 
     // ── Private: state transitions ────────────────────────────────────────────
@@ -175,17 +175,17 @@ export class HexBoss extends Enemy {
     }
 
     private doCharge(dt: number, playerX: number, playerY: number): void {
-        const dx = playerX - this.position.x;
-        const dy = playerY - this.position.y;
+        const dx = playerX - this._position.x;
+        const dy = playerY - this._position.y;
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
             const nx = dx / dist;
             const ny = dy / dist;
-            this.position.add((nx * HexBossConsts.SPEED_CHARGE + this.velocity.x) * dt, (ny * HexBossConsts.SPEED_CHARGE + this.velocity.y) * dt);
+            this._position.add((nx * HexBossConsts.SPEED_CHARGE + this._velocity.x) * dt, (ny * HexBossConsts.SPEED_CHARGE + this._velocity.y) * dt);
         }
         // Clamp to arena
         const r = HexBossConsts.RADIUS;
-        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this._position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y)));
     }
 
     private doTelegraphDraw(): void {
@@ -202,8 +202,8 @@ export class HexBoss extends Enemy {
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 * i) / count;
             this.onFireProjectile(
-                this.position.x,
-                this.position.y,
+                this._position.x,
+                this._position.y,
                 Math.cos(angle),
                 Math.sin(angle),
             );

@@ -6,9 +6,10 @@ import { IProps } from '../constants';
 import { AuraEffect } from '../effects/aura-effect';
 import { getDirectionTo } from "../common-utils";
 import { applyMultiplier } from "../props-utils";
+import { Entity } from "./entity";
 
 /**
- * Pulsing damage ring that sweeps outward from the player.
+ * Pulsing damage ring that sweeps outward from the parentEntity.
  *
  * With `props.cooldown = 0` a single ring cycles continuously (original behaviour).
  * With `props.cooldown > 0` a new ring is spawned every `cooldown` seconds so
@@ -26,14 +27,14 @@ import { applyMultiplier } from "../props-utils";
  */
 export class AuraResolver extends Resolver {
     constructor(
-        private readonly player: Player,
+        private readonly parentEntity: Entity,
         private readonly props: IProps
     ) {
         super();
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number): void {
-        this.effects[0]?.update(dt, this.player.getPosition(), applyMultiplier(this.props, this.multiplier));
+        this.effects[0]?.update(dt, this.parentEntity.getPosition(), applyMultiplier(this.props, this.multiplier));
     }
 
     override draw(_dt: number, _move: Vec2, _aimAngle: number): void {
@@ -43,11 +44,11 @@ export class AuraResolver extends Resolver {
     override tryAttack(_dt: number, _aimAngle: number): number | undefined {
         if (this.effects.length === 0) {
             const auraEffect = new AuraEffect(
-                this.player.backgroundFx,
-                this.player.getPosition(),
+                this.parentEntity.bgContainer,
+                this.parentEntity.getPosition(),
                 applyMultiplier(this.props, this.multiplier),
                 true,  // loop
-                true,  // track player position
+                true,  // track parentEntity position
             );
             this.effects.push(auraEffect);
         }
@@ -58,7 +59,7 @@ export class AuraResolver extends Resolver {
     /**
      * Always returns `false`.
      *
-     * Normally the player skips a resolver if it has already struck an enemy
+     * Normally the parentEntity skips a resolver if it has already struck an enemy
      * this tick.  For the aura we bypass that guard entirely — AuraEffect tracks
      * hits per-pulse, so each active ring can independently detect a hit without
      * the resolver-level set interfering.
@@ -70,7 +71,7 @@ export class AuraResolver extends Resolver {
     override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
         const effect = this.effects[0] as AuraEffect | undefined;
         if (effect?.isInRange(enemy)) {
-            const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
+            const dir = getDirectionTo(this.parentEntity.getPosition(), enemy.getPosition());
             return new HitInfo()
                 .setDamage(this.props.damage)
                 .setKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);

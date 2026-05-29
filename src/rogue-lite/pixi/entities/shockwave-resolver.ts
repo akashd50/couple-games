@@ -6,6 +6,7 @@ import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { getDirectionTo } from "../common-utils";
 import { SwingAttackResolver } from "./swing-resolver";
+import { Entity } from "./entity";
 
 /**
  * Fires a shockwave on every Nth sword swing.
@@ -27,7 +28,7 @@ export class ShockwaveResolver extends Resolver {
     private readonly _fireListeners: ((angle: number) => void)[] = [];
 
     constructor(
-        private readonly player: Player,
+        private readonly parentEntity: Entity,
         private readonly swing: SwingAttackResolver
     ) {
         super();
@@ -87,7 +88,7 @@ export class ShockwaveResolver extends Resolver {
         const angle = this.consumePending();
         if (angle !== null) {
             this.clearHitSet();
-            const shockwave = new ShockwaveEffect(this.player.backgroundFx, this.player.getPosition().x, this.player.getPosition().y, angle,
+            const shockwave = new ShockwaveEffect(this.parentEntity.bgContainer, this.parentEntity.getPosition().x, this.parentEntity.getPosition().y, angle,
                 this.halfAngle, this.innerRadius, KnightConsts.swordShockwave.range, KnightConsts.swordShockwave.color, KnightConsts.swordShockwave.duration
             );
             this.effects.push(shockwave);
@@ -100,7 +101,7 @@ export class ShockwaveResolver extends Resolver {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
-                const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
+                const dir = getDirectionTo(this.parentEntity.getPosition(), enemy.getPosition());
                 hitInfo
                     .addDamage(KnightConsts.swordShockwave.damage)
                     .addKnockback(dir.x * KnightConsts.swordShockwave.knockback, dir.y * KnightConsts.swordShockwave.knockback);

@@ -32,7 +32,7 @@ export abstract class Enemy extends Entity {
 
     constructor(x: number, y: number, parent?: Container) {
         super(parent);
-        this.position.set(x, y);
+        this._position.set(x, y);
     }
 
     // ── Abstract contract ─────────────────────────────────────────────────────
@@ -82,10 +82,10 @@ export abstract class Enemy extends Entity {
      */
     checkHit(targetPos: Vec2, targetRadius: number): HitInfo {
         const hitInfo = new HitInfo();
-        const dx = targetPos.x - this.position.x;
-        const dy = targetPos.y - this.position.y;
+        const dx = targetPos.x - this._position.x;
+        const dy = targetPos.y - this._position.y;
         const dist = Math.hypot(dx, dy);
-        if (dist < this.radius + targetRadius) {
+        if (dist < this._radius + targetRadius) {
             const nx = dist > 0.001 ? dx / dist : 1;
             const ny = dist > 0.001 ? dy / dist : 0;
             hitInfo.setDamage(this.contactDamage);
@@ -96,7 +96,7 @@ export abstract class Enemy extends Entity {
 
     /** Add a knockback impulse to this enemy's velocity. */
     applyKnockback(kbx: number, kby: number): void {
-        this.velocity.add(kbx, kby);
+        this._velocity.add(kbx, kby);
     }
 
     // ── Protected helpers (used by subclasses) ────────────────────────────────
@@ -107,7 +107,7 @@ export abstract class Enemy extends Entity {
      */
     protected tickPhysics(dt: number): void {
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.velocity.multiplyBy(friction);
+        this._velocity.multiplyBy(friction);
 
         if (this.flashTimer > 0) {
             this.flashTimer = Math.max(0, this.flashTimer - dt);

@@ -6,6 +6,7 @@ import { Enemy } from "./enemy";
 import { isInAttackCone } from "../systems/attack-system";
 import { Vec2 } from "../types";
 import { lerp } from "../common-utils";
+import { Entity } from "./entity";
 
 export class SwingAttackResolver extends Resolver {
     /** Counts down to 0; attack fires when it crosses 0. */
@@ -30,14 +31,14 @@ export class SwingAttackResolver extends Resolver {
     private readonly _fireListeners: ((angle: number) => void)[] = [];
 
     constructor(
-        private readonly player: Player,
+        private readonly parentEntity: Entity,
         props: IProps
     ) {
         super();
         this.props = props;
         this.attackCooldown = props.cooldown * 0.5;
         this.swingGfx = new Graphics();
-        this.player.backgroundFx.addChild(this.swingGfx);
+        this.parentEntity.bgContainer.addChild(this.swingGfx);
     }
 
     /** Effective half-angle after all Wide Cleave stacks. */
@@ -58,7 +59,7 @@ export class SwingAttackResolver extends Resolver {
     }
 
     override update(dt: number, _move: Vec2, _aimAngle: number) {
-        this.swingGfx.position.set(this.player.getPosition().x, this.player.getPosition().y);
+        this.swingGfx.position.set(this.parentEntity.getPosition().x, this.parentEntity.getPosition().y);
 
         if (this.swingTimer > 0) {
             this.swingTimer = Math.max(0, this.swingTimer - dt);
@@ -97,7 +98,7 @@ export class SwingAttackResolver extends Resolver {
 
     /**
      * Register a callback invoked each time a swing fires.
-     * ShockwaveResolver subscribes here to count attacks without any state on the player.
+     * ShockwaveResolver subscribes here to count attacks without any state on the parentEntity.
      */
     addFireListener(cb: (angle: number) => void): void {
         this._fireListeners.push(cb);

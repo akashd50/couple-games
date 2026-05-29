@@ -37,8 +37,6 @@ import { Entity } from "./entity";
  * by checking instanceof for specific resolver types.
  */
 export abstract class Player extends Entity {
-    protected readonly backgroundFxContainer: Container;
-
     // ── Attack resolvers ──────────────────────────────────────────────────────
     /** All active attack resolvers.  Iterated for tryAttack / checkHit / update / draw. */
     protected attackResolvers: Resolver[] = [];
@@ -86,31 +84,23 @@ export abstract class Player extends Entity {
     constructor(parent: Container) {
         super(parent);
 
-        this.position.set(ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
+        this._position.set(ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
         this._hp = KnightConsts.hp;
         this._maxHp = KnightConsts.hp;
 
         // Prev-pos initialised to spawn point; subclasses may adjust in their ctors
-        this._prevPosX = this.position.x;
-        this._prevPosY = this.position.y;
+        this._prevPosX = this._position.x;
+        this._prevPosY = this._position.y;
 
-        this.container.label = 'player';
-        this.container.position.set(this.position.x, this.position.y);
-
-        this.backgroundFxContainer = new Container();
-        this.backgroundFxContainer.label = "bg_fx";
-        parent.addChild(this.backgroundFxContainer);
+        this._container.label = 'player';
+        this._container.position.set(this._position.x, this._position.y);
 
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
 
-    get backgroundFx(): Container {
-        return this.backgroundFxContainer;
-    }
-
     override getRadius(): number {
-        return this.radius;
+        return this._radius;
     }
 
     get pickupRadius(): number {
@@ -148,7 +138,7 @@ export abstract class Player extends Entity {
      */
     addRadiusBonus(amount: number): void {
         this._radiusBonus += amount;
-        this.radius += amount;
+        this._radius += amount;
         this.onRadiusChanged();
     }
 
@@ -252,20 +242,20 @@ export abstract class Player extends Entity {
         // Cache aim angle before any logic so takeDamage() can use it this tick
         this._aimAngle = aimAngle;
 
-        if (this.iframes > 0) {
-            this.iframes = Math.max(0, this.iframes - dt);
+        if (this._iframes > 0) {
+            this._iframes = Math.max(0, this._iframes - dt);
         }
 
         this.issueUpdate(dt, move, aimAngle);
 
         // Record pre-move position for per-frame speed computation (used by dust clouds)
-        this._prevPosX = this.position.x;
-        this._prevPosY = this.position.y;
+        this._prevPosX = this._position.x;
+        this._prevPosY = this._position.y;
 
         // Knockback decay
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.velocity.x *= friction;
-        this.velocity.y *= friction;
+        this._velocity.x *= friction;
+        this._velocity.y *= friction;
 
         // Movement — directional speed bonus when facing the movement direction
         let speedBonus = 0;
@@ -276,14 +266,14 @@ export abstract class Player extends Entity {
         }
         const effectiveSpeed = this._baseSpeed * this._movementSpeedMult * (1 + speedBonus);
 
-        this.position.x += (move.x * effectiveSpeed + this.velocity.x) * dt;
-        this.position.y += (move.y * effectiveSpeed + this.velocity.y) * dt;
+        this._position.x += (move.x * effectiveSpeed + this._velocity.x) * dt;
+        this._position.y += (move.y * effectiveSpeed + this._velocity.y) * dt;
 
-        const r = this.radius;
-        this.position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x));
-        this.position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y));
+        const r = this._radius;
+        this._position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x));
+        this._position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y));
 
-        this.container.position.set(this.position.x, this.position.y);
+        this._container.position.set(this._position.x, this._position.y);
 
         for (const r of this.attackResolvers) {
             r.update(dt, move, aimAngle);
@@ -292,8 +282,8 @@ export abstract class Player extends Entity {
         this.draw(dt, move, aimAngle);
 
         // Flash during iframes
-        this.container.alpha = this.iframes > 0
-            ? (Math.sin(this.iframes * 30) > 0 ? 0.3 : 1.0)
+        this._container.alpha = this._iframes > 0
+            ? (Math.sin(this._iframes * 30) > 0 ? 0.3 : 1.0)
             : 1.0;
     }
 
@@ -335,10 +325,10 @@ export abstract class Player extends Entity {
      * is correct in the same frame.
      */
     nudge(dx: number, dy: number): void {
-        const r = this.radius;
-        this.position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x + dx));
-        this.position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y + dy));
-        this.container.position.set(this.position.x, this.position.y);
+        const r = this._radius;
+        this._position.x = Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x + dx));
+        this._position.y = Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y + dy));
+        this._container.position.set(this._position.x, this._position.y);
     }
 
     /**
@@ -358,7 +348,7 @@ export abstract class Player extends Entity {
      * @returns true if the hit landed.
      */
     takeDamage(amount: number, kbx: number, kby: number): boolean {
-        if (this.iframes > 0 || this._hp <= 0) return false;
+        if (this._iframes > 0 || this._hp <= 0) return false;
 
         // Shield-side check — kbx/kby points away from attacker, so the incoming
         // direction is the opposite.
@@ -372,17 +362,17 @@ export abstract class Player extends Entity {
 
         const reduced = Math.max(1, Math.round(amount * dmgMult));
         this._hp = Math.max(0, this._hp - reduced);
-        this.iframes = KnightConsts.iframesAfterDamage;
+        this._iframes = KnightConsts.iframesAfterDamage;
 
         const resistFactor = Math.max(0, 1 - this._knockbackResist);
-        this.velocity.x += kbx * resistFactor;
-        this.velocity.y += kby * resistFactor;
+        this._velocity.x += kbx * resistFactor;
+        this._velocity.y += kby * resistFactor;
         return true;
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
-        this.backgroundFxContainer.destroy({ children: true });
+        this._container.destroy({ children: true });
+        this._bgContainer.destroy({ children: true });
     }
 
     protected abstract issueUpdate(dt: number, move: Vec2, aimAngle: number): void;
@@ -411,14 +401,14 @@ export class KnightPlayer extends Player {
 
         this.body = new Graphics();
         this.drawBody();
-        this.container.addChild(this.body);
+        this._container.addChild(this.body);
 
         this.arcGfx = new Graphics();
-        this.container.addChild(this.arcGfx);
+        this._container.addChild(this.arcGfx);
 
         this.drawShieldArc(0);
 
-        this.dustSystem = new DustCloudSystem(this.backgroundFxContainer, DustCloudConsts.KNIGHT_COLOR);
+        this.dustSystem = new DustCloudSystem(this._bgContainer, DustCloudConsts.KNIGHT_COLOR);
     }
 
     // ── Upgrade enablers ─────────────────────────────────────────────────────
@@ -482,9 +472,9 @@ export class KnightPlayer extends Player {
 
         // Dust clouds — compute effective speed from actual position delta this tick
         const speed = dt > 0
-            ? Math.hypot(this.position.x - this._prevPosX, this.position.y - this._prevPosY) / dt
+            ? Math.hypot(this._position.x - this._prevPosX, this._position.y - this._prevPosY) / dt
             : 0;
-        this.dustSystem.update(dt, this.position.x, this.position.y, speed);
+        this.dustSystem.update(dt, this._position.x, this._position.y, speed);
     }
 
     protected override onRadiusChanged(): void {
@@ -500,13 +490,13 @@ export class KnightPlayer extends Player {
 
     private drawBody(): void {
         this.body.clear();
-        this.body.circle(0, 0, this.radius).fill({ color: KnightConsts.color });
+        this.body.circle(0, 0, this._radius).fill({ color: KnightConsts.color });
     }
 
     private drawShieldArc(aimAngle: number): void {
         const g = this.arcGfx;
         g.clear();
-        const arcR = this.radius + 6;
+        const arcR = this._radius + 6;
         const start = aimAngle - KnightConsts.SHIELD_ARC_HALF;
         const end = aimAngle + KnightConsts.SHIELD_ARC_HALF;
         g.arc(0, 0, arcR, start, end);

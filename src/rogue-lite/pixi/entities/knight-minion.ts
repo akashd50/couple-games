@@ -80,7 +80,7 @@ export class KnightMinion extends Minion {
 
     constructor(parent: Container, x: number, y: number, level: number) {
         super(parent);
-        this.position.set(x, y);
+        this._position.set(x, y);
         this.level = level;
 
         const hp = MinionConsts.BASE_HP + (level - 1) * MinionConsts.HP_PER_LEVEL;
@@ -88,37 +88,37 @@ export class KnightMinion extends Minion {
         this._hp = hp;
         this._maxHp = hp;
         this._damage = dmg;
-        this.radius = MinionConsts.BASE_RADIUS;
+        this._radius = MinionConsts.BASE_RADIUS;
 
         // ── Containers ─────────────────────────────────────────────────────
-        this.container.label = 'minion';
-        this.container.position.set(x, y);
-        parent.addChild(this.container);
+        this._container.label = 'minion';
+        this._container.position.set(x, y);
+        parent.addChild(this._container);
 
         // Sword swing arc (drawn behind the body; static shape, rotated at strike)
         this.swingGfx = new Graphics();
         this.swingGfx.alpha = 0;
-        this.container.addChild(this.swingGfx);
+        this._container.addChild(this.swingGfx);
         this.drawSwingArcShape();
 
         // Square body
         this.bodyGfx = new Graphics();
         this.bodyGfx
-            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
+            .rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2)
             .fill({ color: MinionConsts.COLOR })
-            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
+            .rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2)
             .stroke({ color: MinionConsts.OUTLINE_COLOR, width: 1.5 });
-        this.container.addChild(this.bodyGfx);
+        this._container.addChild(this.bodyGfx);
 
         // White flash overlay
         this.flashGfx = new Graphics();
-        this.flashGfx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2).fill({ color: 0xffffff });
+        this.flashGfx.rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2).fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
-        this.container.addChild(this.flashGfx);
+        this._container.addChild(this.flashGfx);
 
         // HP bar (always visible)
         this.hpBarGfx = new Graphics();
-        this.container.addChild(this.hpBarGfx);
+        this._container.addChild(this.hpBarGfx);
 
         this.pickNewWanderTarget();
         this.drawHpBar();
@@ -146,7 +146,7 @@ export class KnightMinion extends Minion {
     checkHit(enemy: Enemy, hitInfo: HitInfo): void {
         if (this._hp <= 0 || this.state !== MinionState.ATTACK || this.target !== enemy) return;
 
-        const td = this.position.to(enemy.getPosition());
+        const td = this._position.to(enemy.getPosition());
         const tdist = Math.hypot(td.x, td.y);
         const engageDistance = MinionConsts.ATTACK_RANGE + enemy.getRadius() + this.getRadius();
 
@@ -172,9 +172,9 @@ export class KnightMinion extends Minion {
 
     /** Receive contact damage from an enemy (gated by iframes). */
     takeDamage(amount: number): void {
-        if (this._hp <= 0 || this.iframes > 0) return;
+        if (this._hp <= 0 || this._iframes > 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.iframes = MinionConsts.IFRAMES;
+        this._iframes = MinionConsts.IFRAMES;
         this.flashGfx.alpha = 1;
         this.drawHpBar();
     }
@@ -201,21 +201,21 @@ export class KnightMinion extends Minion {
             this.swingGfx.alpha = 0;
         }
 
-        if (this.iframes > 0) {
-            this.iframes = Math.max(0, this.iframes - dt);
-            this.flashGfx.alpha = this.iframes / MinionConsts.IFRAMES;
+        if (this._iframes > 0) {
+            this._iframes = Math.max(0, this._iframes - dt);
+            this.flashGfx.alpha = this._iframes / MinionConsts.IFRAMES;
         } else {
             this.flashGfx.alpha = 0;
         }
 
         // ── Enemy contact — bidirectional (gated by minion iframes) ───────
         let damageDealt = 0;
-        if (this.iframes <= 0) {
+        if (this._iframes <= 0) {
             for (const enemy of enemies) {
                 if (enemy.isDead) continue;
-                const d = this.position.to(enemy.getPosition());
+                const d = this._position.to(enemy.getPosition());
                 const dist = Math.hypot(d.x, d.y);
-                if (dist < this.radius + enemy.getRadius()) {
+                if (dist < this._radius + enemy.getRadius()) {
                     // Minion takes contact damage (sets iframes)
                     const minionDmg = Math.max(1, Math.round(
                         enemy.contactDamage * MinionConsts.CONTACT_DAMAGE_MULT));
@@ -244,7 +244,7 @@ export class KnightMinion extends Minion {
         let nearestDist = Infinity;
         for (const enemy of enemies) {
             if (enemy.isDead) continue;
-            const d = Math.hypot(...this.position.to(enemy.getPosition()).list());
+            const d = Math.hypot(...this._position.to(enemy.getPosition()).list());
             if (d < nearestDist) {
                 nearestDist = d;
                 nearestEnemy = enemy;
@@ -274,7 +274,7 @@ export class KnightMinion extends Minion {
         let moveY = 0;
 
         if (this.state === MinionState.ATTACK && this.target) {
-            const td = this.position.to(this.target.getPosition());
+            const td = this._position.to(this.target.getPosition());
             const tdist = Math.hypot(td.x, td.y);
             const engageDistance = MinionConsts.ATTACK_RANGE + this.target.getRadius() + this.getRadius();
 
@@ -294,12 +294,12 @@ export class KnightMinion extends Minion {
             }
         } else {
             // ── WANDER: roam within the Summoner's summon zone ────────────
-            const distToSumm = Math.hypot(summX - this.position.x, summY - this.position.y);
+            const distToSumm = Math.hypot(summX - this._position.x, summY - this._position.y);
 
             if (distToSumm > MinionConsts.LEASH_DISTANCE) {
                 // Too far — sprint directly back to Summoner
-                const sdx = summX - this.position.x;
-                const sdy = summY - this.position.y;
+                const sdx = summX - this._position.x;
+                const sdy = summY - this._position.y;
                 moveX = sdx / distToSumm;
                 moveY = sdy / distToSumm;
                 this.bodyGfx.rotation = Math.atan2(sdy, sdx);
@@ -310,8 +310,8 @@ export class KnightMinion extends Minion {
                 // Move toward wander target (offset relative to Summoner)
                 const targetX = summX + this.wanderOffsetX;
                 const targetY = summY + this.wanderOffsetY;
-                const wdx = targetX - this.position.x;
-                const wdy = targetY - this.position.y;
+                const wdx = targetX - this._position.x;
+                const wdy = targetY - this._position.y;
                 const wdist = Math.hypot(wdx, wdy);
 
                 if (wdist < MinionConsts.WANDER_ARRIVE_DIST) {
@@ -325,15 +325,15 @@ export class KnightMinion extends Minion {
         }
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.position.add(moveX * MinionConsts.SPEED * dt, moveY * MinionConsts.SPEED * dt);
+        this._position.add(moveX * MinionConsts.SPEED * dt, moveY * MinionConsts.SPEED * dt);
         const r = this.getRadius();
-        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this._position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y)));
         this.updateContainerPosition();
         return damageDealt;
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
+        this._container.destroy({ children: true });
     }
 
     // ── Private ──────────────────────────────────────────────────────────────

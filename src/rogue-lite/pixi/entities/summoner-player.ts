@@ -74,29 +74,29 @@ export class SummonerPlayer extends Player {
         this._hp = SummonerConsts.hp;
         this._maxHp = SummonerConsts.hp;
         this._baseSpeed = SummonerConsts.speed;
-        this.radius = SummonerConsts.radius;
+        this._radius = SummonerConsts.radius;
 
         // ── Minion system ─────────────────────────────────────────────────
         this.minionSystem = new MinionSystem(minionLayer, SummonerConsts.BASE_MINION_CAP);
 
         // ── Dust puffs ────────────────────────────────────────────────────
         this.dustSystem = new DustCloudSystem(
-            this.backgroundFxContainer,
+            this._bgContainer,
             DustCloudConsts.SUMMONER_COLOR,
         );
 
         // ── Summon area (world-space disc, drawn in backgroundFxContainer) ─
         this.summonAreaGfx = new Graphics();
-        this.backgroundFxContainer.addChild(this.summonAreaGfx);
+        this._bgContainer.addChild(this.summonAreaGfx);
 
         // ── Body ──────────────────────────────────────────────────────────
         this.body = new Graphics();
         this.drawBody();
-        this.container.addChild(this.body);
+        this._container.addChild(this.body);
 
         // ── Orbit detail (two small dots that circle the body) ────────────
         this.orbitGfx = new Graphics();
-        this.container.addChild(this.orbitGfx);
+        this._container.addChild(this.orbitGfx);
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
@@ -164,8 +164,8 @@ export class SummonerPlayer extends Player {
         this.orbitAngle += dt * 2.4; // rotate orbit dots
         this.projectileSystem.tUpdate(dt);
 
-        this.minionSystem.update(dt, this.position.x, this.position.y, [...WorldData.enemies, ...(WorldData.boss ? [WorldData.boss] : [])]);
-        this.minionSystem.trySummon(dt, this.position.x, this.position.y, this.summonRadius, WorldData.corpseSystem);
+        this.minionSystem.update(dt, this._position.x, this._position.y, [...WorldData.enemies, ...(WorldData.boss ? [WorldData.boss] : [])]);
+        this.minionSystem.trySummon(dt, this._position.x, this._position.y, this.summonRadius, WorldData.corpseSystem);
     }
 
     protected override draw(dt: number, _move: Vec2, _aimAngle: number): void {
@@ -174,9 +174,9 @@ export class SummonerPlayer extends Player {
 
         // Dust puffs — speed from actual position delta
         const speed = dt > 0
-            ? Math.hypot(this.position.x - this._prevPosX, this.position.y - this._prevPosY) / dt
+            ? Math.hypot(this._position.x - this._prevPosX, this._position.y - this._prevPosY) / dt
             : 0;
-        this.dustSystem.update(dt, this.position.x, this.position.y, speed);
+        this.dustSystem.update(dt, this._position.x, this._position.y, speed);
     }
 
     protected override onRadiusChanged(): void {
@@ -200,11 +200,11 @@ export class SummonerPlayer extends Player {
             const angle = aimAngle - halfSpread + i * this.PROJ_SPREAD;
             const dx = Math.cos(angle);
             const dy = Math.sin(angle);
-            const spawnDist = this.radius + SummonerConsts.PROJ_RADIUS + 2;
+            const spawnDist = this._radius + SummonerConsts.PROJ_RADIUS + 2;
 
             this.projectileSystem.add({
-                x: this.position.x + dx * spawnDist,
-                y: this.position.y + dy * spawnDist,
+                x: this._position.x + dx * spawnDist,
+                y: this._position.y + dy * spawnDist,
                 dx, dy,
                 speed: SummonerConsts.PROJ_SPEED,
                 damage: this._projDamage,
@@ -221,7 +221,7 @@ export class SummonerPlayer extends Player {
     private drawBody(): void {
         const g = this.body;
         g.clear();
-        const r = this.radius;
+        const r = this._radius;
         // Soft outer glow
         g.circle(0, 0, r * 1.4).fill({ color: SummonerConsts.color, alpha: 0.11 });
         // Main disc
@@ -233,7 +233,7 @@ export class SummonerPlayer extends Player {
     private drawOrbit(): void {
         const g = this.orbitGfx;
         g.clear();
-        const orbitR = this.radius + 9;
+        const orbitR = this._radius + 9;
         const dotR = 3.5;
         // Two diametrically opposite dots
         for (let k = 0; k < 2; k++) {
@@ -249,7 +249,7 @@ export class SummonerPlayer extends Player {
         const g = this.summonAreaGfx;
         g.clear();
         // Track player world position
-        g.position.set(this.position.x, this.position.y);
+        g.position.set(this._position.x, this._position.y);
 
         const r = this._summonRadius;
         // Translucent fill

@@ -57,42 +57,42 @@ export class Chaser extends Enemy {
         this._maxHp = scaledHp;
         this.speedWander = ChaserConsts.SPEED_WANDER * speedMult;
         this.speedChase = ChaserConsts.SPEED_CHASE * speedMult;
-        this.radius = ChaserConsts.RADIUS;
+        this._radius = ChaserConsts.RADIUS;
 
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5; // stagger initial direction change
 
         // Outer container — moves with position, never rotates
-        this.container.label = 'chaser';
-        this.container.position.set(x, y);
-        parent.addChild(this.container);
+        this._container.label = 'chaser';
+        this._container.position.set(x, y);
+        parent.addChild(this._container);
 
         // Inner body container — rotates to face movement direction
         this.bodyContainer = new Container();
-        this.container.addChild(this.bodyContainer);
+        this._container.addChild(this.bodyContainer);
 
         // Triangle (equilateral-ish, pointing right at rotation=0)
         const body = new Graphics();
-        body.moveTo(this.radius, 0)
-            .lineTo(-this.radius * 0.75, -this.radius * 0.65)
-            .lineTo(-this.radius * 0.75, this.radius * 0.65)
-            .lineTo(this.radius, 0)
+        body.moveTo(this._radius, 0)
+            .lineTo(-this._radius * 0.75, -this._radius * 0.65)
+            .lineTo(-this._radius * 0.75, this._radius * 0.65)
+            .lineTo(this._radius, 0)
             .fill({ color: ChaserConsts.COLOR });
         this.bodyContainer.addChild(body);
 
         // White flash overlay — same triangle shape, alpha driven by flashTimer
         this.flashGfx = new Graphics();
-        this.flashGfx.moveTo(this.radius, 0)
-            .lineTo(-this.radius * 0.75, -this.radius * 0.65)
-            .lineTo(-this.radius * 0.75, this.radius * 0.65)
-            .lineTo(this.radius, 0)
+        this.flashGfx.moveTo(this._radius, 0)
+            .lineTo(-this._radius * 0.75, -this._radius * 0.65)
+            .lineTo(-this._radius * 0.75, this._radius * 0.65)
+            .lineTo(this._radius, 0)
             .fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
         this.bodyContainer.addChild(this.flashGfx);
 
         // HP bar — child of outer container so it stays horizontal
         this.hpBarGfx = new Graphics();
-        this.container.addChild(this.hpBarGfx);
+        this._container.addChild(this.hpBarGfx);
     }
 
     get isDead(): boolean {
@@ -121,8 +121,8 @@ export class Chaser extends Enemy {
         // Update flash overlay
         this.flashGfx.alpha = this.flashAlpha;
 
-        const dx = playerX - this.position.x;
-        const dy = playerY - this.position.y;
+        const dx = playerX - this._position.x;
+        const dy = playerY - this._position.y;
         const dist = Math.hypot(dx, dy);
 
         // ── State machine ──────────────────────────────────────────────────────
@@ -158,11 +158,11 @@ export class Chaser extends Enemy {
             : this.speedWander;
 
         // ── Physics ────────────────────────────────────────────────────────────
-        this.position.add((moveX * speed + this.velocity.x) * dt, (moveY * speed + this.velocity.y) * dt);
+        this._position.add((moveX * speed + this._velocity.x) * dt, (moveY * speed + this._velocity.y) * dt);
 
         // Clamp to arena
         const r = ChaserConsts.RADIUS;
-        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this._position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y)));
         this.updateContainerPosition();
 
         // Rotate body to face movement direction
@@ -180,13 +180,13 @@ export class Chaser extends Enemy {
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.velocity.add(kbx, kby);
+        this._velocity.add(kbx, kby);
         this.startFlash();
         this.drawHpBar();
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
+        this._container.destroy({ children: true });
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

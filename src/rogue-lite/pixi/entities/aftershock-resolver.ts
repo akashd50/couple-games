@@ -6,6 +6,7 @@ import { ShockwaveResolver } from './shockwave-resolver';
 import { KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { getDirectionTo } from "../common-utils";
+import { Entity } from "./entity";
 
 /**
  * Fires a second, smaller shockwave cone aftershock.delay seconds after each
@@ -31,7 +32,7 @@ export class AftershockResolver extends Resolver {
     private _timer = -1;
 
     constructor(
-        private readonly player: Player,
+        private readonly parentEntity: Entity,
         private readonly shockwave: ShockwaveResolver
     ) {
         super();
@@ -52,7 +53,7 @@ export class AftershockResolver extends Resolver {
      * Returns the aim angle when the delayed blast should fire and clears the flag.
      * Returns null if the timer has not expired this tick.
      *
-     * Called by World after player.update(); safe to call once per tick.
+     * Called by World after parentEntity.update(); safe to call once per tick.
      */
     consumePending(): number | null {
         const a = this._pendingAngle;
@@ -72,7 +73,7 @@ export class AftershockResolver extends Resolver {
         if (angle !== null) {
             this.clearHitSet();
             const shockwave = new ShockwaveEffect(
-                this.player.backgroundFx, this.player.getPosition().x, this.player.getPosition().y, angle,
+                this.parentEntity.bgContainer, this.parentEntity.getPosition().x, this.parentEntity.getPosition().y, angle,
                 this.halfAngle, this.innerRadius, KnightConsts.aftershock.range, KnightConsts.aftershock.color, KnightConsts.aftershock.duration
             );
             this.effects.push(shockwave);
@@ -85,7 +86,7 @@ export class AftershockResolver extends Resolver {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
-                const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
+                const dir = getDirectionTo(this.parentEntity.getPosition(), enemy.getPosition());
                 hitInfo
                     .setDamage(KnightConsts.aftershock.damage)
                     .setKnockback(dir.x * KnightConsts.aftershock.knockback, dir.y * KnightConsts.aftershock.knockback);

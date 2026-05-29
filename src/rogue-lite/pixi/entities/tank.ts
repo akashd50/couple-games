@@ -55,39 +55,39 @@ export class Tank extends Enemy {
         this._maxHp = scaledHp;
         this.speedWander = TankConsts.SPEED_WANDER * speedMult;
         this.speedChase = TankConsts.SPEED_CHASE * speedMult;
-        this.radius = TankConsts.RADIUS;
+        this._radius = TankConsts.RADIUS;
 
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5;
 
         // Outer container — moves with position, never rotates
-        this.container.label = 'tank';
-        this.container.position.set(x, y);
-        parent.addChild(this.container);
+        this._container.label = 'tank';
+        this._container.position.set(x, y);
+        parent.addChild(this._container);
 
         // Inner body — rotates to face movement
         this.bodyContainer = new Container();
-        this.container.addChild(this.bodyContainer);
+        this._container.addChild(this.bodyContainer);
 
         // Square body (pointing right at rotation=0)
         const body = new Graphics();
-        body.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
+        body.rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2)
             .fill({ color: TankConsts.COLOR })
-            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
+            .rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2)
             .stroke({ color: TankConsts.OUTLINE_COLOR, width: 2.5 });
         this.bodyContainer.addChild(body);
 
         // White flash overlay — same square shape, alpha driven by flashTimer
         this.flashGfx = new Graphics();
-        this.flashGfx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2).fill({ color: 0xffffff });
+        this.flashGfx.rect(-this._radius, -this._radius, this._radius * 2, this._radius * 2).fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
         this.bodyContainer.addChild(this.flashGfx);
 
         // HP bar (child of outer container — stays horizontal)
         this.hpBarGfx = new Graphics();
-        this.container.addChild(this.hpBarGfx);
+        this._container.addChild(this.hpBarGfx);
 
-        this.radius = TankConsts.RADIUS;
+        this._radius = TankConsts.RADIUS;
     }
 
     get isDead(): boolean {
@@ -109,8 +109,8 @@ export class Tank extends Enemy {
         // Update flash overlay alpha
         this.flashGfx.alpha = this.flashAlpha;
 
-        const dx = playerX - this.position.x;
-        const dy = playerY - this.position.y;
+        const dx = playerX - this._position.x;
+        const dy = playerY - this._position.y;
         const dist = Math.hypot(dx, dy);
 
         // ── State machine ──────────────────────────────────────────────────
@@ -144,11 +144,11 @@ export class Tank extends Enemy {
         const speed = this.state === TankState.CHASE ? this.speedChase : this.speedWander;
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.position.add((moveX * speed + this.velocity.x) * dt, (moveY * speed + this.velocity.y) * dt);
+        this._position.add((moveX * speed + this._velocity.x) * dt, (moveY * speed + this._velocity.y) * dt);
 
         // Clamp to arena
         const r = TankConsts.RADIUS;
-        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this._position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y)));
 
         this.updateContainerPosition();
 
@@ -161,13 +161,13 @@ export class Tank extends Enemy {
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.velocity.add(kbx, kby);
+        this._velocity.add(kbx, kby);
         this.startFlash();
         this.drawHpBar();
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
+        this._container.destroy({ children: true });
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ export class ChaserMinion extends Minion {
 
     constructor(parent: Container, x: number, y: number, level: number) {
         super(parent);
-        this.position.set(x, y);
+        this._position.set(x, y);
         this.level = level;
 
         const hp = ChaserMinionConsts.BASE_HP + (level - 1) * ChaserMinionConsts.HP_PER_LEVEL;
@@ -61,20 +61,20 @@ export class ChaserMinion extends Minion {
         this._hp = hp;
         this._maxHp = hp;
         this._damage = dmg;
-        this.radius = ChaserMinionConsts.BASE_RADIUS;
+        this._radius = ChaserMinionConsts.BASE_RADIUS;
 
         // ── Containers ─────────────────────────────────────────────────────
-        this.container.label = 'chaser-minion';
-        this.container.position.set(x, y);
-        parent.addChild(this.container);
+        this._container.label = 'chaser-minion';
+        this._container.position.set(x, y);
+        parent.addChild(this._container);
 
         const sqrt3over2 = 0.866;
 
         // Equilateral triangle pointing right (+X) — rotated to face target at runtime
         const triPts = [
-            this.radius, 0,
-            -this.radius * 0.5, -this.radius * sqrt3over2,
-            -this.radius * 0.5, this.radius * sqrt3over2,
+            this._radius, 0,
+            -this._radius * 0.5, -this._radius * sqrt3over2,
+            -this._radius * 0.5, this._radius * sqrt3over2,
         ];
 
         this.bodyGfx = new Graphics();
@@ -83,17 +83,17 @@ export class ChaserMinion extends Minion {
             .fill({ color: ChaserMinionConsts.COLOR })
             .poly(triPts)
             .stroke({ color: ChaserMinionConsts.OUTLINE_COLOR, width: 1.5 });
-        this.container.addChild(this.bodyGfx);
+        this._container.addChild(this.bodyGfx);
 
         // White flash overlay (same triangle shape)
         this.flashGfx = new Graphics();
         this.flashGfx.poly(triPts).fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
-        this.container.addChild(this.flashGfx);
+        this._container.addChild(this.flashGfx);
 
         // HP bar (always visible)
         this.hpBarGfx = new Graphics();
-        this.container.addChild(this.hpBarGfx);
+        this._container.addChild(this.hpBarGfx);
 
         this.pickNewWanderTarget();
         this.drawHpBar();
@@ -112,17 +112,17 @@ export class ChaserMinion extends Minion {
     }
 
     takeDamage(amount: number): void {
-        if (this._hp <= 0 || this.iframes > 0) return;
+        if (this._hp <= 0 || this._iframes > 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.iframes = ChaserMinionConsts.IFRAMES;
+        this._iframes = ChaserMinionConsts.IFRAMES;
         this.flashGfx.alpha = 1;
         this.drawHpBar();
     }
 
     checkHit(enemy: Enemy, hitInfo: HitInfo) {
-        const d = this.position.to(enemy.getPosition());
+        const d = this._position.to(enemy.getPosition());
         const dist = Math.hypot(d.x, d.y);
-        if (dist < this.radius + enemy.getRadius()) {
+        if (dist < this._radius + enemy.getRadius()) {
             // ChaserMinion takes damage (sets iframes — short, so it dies fast)
             const minionDmg = Math.max(1, Math.round(enemy.contactDamage * ChaserMinionConsts.CONTACT_DAMAGE_MULT));
             this.takeDamage(minionDmg);
@@ -150,9 +150,9 @@ export class ChaserMinion extends Minion {
         if (this._hp <= 0) return 0;
 
         // ── Iframes timer ──────────────────────────────────────────────────
-        if (this.iframes > 0) {
-            this.iframes = Math.max(0, this.iframes - dt);
-            this.flashGfx.alpha = this.iframes / ChaserMinionConsts.IFRAMES;
+        if (this._iframes > 0) {
+            this._iframes = Math.max(0, this._iframes - dt);
+            this.flashGfx.alpha = this._iframes / ChaserMinionConsts.IFRAMES;
         } else {
             this.flashGfx.alpha = 0;
         }
@@ -166,7 +166,7 @@ export class ChaserMinion extends Minion {
         let nearestDist = Infinity;
         for (const enemy of enemies) {
             if (enemy.isDead) continue;
-            const d = Math.hypot(...this.position.to(enemy.getPosition()).list());
+            const d = Math.hypot(...this._position.to(enemy.getPosition()).list());
             if (d < nearestDist) {
                 nearestDist = d;
                 nearestEnemy = enemy;
@@ -197,7 +197,7 @@ export class ChaserMinion extends Minion {
 
         if (this.state === ChaserMinionState.ATTACK && this.target) {
             // Sprint directly at the target — the only "attack" is collision
-            const td = this.position.to(this.target.getPosition());
+            const td = this._position.to(this.target.getPosition());
             const tdist = Math.hypot(td.x, td.y);
             if (tdist > 0.01) {
                 moveX = td.x / tdist;
@@ -206,12 +206,12 @@ export class ChaserMinion extends Minion {
             }
         } else {
             // ── WANDER: tight orbit around the Summoner's position ────────
-            const distToSumm = Math.hypot(summX - this.position.x, summY - this.position.y);
+            const distToSumm = Math.hypot(summX - this._position.x, summY - this._position.y);
 
             if (distToSumm > ChaserMinionConsts.LEASH_DISTANCE) {
                 // Leash — beeline back to Summoner
-                const sdx = summX - this.position.x;
-                const sdy = summY - this.position.y;
+                const sdx = summX - this._position.x;
+                const sdy = summY - this._position.y;
                 moveX = sdx / distToSumm;
                 moveY = sdy / distToSumm;
                 this.bodyGfx.rotation = Math.atan2(sdy, sdx);
@@ -220,8 +220,8 @@ export class ChaserMinion extends Minion {
             } else {
                 const targetX = summX + this.wanderOffsetX;
                 const targetY = summY + this.wanderOffsetY;
-                const wdx = targetX - this.position.x;
-                const wdy = targetY - this.position.y;
+                const wdx = targetX - this._position.x;
+                const wdy = targetY - this._position.y;
                 const wdist = Math.hypot(wdx, wdy);
 
                 if (wdist < ChaserMinionConsts.WANDER_ARRIVE_DIST) {
@@ -235,15 +235,15 @@ export class ChaserMinion extends Minion {
         }
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.position.add(moveX * ChaserMinionConsts.SPEED * dt, moveY * ChaserMinionConsts.SPEED * dt);
-        const r = this.radius;
-        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)))
+        this._position.add(moveX * ChaserMinionConsts.SPEED * dt, moveY * ChaserMinionConsts.SPEED * dt);
+        const r = this._radius;
+        this._position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this._position.y)))
         this.updateContainerPosition();
         return 0;
     }
 
     destroy(): void {
-        this.container.destroy({ children: true });
+        this._container.destroy({ children: true });
     }
 
     // ── Private ──────────────────────────────────────────────────────────────

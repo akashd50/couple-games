@@ -2,35 +2,44 @@ import { Container } from "pixi.js";
 import { Vec2 } from "../types";
 
 export abstract class Entity {
-    protected readonly container: Container;
-    protected position: Vec2 = new Vec2(0, 0);
-    protected velocity: Vec2 = new Vec2(0, 0);
+    protected readonly _container: Container;
+    protected readonly _bgContainer: Container;
+    protected _position: Vec2 = new Vec2(0, 0);
+    protected _velocity: Vec2 = new Vec2(0, 0);
     protected _hp: number;
     protected _maxHp: number;
-    protected iframes = 0;
-    protected radius = 0;
+    protected _iframes = 0;
+    protected _radius = 0;
 
     constructor(parent?: Container) {
         if (parent) {
-            this.container = new Container();
-            parent.addChild(this.container);
+            this._container = new Container();
+            this._bgContainer = new Container();
+            this._bgContainer = new Container();
+            this._bgContainer.label = "bg_fx";
+            parent.addChild(this._bgContainer);
+            parent.addChild(this._container);
         }
     }
 
     protected updateContainerPosition() {
-        this.container.position.set(this.position.x, this.position.y);
+        this._container.position.set(this._position.x, this._position.y);
+    }
+
+    get bgContainer() {
+        return this._bgContainer;
     }
 
     getPosition(): Vec2 {
-        return this.position;
+        return this._position;
     }
 
     getVelocity(): Vec2 {
-        return this.velocity;
+        return this._velocity;
     }
 
     getRadius(): number {
-        return this.radius;
+        return this._radius;
     }
 
     get hp(): number {
