@@ -110,10 +110,10 @@ export class ShockwaveEffect extends Effect {
 
     isInRange(enemy: Enemy): boolean {
         const outerRadius = this.innerRadius + this.range;
-        const dx = enemy.posX - this.x;
-        const dy = enemy.posY - this.y;
+        const dx = enemy.getPosition().x - this.x;
+        const dy = enemy.getPosition().y - this.y;
         const dist = Math.hypot(dx, dy);
-        if (dist > outerRadius + enemy.radius) {
+        if (dist > outerRadius + enemy.getRadius()) {
             return false;
         }
 

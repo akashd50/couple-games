@@ -1,8 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
 import { ArenaConsts, ChaserMinionConsts } from '../constants';
 import type { Enemy } from './enemy';
-import type { IMinionLike } from './knight-minion';
 import { HitInfo } from "./attacks";
+import { Minion } from "./knight-minion";
 
 const enum ChaserMinionState {
     WANDER,
@@ -34,20 +34,11 @@ const enum ChaserMinionState {
  *
  * Returns total damage dealt to enemies this tick for Summoner lifesteal.
  */
-export class ChaserMinion implements IMinionLike {
-    posX: number;
-    posY: number;
-
-    readonly level: number;
-
-    private _hp: number;
-    private readonly _maxHp: number;
-
+export class ChaserMinion extends Minion {
     /** Base contact damage per iframes window (level-scaled). */
     private readonly _damage: number;
 
     private state = ChaserMinionState.WANDER;
-    private iframes = 0;
     private target: Enemy | null = null;
 
     // ── Wander state ──────────────────────────────────────────────────────────
@@ -56,14 +47,13 @@ export class ChaserMinion implements IMinionLike {
     private wanderLingerTimer = 0;
 
     // ── Pixi ─────────────────────────────────────────────────────────────────
-    private readonly container: Container;
     private readonly bodyGfx: Graphics;
     private readonly flashGfx: Graphics;
     private readonly hpBarGfx: Graphics;
 
     constructor(parent: Container, x: number, y: number, level: number) {
-        this.posX = x;
-        this.posY = y;
+        super(parent);
+        this.position.set(x, y);
         this.level = level;
 
         const hp = ChaserMinionConsts.BASE_HP + (level - 1) * ChaserMinionConsts.HP_PER_LEVEL;
@@ -71,21 +61,20 @@ export class ChaserMinion implements IMinionLike {
         this._hp = hp;
         this._maxHp = hp;
         this._damage = dmg;
+        this.radius = ChaserMinionConsts.BASE_RADIUS;
 
         // ── Containers ─────────────────────────────────────────────────────
-        this.container = new Container();
         this.container.label = 'chaser-minion';
         this.container.position.set(x, y);
         parent.addChild(this.container);
 
-        const r = ChaserMinionConsts.BASE_RADIUS;
         const sqrt3over2 = 0.866;
 
         // Equilateral triangle pointing right (+X) — rotated to face target at runtime
         const triPts = [
-            r, 0,
-            -r * 0.5, -r * sqrt3over2,
-            -r * 0.5, r * sqrt3over2,
+            this.radius, 0,
+            -this.radius * 0.5, -this.radius * sqrt3over2,
+            -this.radius * 0.5, this.radius * sqrt3over2,
         ];
 
         this.bodyGfx = new Graphics();
@@ -116,18 +105,6 @@ export class ChaserMinion implements IMinionLike {
         return this._hp <= 0;
     }
 
-    get hp(): number {
-        return this._hp;
-    }
-
-    get maxHp(): number {
-        return this._maxHp;
-    }
-
-    get radius(): number {
-        return ChaserMinionConsts.BASE_RADIUS;
-    }
-
     // ── Public ────────────────────────────────────────────────────────────────
 
     kill(): void {
@@ -143,17 +120,16 @@ export class ChaserMinion implements IMinionLike {
     }
 
     checkHit(enemy: Enemy, hitInfo: HitInfo) {
-        const dx = enemy.posX - this.posX;
-        const dy = enemy.posY - this.posY;
-        const dist = Math.hypot(dx, dy);
-        if (dist < this.radius + enemy.radius) {
+        const d = this.position.to(enemy.getPosition());
+        const dist = Math.hypot(d.x, d.y);
+        if (dist < this.radius + enemy.getRadius()) {
             // ChaserMinion takes damage (sets iframes — short, so it dies fast)
             const minionDmg = Math.max(1, Math.round(enemy.contactDamage * ChaserMinionConsts.CONTACT_DAMAGE_MULT));
             this.takeDamage(minionDmg);
 
             // Enemy takes damage + strong knockback away from minion
-            const nx = dist > 0.001 ? dx / dist : 1;
-            const ny = dist > 0.001 ? dy / dist : 0;
+            const nx = dist > 0.001 ? d.x / dist : 1;
+            const ny = dist > 0.001 ? d.y / dist : 0;
             const enemyDmg = Math.max(1, Math.round(this._damage * ChaserMinionConsts.CONTACT_ENEMY_DAMAGE_MULT));
             hitInfo
                 .addDamage(enemyDmg)
@@ -190,7 +166,7 @@ export class ChaserMinion implements IMinionLike {
         let nearestDist = Infinity;
         for (const enemy of enemies) {
             if (enemy.isDead) continue;
-            const d = Math.hypot(enemy.posX - this.posX, enemy.posY - this.posY);
+            const d = Math.hypot(...this.position.to(enemy.getPosition()).list());
             if (d < nearestDist) {
                 nearestDist = d;
                 nearestEnemy = enemy;
@@ -221,22 +197,21 @@ export class ChaserMinion implements IMinionLike {
 
         if (this.state === ChaserMinionState.ATTACK && this.target) {
             // Sprint directly at the target — the only "attack" is collision
-            const tdx = this.target.posX - this.posX;
-            const tdy = this.target.posY - this.posY;
-            const tdist = Math.hypot(tdx, tdy);
+            const td = this.position.to(this.target.getPosition());
+            const tdist = Math.hypot(td.x, td.y);
             if (tdist > 0.01) {
-                moveX = tdx / tdist;
-                moveY = tdy / tdist;
-                this.bodyGfx.rotation = Math.atan2(tdy, tdx);
+                moveX = td.x / tdist;
+                moveY = td.y / tdist;
+                this.bodyGfx.rotation = Math.atan2(td.y, td.x);
             }
         } else {
             // ── WANDER: tight orbit around the Summoner's position ────────
-            const distToSumm = Math.hypot(summX - this.posX, summY - this.posY);
+            const distToSumm = Math.hypot(summX - this.position.x, summY - this.position.y);
 
             if (distToSumm > ChaserMinionConsts.LEASH_DISTANCE) {
                 // Leash — beeline back to Summoner
-                const sdx = summX - this.posX;
-                const sdy = summY - this.posY;
+                const sdx = summX - this.position.x;
+                const sdy = summY - this.position.y;
                 moveX = sdx / distToSumm;
                 moveY = sdy / distToSumm;
                 this.bodyGfx.rotation = Math.atan2(sdy, sdx);
@@ -245,8 +220,8 @@ export class ChaserMinion implements IMinionLike {
             } else {
                 const targetX = summX + this.wanderOffsetX;
                 const targetY = summY + this.wanderOffsetY;
-                const wdx = targetX - this.posX;
-                const wdy = targetY - this.posY;
+                const wdx = targetX - this.position.x;
+                const wdy = targetY - this.position.y;
                 const wdist = Math.hypot(wdx, wdy);
 
                 if (wdist < ChaserMinionConsts.WANDER_ARRIVE_DIST) {
@@ -260,14 +235,10 @@ export class ChaserMinion implements IMinionLike {
         }
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.posX += moveX * ChaserMinionConsts.SPEED * dt;
-        this.posY += moveY * ChaserMinionConsts.SPEED * dt;
-
+        this.position.add(moveX * ChaserMinionConsts.SPEED * dt, moveY * ChaserMinionConsts.SPEED * dt);
         const r = this.radius;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
-
-        this.container.position.set(this.posX, this.posY);
+        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)))
+        this.updateContainerPosition();
         return 0;
     }
 

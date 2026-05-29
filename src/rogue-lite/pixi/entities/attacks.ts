@@ -11,7 +11,7 @@ export class HitInfo {
     success: boolean;
 
     constructor() {
-        this.knockback = { x: 0, y: 0 };
+        this.knockback = new Vec2(0, 0);
         this.damage = 0;
         this.success = false;
     }

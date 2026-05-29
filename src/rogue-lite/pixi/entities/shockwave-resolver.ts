@@ -100,7 +100,7 @@ export class ShockwaveResolver extends Resolver {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
-                const dir = getDirectionTo(this.player.getPosition(), { x: enemy.posX, y: enemy.posY });
+                const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
                 hitInfo
                     .addDamage(KnightConsts.swordShockwave.damage)
                     .addKnockback(dir.x * KnightConsts.swordShockwave.knockback, dir.y * KnightConsts.swordShockwave.knockback);

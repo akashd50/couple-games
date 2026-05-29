@@ -24,13 +24,10 @@ export class Chaser extends Enemy {
     readonly contactDamage = ChaserConsts.HIT_DAMAGE;
     readonly contactKnockback = ChaserConsts.KNOCKBACK;
 
-    private readonly container: Container;
     private readonly bodyContainer: Container;
     private readonly hpBarGfx: Graphics;
     private readonly flashGfx: Graphics;
 
-    private _hp: number;
-    private readonly _maxHp: number;
     private state: ChaserState = ChaserState.WANDER;
     private wanderAngle: number;
     private wanderTimer = 0;
@@ -47,25 +44,25 @@ export class Chaser extends Enemy {
      *                Level 1 = base stats; each additional level scales HP, speed, and XP drop.
      */
     constructor(parent: Container, x: number, y: number, level = 1) {
-        super(x, y);
+        super(x, y, parent);
 
         this._level = level;
 
         // Derive multipliers from level — all scaling knowledge lives here
-        const hpMult    = 1 + (level - 1) * ChaserConsts.HP_SCALE_PER_LEVEL;
+        const hpMult = 1 + (level - 1) * ChaserConsts.HP_SCALE_PER_LEVEL;
         const speedMult = 1 + (level - 1) * ChaserConsts.SPEED_SCALE_PER_LEVEL;
-        const scaledHp  = Math.round(ChaserConsts.HP * hpMult);
+        const scaledHp = Math.round(ChaserConsts.HP * hpMult);
 
-        this._hp    = scaledHp;
+        this._hp = scaledHp;
         this._maxHp = scaledHp;
         this.speedWander = ChaserConsts.SPEED_WANDER * speedMult;
-        this.speedChase  = ChaserConsts.SPEED_CHASE  * speedMult;
+        this.speedChase = ChaserConsts.SPEED_CHASE * speedMult;
+        this.radius = ChaserConsts.RADIUS;
 
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5; // stagger initial direction change
 
         // Outer container — moves with position, never rotates
-        this.container = new Container();
         this.container.label = 'chaser';
         this.container.position.set(x, y);
         parent.addChild(this.container);
@@ -75,21 +72,20 @@ export class Chaser extends Enemy {
         this.container.addChild(this.bodyContainer);
 
         // Triangle (equilateral-ish, pointing right at rotation=0)
-        const r = ChaserConsts.RADIUS;
         const body = new Graphics();
-        body.moveTo(r, 0)
-            .lineTo(-r * 0.75, -r * 0.65)
-            .lineTo(-r * 0.75, r * 0.65)
-            .lineTo(r, 0)
+        body.moveTo(this.radius, 0)
+            .lineTo(-this.radius * 0.75, -this.radius * 0.65)
+            .lineTo(-this.radius * 0.75, this.radius * 0.65)
+            .lineTo(this.radius, 0)
             .fill({ color: ChaserConsts.COLOR });
         this.bodyContainer.addChild(body);
 
         // White flash overlay — same triangle shape, alpha driven by flashTimer
         this.flashGfx = new Graphics();
-        this.flashGfx.moveTo(r, 0)
-            .lineTo(-r * 0.75, -r * 0.65)
-            .lineTo(-r * 0.75, r * 0.65)
-            .lineTo(r, 0)
+        this.flashGfx.moveTo(this.radius, 0)
+            .lineTo(-this.radius * 0.75, -this.radius * 0.65)
+            .lineTo(-this.radius * 0.75, this.radius * 0.65)
+            .lineTo(this.radius, 0)
             .fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
         this.bodyContainer.addChild(this.flashGfx);
@@ -99,12 +95,13 @@ export class Chaser extends Enemy {
         this.container.addChild(this.hpBarGfx);
     }
 
-    get position()        { return { x: this.posX, y: this.posY }; }
-    get radius(): number  { return ChaserConsts.RADIUS; }
-    get hp(): number      { return this._hp; }
-    get maxHp(): number   { return this._maxHp; }
-    get isDead(): boolean { return this._hp <= 0; }
-    get level(): number   { return this._level; }
+    get isDead(): boolean {
+        return this._hp <= 0;
+    }
+
+    get level(): number {
+        return this._level;
+    }
 
     /** XP awarded per gem dropped; scales with spawn level. */
     get xpGemValue(): number {
@@ -124,8 +121,8 @@ export class Chaser extends Enemy {
         // Update flash overlay
         this.flashGfx.alpha = this.flashAlpha;
 
-        const dx = playerX - this.posX;
-        const dy = playerY - this.posY;
+        const dx = playerX - this.position.x;
+        const dy = playerY - this.position.y;
         const dist = Math.hypot(dx, dy);
 
         // ── State machine ──────────────────────────────────────────────────────
@@ -161,15 +158,12 @@ export class Chaser extends Enemy {
             : this.speedWander;
 
         // ── Physics ────────────────────────────────────────────────────────────
-        this.posX += (moveX * speed + this.vx) * dt;
-        this.posY += (moveY * speed + this.vy) * dt;
+        this.position.add((moveX * speed + this.velocity.x) * dt, (moveY * speed + this.velocity.y) * dt);
 
         // Clamp to arena
         const r = ChaserConsts.RADIUS;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
-
-        this.container.position.set(this.posX, this.posY);
+        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this.updateContainerPosition();
 
         // Rotate body to face movement direction
         if (Math.abs(moveX) + Math.abs(moveY) > 0.01) {
@@ -186,8 +180,7 @@ export class Chaser extends Enemy {
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.vx += kbx;
-        this.vy += kby;
+        this.velocity.add(kbx, kby);
         this.startFlash();
         this.drawHpBar();
     }

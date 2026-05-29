@@ -28,8 +28,5 @@ export function getDirectionTo(from: Vec2, to: Vec2): Vec2 {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     const dist = Math.hypot(dx, dy);
-    return {
-        x: dist > 0.001 ? dx / dist : (Math.random() * 2 - 1),
-        y: dist > 0.001 ? dy / dist : (Math.random() * 2 - 1)
-    };
+    return new Vec2(dist > 0.001 ? dx / dist : (Math.random() * 2 - 1), dist > 0.001 ? dy / dist : (Math.random() * 2 - 1));
 }

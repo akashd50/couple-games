@@ -1,4 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
+import { Vec2 } from "../types";
 
 /**
  * Specification for spawning a projectile.
@@ -48,8 +49,7 @@ export interface ProjectileSpec {
  * the instance from the ProjectileSystem pool.
  */
 export class Projectile {
-    posX: number;
-    posY: number;
+    position: Vec2 = new Vec2(0, 0);
 
     private _lifetime: number;
     private readonly gfx: Graphics;
@@ -57,14 +57,13 @@ export class Projectile {
     private readonly spec: ProjectileSpec;
 
     /** Ring buffer of recent world positions for trail rendering. */
-    private readonly trailHistory: Array<{ x: number; y: number }> = [];
+    private readonly trailHistory: Array<Vec2> = [];
     private static readonly TRAIL_LENGTH = 10;
 
     constructor(parent: Container, spec: ProjectileSpec) {
-        this.posX     = spec.x;
-        this.posY     = spec.y;
+        this.position.set(spec.x, spec.y);
         this._lifetime = spec.lifetime;
-        this.spec     = spec;
+        this.spec = spec;
 
         // Trail gfx added FIRST so it renders behind the bullet body
         if (spec.trailColor !== undefined) {
@@ -90,28 +89,44 @@ export class Projectile {
 
     // ── Getters ──────────────────────────────────────────────────────────────
 
-    get isDead(): boolean  { return this._lifetime <= 0; }
-    get radius(): number   { return this.spec.radius; }
-    get damage(): number   { return this.spec.damage; }
-    get knockback(): number { return this.spec.knockback; }
-    get dx(): number       { return this.spec.dx; }
-    get dy(): number       { return this.spec.dy; }
+    get isDead(): boolean {
+        return this._lifetime <= 0;
+    }
+
+    get radius(): number {
+        return this.spec.radius;
+    }
+
+    get damage(): number {
+        return this.spec.damage;
+    }
+
+    get knockback(): number {
+        return this.spec.knockback;
+    }
+
+    get dx(): number {
+        return this.spec.dx;
+    }
+
+    get dy(): number {
+        return this.spec.dy;
+    }
 
     // ── Update / destroy ──────────────────────────────────────────────────────
 
     update(dt: number): void {
         // Record position BEFORE moving (for the trail history)
         if (this.trailGfx) {
-            this.trailHistory.unshift({ x: this.posX, y: this.posY });
+            this.trailHistory.unshift(this.position);
             if (this.trailHistory.length > Projectile.TRAIL_LENGTH) {
                 this.trailHistory.pop();
             }
         }
 
         this._lifetime -= dt;
-        this.posX += this.spec.dx * this.spec.speed * dt;
-        this.posY += this.spec.dy * this.spec.speed * dt;
-        this.gfx.position.set(this.posX, this.posY);
+        this.position.add(this.spec.dx * this.spec.speed * dt, this.spec.dy * this.spec.speed * dt);
+        this.gfx.position.set(this.position.x, this.position.y);
 
         // Fade out over the last 30% of lifetime
         const fadeRatio = this.spec.lifetime * 0.3;
@@ -126,9 +141,9 @@ export class Projectile {
             const len = this.trailHistory.length;
             for (let i = 0; i < len; i++) {
                 const { x, y } = this.trailHistory[i];
-                const frac  = 1 - i / len;          // 1 at newest, 0 at oldest
+                const frac = 1 - i / len;          // 1 at newest, 0 at oldest
                 const alpha = frac * 0.55 * this.gfx.alpha;
-                const r     = this.spec.radius * frac * 0.65;
+                const r = this.spec.radius * frac * 0.65;
                 if (r > 0.5 && alpha > 0.008) {
                     g.circle(x, y, r).fill({ color: this.spec.trailColor, alpha });
                 }
@@ -165,12 +180,12 @@ export class Projectile {
 
         // Triangle pointing right (→) at rotation 0
         // Front tip at (+r*1.7, 0), two rear corners at (−r, ±r*0.85)
-        g.moveTo( r * 1.7,  0)
-         .lineTo(-r,        r * 0.85)
-         .lineTo(-r * 0.35, 0)
-         .lineTo(-r,       -r * 0.85)
-         .lineTo( r * 1.7,  0)
-         .fill({ color: this.spec.color, alpha: 0.95 });
+        g.moveTo(r * 1.7, 0)
+            .lineTo(-r, r * 0.85)
+            .lineTo(-r * 0.35, 0)
+            .lineTo(-r, -r * 0.85)
+            .lineTo(r * 1.7, 0)
+            .fill({ color: this.spec.color, alpha: 0.95 });
 
         // Bright inner core
         g.circle(r * 0.25, 0, r * 0.45).fill({ color: 0xffffff, alpha: 0.85 });

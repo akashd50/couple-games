@@ -85,7 +85,7 @@ export class AftershockResolver extends Resolver {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
-                const dir = getDirectionTo(this.player.getPosition(), { x: enemy.posX, y: enemy.posY });
+                const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
                 hitInfo
                     .setDamage(KnightConsts.aftershock.damage)
                     .setKnockback(dir.x * KnightConsts.aftershock.knockback, dir.y * KnightConsts.aftershock.knockback);

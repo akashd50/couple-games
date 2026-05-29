@@ -110,16 +110,15 @@ export class SwingAttackResolver extends Resolver {
 
         const position = player.getPosition();
         if (isInAttackCone(
-            position.x, position.y,
+            position,
             this.arcStart, this.arcEnd,
-            enemy.posX, enemy.posY, enemy.radius,
+            enemy.getPosition(), enemy.getRadius(),
             this.effectiveRange,
         )) {
-            const dx2 = enemy.posX - position.x;
-            const dy2 = enemy.posY - position.y;
-            const d2 = Math.hypot(dx2, dy2);
-            const kbx = d2 > 0.001 ? (dx2 / d2) * this.props.knockback : this.props.knockback;
-            const kby = d2 > 0.001 ? (dy2 / d2) * this.props.knockback : 0;
+            const d = position.to(enemy.getVelocity());
+            const d2 = Math.hypot(d.x, d.y);
+            const kbx = d2 > 0.001 ? (d.x / d2) * this.props.knockback : this.props.knockback;
+            const kby = d2 > 0.001 ? (d.y / d2) * this.props.knockback : 0;
             this.hitSet.add(enemy);
 
             return {

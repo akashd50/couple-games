@@ -1,4 +1,6 @@
 import { PhysicsConsts } from '../constants';
+import { Entity } from "./entity";
+import { Container } from "pixi.js";
 
 /**
  * Abstract base class for all enemy entities.
@@ -16,14 +18,7 @@ import { PhysicsConsts } from '../constants';
  *   - HP tracking and HP-bar drawing
  *   - Concrete values for radius, contactDamage, contactKnockback, xpDropCount
  */
-export abstract class Enemy {
-    posX: number;
-    posY: number;
-
-    /** Knockback velocity — accumulated by applyKnockback(), decays via friction. */
-    protected vx = 0;
-    protected vy = 0;
-
+export abstract class Enemy extends Entity {
     /** Seconds remaining for the white hit-flash.  0 = no flash. */
     protected flashTimer = 0;
 
@@ -33,16 +28,13 @@ export abstract class Enemy {
      */
     readonly isBoss: boolean = false;
 
-    constructor(x: number, y: number) {
-        this.posX = x;
-        this.posY = y;
+    constructor(x: number, y: number, parent?: Container) {
+        super(parent);
+        this.position.set(x, y);
     }
 
     // ── Abstract contract ─────────────────────────────────────────────────────
 
-    abstract readonly radius: number;
-    abstract readonly hp: number;
-    abstract readonly maxHp: number;
     abstract readonly isDead: boolean;
 
     /**
@@ -80,8 +72,7 @@ export abstract class Enemy {
 
     /** Add a knockback impulse to this enemy's velocity. */
     applyKnockback(kbx: number, kby: number): void {
-        this.vx += kbx;
-        this.vy += kby;
+        this.velocity.add(kbx, kby);
     }
 
     // ── Protected helpers (used by subclasses) ────────────────────────────────
@@ -92,8 +83,7 @@ export abstract class Enemy {
      */
     protected tickPhysics(dt: number): void {
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.vx *= friction;
-        this.vy *= friction;
+        this.velocity.multiplyBy(friction);
 
         if (this.flashTimer > 0) {
             this.flashTimer = Math.max(0, this.flashTimer - dt);

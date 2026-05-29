@@ -1,4 +1,4 @@
-import type { Vec2, InputState } from './types';
+import { Vec2, InputState } from './types';
 
 /**
  * Manages all input channels (keyboard + mouse for desktop, touch vectors from
@@ -72,17 +72,17 @@ export class InputManager {
         // --- Move ---
         let move: Vec2;
         if (this.touchMove) {
-            move = { ...this.touchMove };
+            move = this.touchMove.clone();
         } else {
             let mx = 0, my = 0;
             for (const k of this.keysDown) {
-                if (k === 'w' || k === 'arrowup')    my -= 1;
-                if (k === 's' || k === 'arrowdown')  my += 1;
-                if (k === 'a' || k === 'arrowleft')  mx -= 1;
+                if (k === 'w' || k === 'arrowup') my -= 1;
+                if (k === 's' || k === 'arrowdown') my += 1;
+                if (k === 'a' || k === 'arrowleft') mx -= 1;
                 if (k === 'd' || k === 'arrowright') mx += 1;
             }
             const len = Math.hypot(mx, my);
-            move = len > 1 ? { x: mx / len, y: my / len } : { x: mx, y: my };
+            move = len > 1 ? new Vec2(mx / len, my / len) : new Vec2(mx, my);
         }
 
         // --- Aim ---
@@ -91,16 +91,16 @@ export class InputManager {
         // edges (i.e. the player is no longer centred on screen).
         let aim: Vec2;
         if (this.touchAim) {
-            aim = { ...this.touchAim };
+            aim = this.touchAim.clone();
         } else if (this.host) {
-            const originX = playerScreenX ?? this.host.clientWidth  / 2;
+            const originX = playerScreenX ?? this.host.clientWidth / 2;
             const originY = playerScreenY ?? this.host.clientHeight / 2;
             const dx = this.mouseScreenX - originX;
             const dy = this.mouseScreenY - originY;
             const len = Math.hypot(dx, dy);
-            aim = len > 1 ? { x: dx / len, y: dy / len } : { x: 1, y: 0 };
+            aim = len > 1 ? new Vec2(dx / len, dy / len) : new Vec2(1, 0);
         } else {
-            aim = { x: 1, y: 0 };
+            aim = new Vec2(1, 0);
         }
 
         return { move, aim };

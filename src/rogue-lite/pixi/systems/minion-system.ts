@@ -1,10 +1,11 @@
 import { Container } from 'pixi.js';
-import { KnightMinion, IMinionLike } from '../entities/knight-minion';
+import { KnightMinion, Minion } from '../entities/knight-minion';
 import { ChaserMinion } from '../entities/chaser-minion';
-import { SummonAreaConsts } from '../constants';
+import { ChaserConsts, ChaserMinionConsts, SummonAreaConsts } from '../constants';
 import type { CorpseSystem } from './corpse-system';
 import type { Enemy } from '../entities/enemy';
 import { HitInfo } from "../entities/attacks";
+import { WorldData } from "./world-data";
 
 /**
  * Manages the Summoner's active Minion pool.
@@ -19,7 +20,7 @@ import { HitInfo } from "../entities/attacks";
  *  - Report total damage dealt (for Summoner lifesteal).
  */
 export class MinionSystem {
-    private readonly minions: IMinionLike[] = [];
+    private readonly minions: Minion[] = [];
     private summonCooldown = 0;
     private _cap: number;
 
@@ -41,7 +42,7 @@ export class MinionSystem {
     }
 
     /** Live Minion instances — used by World for collision separation. */
-    getLiveMinions(): IMinionLike[] {
+    getLiveMinions(): Minion[] {
         return this.minions.filter(m => !m.isDead);
     }
 
@@ -90,13 +91,14 @@ export class MinionSystem {
         if (active.length >= this._cap) {
             const weakest = active.reduce((a, b) => a.level <= b.level ? a : b);
             weakest.kill();
+            WorldData.deathParticles.emitBurst(weakest.getPosition().x, weakest.getPosition().y, ChaserMinionConsts.COLOR);
         }
 
         // Consume nearest corpse and spawn the matching Minion type at its position
         const corpse = nearby[0];
         corpse.consume();
 
-        const newMinion: IMinionLike = corpse.enemyType === 'chaser'
+        const newMinion: Minion = corpse.enemyType === 'chaser'
             ? new ChaserMinion(this.parent, corpse.posX, corpse.posY, corpse.level)
             : new KnightMinion(this.parent, corpse.posX, corpse.posY, corpse.level);
 
@@ -122,7 +124,9 @@ export class MinionSystem {
 
         // Remove dead minions
         for (let i = this.minions.length - 1; i >= 0; i--) {
-            if (this.minions[i].isDead) {
+            const m = this.minions[i];
+            if (m.isDead) {
+                WorldData.deathParticles.emitBurst(m.getPosition().x, m.getPosition().y, ChaserMinionConsts.COLOR);
                 this.minions[i].destroy();
                 this.minions.splice(i, 1);
             }
