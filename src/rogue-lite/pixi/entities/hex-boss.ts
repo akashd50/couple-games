@@ -32,13 +32,9 @@ export class HexBoss extends Enemy {
     readonly xpDropCount = HexBossConsts.XP_DROP_COUNT;
     readonly contactDamage = HexBossConsts.HIT_DAMAGE;
     readonly contactKnockback = HexBossConsts.KNOCKBACK;
-
-    private _hp: number;
-    private readonly _maxHp: number;
     private readonly _level: number;
 
     // ── Pixi containers ───────────────────────────────────────────────────────
-    private readonly container: Container;
     private readonly bodyGfx: Graphics;
     private readonly flashGfx: Graphics;
     private readonly hpBarGfx: Graphics;
@@ -64,7 +60,7 @@ export class HexBoss extends Enemy {
         level = 1,
         private readonly onFireProjectile: BossFireCallback,
     ) {
-        super(x, y);
+        super(x, y, parent);
 
         this._level = level;
 
@@ -75,7 +71,6 @@ export class HexBoss extends Enemy {
         this.stateTimer = HexBossConsts.CHARGE_DURATION;
 
         // Outer container — holds world position + HP bar
-        this.container = new Container();
         this.container.label = 'hex-boss';
         this.container.position.set(x, y);
         parent.addChild(this.container);
@@ -95,15 +90,19 @@ export class HexBoss extends Enemy {
         this.hpBarGfx = new Graphics();
         this.container.addChild(this.hpBarGfx);
         this.drawHpBar();
+        
+        this.radius = HexBossConsts.RADIUS;
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
-    get radius(): number  { return HexBossConsts.RADIUS; }
-    get hp(): number      { return this._hp; }
-    get maxHp(): number   { return this._maxHp; }
-    get isDead(): boolean { return this._hp <= 0; }
-    get level(): number   { return this._level; }
+    get isDead(): boolean {
+        return this._hp <= 0;
+    }
+
+    get level(): number {
+        return this._level;
+    }
 
     /** XP awarded per gem dropped; scales with spawn level. */
     get xpGemValue(): number {
@@ -148,15 +147,14 @@ export class HexBoss extends Enemy {
                 break;
         }
 
-        this.container.position.set(this.posX, this.posY);
+        this.container.position.set(this.position.x, this.position.y);
     }
 
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
         // Boss is heavy — greatly reduce incoming knockback
-        this.vx += kbx * HexBossConsts.KNOCKBACK_RECEIVED_MULT;
-        this.vy += kby * HexBossConsts.KNOCKBACK_RECEIVED_MULT;
+        this.velocity.add(kbx * HexBossConsts.KNOCKBACK_RECEIVED_MULT, kby * HexBossConsts.KNOCKBACK_RECEIVED_MULT);
         this.startFlash();
         this.drawHpBar();
     }
@@ -177,19 +175,17 @@ export class HexBoss extends Enemy {
     }
 
     private doCharge(dt: number, playerX: number, playerY: number): void {
-        const dx = playerX - this.posX;
-        const dy = playerY - this.posY;
+        const dx = playerX - this.position.x;
+        const dy = playerY - this.position.y;
         const dist = Math.hypot(dx, dy);
         if (dist > 1) {
             const nx = dx / dist;
             const ny = dy / dist;
-            this.posX += (nx * HexBossConsts.SPEED_CHARGE + this.vx) * dt;
-            this.posY += (ny * HexBossConsts.SPEED_CHARGE + this.vy) * dt;
+            this.position.add((nx * HexBossConsts.SPEED_CHARGE + this.velocity.x) * dt, (ny * HexBossConsts.SPEED_CHARGE + this.velocity.y) * dt);
         }
         // Clamp to arena
         const r = HexBossConsts.RADIUS;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
+        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
     }
 
     private doTelegraphDraw(): void {
@@ -206,8 +202,8 @@ export class HexBoss extends Enemy {
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 * i) / count;
             this.onFireProjectile(
-                this.posX,
-                this.posY,
+                this.position.x,
+                this.position.y,
                 Math.cos(angle),
                 Math.sin(angle),
             );

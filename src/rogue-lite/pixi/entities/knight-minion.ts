@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { ArenaConsts, MinionConsts } from '../constants';
 import type { Enemy } from './enemy';
 import { HitInfo } from "./attacks";
+import { Entity } from "./entity";
 
 // ── Shared interface ──────────────────────────────────────────────────────────
 
@@ -10,24 +11,24 @@ import { HitInfo } from "./attacks";
  * and ChaserMinion).  World and MinionSystem use this so they never need to
  * import concrete subclasses.
  */
-export interface IMinionLike {
-    posX: number;
-    posY: number;
-    readonly isDead: boolean;
-    readonly radius: number;
-    readonly level: number;
-    readonly hp: number;
-    readonly maxHp: number;
+export abstract class Minion extends Entity {
+    level: number = 0;
 
-    kill(): void;
+    constructor(parent: Container) {
+        super(parent);
+    }
 
-    takeDamage(amount: number): void;
+    abstract kill(): void;
 
-    checkHit(enemy: Enemy, hitInfo: HitInfo): void;
+    abstract takeDamage(amount: number): void;
 
-    update(dt: number, summX: number, summY: number, enemies: Enemy[]): number;
+    abstract checkHit(enemy: Enemy, hitInfo: HitInfo): void;
 
-    destroy(): void;
+    abstract update(dt: number, summX: number, summY: number, enemies: Enemy[]): number;
+
+    abstract destroy(): void;
+
+    abstract get isDead(): boolean;
 }
 
 // ── Internal state ────────────────────────────────────────────────────────────
@@ -57,22 +58,13 @@ const enum MinionState {
  * The HP bar is always visible.
  * Damage dealt (swing + contact) is returned from update() for lifesteal.
  */
-export class KnightMinion implements IMinionLike {
-    posX: number;
-    posY: number;
-
-    readonly level: number;
-
-    private _hp: number;
-    private readonly _maxHp: number;
-
+export class KnightMinion extends Minion {
     /** Base damage per sword hit (level-scaled). */
     private readonly _damage: number;
 
     private state = MinionState.WANDER;
     private attackTimer = 0;
     private swingTimer = 0;
-    private iframes = 0;
     private target: Enemy | null = null;
 
     // ── Wander state ──────────────────────────────────────────────────────────
@@ -81,15 +73,14 @@ export class KnightMinion implements IMinionLike {
     private wanderLingerTimer = 0;
 
     // ── Pixi ─────────────────────────────────────────────────────────────────
-    private readonly container: Container;
     private readonly bodyGfx: Graphics;
     private readonly swingGfx: Graphics;
     private readonly flashGfx: Graphics;
     private readonly hpBarGfx: Graphics;
 
     constructor(parent: Container, x: number, y: number, level: number) {
-        this.posX = x;
-        this.posY = y;
+        super(parent);
+        this.position.set(x, y);
         this.level = level;
 
         const hp = MinionConsts.BASE_HP + (level - 1) * MinionConsts.HP_PER_LEVEL;
@@ -97,14 +88,12 @@ export class KnightMinion implements IMinionLike {
         this._hp = hp;
         this._maxHp = hp;
         this._damage = dmg;
+        this.radius = MinionConsts.BASE_RADIUS;
 
         // ── Containers ─────────────────────────────────────────────────────
-        this.container = new Container();
         this.container.label = 'minion';
         this.container.position.set(x, y);
         parent.addChild(this.container);
-
-        const r = MinionConsts.BASE_RADIUS;
 
         // Sword swing arc (drawn behind the body; static shape, rotated at strike)
         this.swingGfx = new Graphics();
@@ -115,15 +104,15 @@ export class KnightMinion implements IMinionLike {
         // Square body
         this.bodyGfx = new Graphics();
         this.bodyGfx
-            .rect(-r, -r, r * 2, r * 2)
+            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
             .fill({ color: MinionConsts.COLOR })
-            .rect(-r, -r, r * 2, r * 2)
+            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
             .stroke({ color: MinionConsts.OUTLINE_COLOR, width: 1.5 });
         this.container.addChild(this.bodyGfx);
 
         // White flash overlay
         this.flashGfx = new Graphics();
-        this.flashGfx.rect(-r, -r, r * 2, r * 2).fill({ color: 0xffffff });
+        this.flashGfx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2).fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
         this.container.addChild(this.flashGfx);
 
@@ -141,22 +130,38 @@ export class KnightMinion implements IMinionLike {
         return this._hp <= 0;
     }
 
-    get hp(): number {
-        return this._hp;
-    }
-
-    get maxHp(): number {
-        return this._maxHp;
-    }
-
-    get radius(): number {
-        return MinionConsts.BASE_RADIUS;
-    }
-
     // ── Public ────────────────────────────────────────────────────────────────
 
-    checkHit(enemy: Enemy, hitInfo: HitInfo) {
+    /**
+     * Check whether this KnightMinion can land a sword strike on `enemy` this tick.
+     *
+     * Only fires when:
+     *   - This minion is alive and in ATTACK state targeting `enemy`
+     *   - The enemy is within ATTACK_RANGE
+     *   - The attack cooldown has expired
+     *
+     * Damage and knockback are accumulated into `hitInfo` so World can apply them
+     * through the standard pipeline (enemy.takeDamage, player lifesteal, etc.).
+     */
+    checkHit(enemy: Enemy, hitInfo: HitInfo): void {
+        if (this._hp <= 0 || this.state !== MinionState.ATTACK || this.target !== enemy) return;
 
+        const td = this.position.to(enemy.getPosition());
+        const tdist = Math.hypot(td.x, td.y);
+        const engageDistance = MinionConsts.ATTACK_RANGE + enemy.getRadius() + this.getRadius();
+
+        if (tdist > engageDistance || this.attackTimer > 0) return;
+
+        // In range and cooldown ready — sword strike
+        this.attackTimer = MinionConsts.ATTACK_COOLDOWN;
+        const nx = tdist > 0.01 ? td.x / tdist : 0;
+        const ny = tdist > 0.01 ? td.y / tdist : 0;
+        hitInfo.addDamage(this._damage);
+        hitInfo.addKnockback(nx * MinionConsts.ATTACK_KNOCKBACK, ny * MinionConsts.ATTACK_KNOCKBACK);
+
+        // Trigger swing arc VFX
+        this.swingTimer = MinionConsts.SWING_DURATION;
+        this.swingGfx.rotation = this.bodyGfx.rotation;
     }
 
 
@@ -208,18 +213,17 @@ export class KnightMinion implements IMinionLike {
         if (this.iframes <= 0) {
             for (const enemy of enemies) {
                 if (enemy.isDead) continue;
-                const dx = enemy.posX - this.posX;
-                const dy = enemy.posY - this.posY;
-                const dist = Math.hypot(dx, dy);
-                if (dist < this.radius + enemy.radius) {
+                const d = this.position.to(enemy.getPosition());
+                const dist = Math.hypot(d.x, d.y);
+                if (dist < this.radius + enemy.getRadius()) {
                     // Minion takes contact damage (sets iframes)
                     const minionDmg = Math.max(1, Math.round(
                         enemy.contactDamage * MinionConsts.CONTACT_DAMAGE_MULT));
                     this.takeDamage(minionDmg);
 
                     // Reciprocal: enemy takes damage + knockback away from minion
-                    const nx = dist > 0.001 ? dx / dist : 1;
-                    const ny = dist > 0.001 ? dy / dist : 0;
+                    const nx = dist > 0.001 ? d.x / dist : 1;
+                    const ny = dist > 0.001 ? d.y / dist : 0;
                     const enemyDmg = Math.max(1, Math.round(
                         this._damage * MinionConsts.CONTACT_ENEMY_DAMAGE_MULT));
                     enemy.takeDamage(
@@ -240,7 +244,7 @@ export class KnightMinion implements IMinionLike {
         let nearestDist = Infinity;
         for (const enemy of enemies) {
             if (enemy.isDead) continue;
-            const d = Math.hypot(enemy.posX - this.posX, enemy.posY - this.posY);
+            const d = Math.hypot(...this.position.to(enemy.getPosition()).list());
             if (d < nearestDist) {
                 nearestDist = d;
                 nearestEnemy = enemy;
@@ -270,46 +274,32 @@ export class KnightMinion implements IMinionLike {
         let moveY = 0;
 
         if (this.state === MinionState.ATTACK && this.target) {
-            const tdx = this.target.posX - this.posX;
-            const tdy = this.target.posY - this.posY;
-            const tdist = Math.hypot(tdx, tdy);
-            const engageDistance = MinionConsts.ATTACK_RANGE + this.target.radius + this.radius;
+            const td = this.position.to(this.target.getPosition());
+            const tdist = Math.hypot(td.x, td.y);
+            const engageDistance = MinionConsts.ATTACK_RANGE + this.target.getRadius() + this.getRadius();
 
             if (tdist > engageDistance) {
                 // Approach target
                 if (tdist > 0.01) {
-                    moveX = tdx / tdist;
-                    moveY = tdy / tdist;
+                    moveX = td.x / tdist;
+                    moveY = td.y / tdist;
                 }
-            } else if (this.attackTimer <= 0) {
-                // In range — sword strike
-                this.attackTimer = MinionConsts.ATTACK_COOLDOWN;
-                const nx = tdist > 0.01 ? tdx / tdist : 0;
-                const ny = tdist > 0.01 ? tdy / tdist : 0;
-                this.target.takeDamage(
-                    this._damage,
-                    nx * MinionConsts.ATTACK_KNOCKBACK,
-                    ny * MinionConsts.ATTACK_KNOCKBACK,
-                );
-                damageDealt += this._damage;
-
-                // Trigger swing arc VFX
-                this.swingTimer = MinionConsts.SWING_DURATION;
-                this.swingGfx.rotation = this.bodyGfx.rotation;
             }
+            // Sword strike is handled in checkHit() so it flows through the
+            // standard HitInfo pipeline (enemy.takeDamage + Summoner lifesteal).
 
             // Face target
-            if (Math.abs(tdx) + Math.abs(tdy) > 0.01) {
-                this.bodyGfx.rotation = Math.atan2(tdy, tdx);
+            if (Math.abs(td.x) + Math.abs(td.y) > 0.01) {
+                this.bodyGfx.rotation = Math.atan2(td.y, td.x);
             }
         } else {
             // ── WANDER: roam within the Summoner's summon zone ────────────
-            const distToSumm = Math.hypot(summX - this.posX, summY - this.posY);
+            const distToSumm = Math.hypot(summX - this.position.x, summY - this.position.y);
 
             if (distToSumm > MinionConsts.LEASH_DISTANCE) {
                 // Too far — sprint directly back to Summoner
-                const sdx = summX - this.posX;
-                const sdy = summY - this.posY;
+                const sdx = summX - this.position.x;
+                const sdy = summY - this.position.y;
                 moveX = sdx / distToSumm;
                 moveY = sdy / distToSumm;
                 this.bodyGfx.rotation = Math.atan2(sdy, sdx);
@@ -320,8 +310,8 @@ export class KnightMinion implements IMinionLike {
                 // Move toward wander target (offset relative to Summoner)
                 const targetX = summX + this.wanderOffsetX;
                 const targetY = summY + this.wanderOffsetY;
-                const wdx = targetX - this.posX;
-                const wdy = targetY - this.posY;
+                const wdx = targetX - this.position.x;
+                const wdy = targetY - this.position.y;
                 const wdist = Math.hypot(wdx, wdy);
 
                 if (wdist < MinionConsts.WANDER_ARRIVE_DIST) {
@@ -335,14 +325,10 @@ export class KnightMinion implements IMinionLike {
         }
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.posX += moveX * MinionConsts.SPEED * dt;
-        this.posY += moveY * MinionConsts.SPEED * dt;
-
-        const r = this.radius;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
-
-        this.container.position.set(this.posX, this.posY);
+        this.position.add(moveX * MinionConsts.SPEED * dt, moveY * MinionConsts.SPEED * dt);
+        const r = this.getRadius();
+        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
+        this.updateContainerPosition();
         return damageDealt;
     }
 

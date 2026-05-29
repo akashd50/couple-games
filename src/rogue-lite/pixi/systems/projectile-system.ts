@@ -58,8 +58,8 @@ export class ProjectileSystem {
             p.update(dt);
 
             // Circle ↔ circle collision
-            const dx = targetX - p.posX;
-            const dy = targetY - p.posY;
+            const dx = targetX - p.position.x;
+            const dy = targetY - p.position.y;
             if (Math.hypot(dx, dy) < targetRadius + p.radius) {
                 const dist = Math.hypot(dx, dy) || 1;
                 const nx = dx / dist;
@@ -98,54 +98,6 @@ export class ProjectileSystem {
         }
     }
 
-    /**
-     * Advance all projectiles and check for collision against multiple enemies.
-     *
-     * Used by the Summoner's player-projectile system (one system, many targets),
-     * as opposed to the boss projectile system which targets only the player.
-     *
-     * @param dt       Fixed sim delta (seconds).
-     * @param enemies  All active enemy instances to test against.
-     * @param onHit    Called when a projectile overlaps an enemy.
-     *                 Receives the enemy + knockback direction + damage.
-     *                 Return true if the hit landed (kills the projectile); false to pass through.
-     */
-    updateAgainstEnemies(
-        dt: number,
-        enemies: Enemy[],
-        onHit: (enemy: Enemy, kbx: number, kby: number, damage: number) => boolean,
-    ): void {
-        for (const p of this.projectiles) {
-            if (p.isDead) continue;
-
-            p.update(dt);
-
-            for (const enemy of enemies) {
-                if (enemy.isDead) continue;
-                const dx = enemy.posX - p.posX;
-                const dy = enemy.posY - p.posY;
-                if (Math.hypot(dx, dy) < enemy.radius + p.radius) {
-                    const dist = Math.hypot(dx, dy) || 1;
-                    const nx = dx / dist;
-                    const ny = dy / dist;
-                    const hit = onHit(enemy, nx * p.knockback, ny * p.knockback, p.damage);
-                    if (hit) {
-                        p.kill();
-                        break; // one hit per projectile
-                    }
-                }
-            }
-        }
-
-        // Retire dead projectiles
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            if (this.projectiles[i].isDead) {
-                this.projectiles[i].destroy();
-                this.projectiles.splice(i, 1);
-            }
-        }
-    }
-
     checkHit(enemy: Enemy): HitInfo {
         const hitInfo = new HitInfo();
 
@@ -158,13 +110,12 @@ export class ProjectileSystem {
                 continue;
             }
 
-            const dx = enemy.posX - p.posX;
-            const dy = enemy.posY - p.posY;
-            if (Math.hypot(dx, dy) < enemy.radius + p.radius) {
+            const d = p.position.to(enemy.getPosition());
+            if (Math.hypot(d.x, d.y) < enemy.getRadius() + p.radius) {
                 p.kill();
-                const dist = Math.hypot(dx, dy) || 1;
-                const nx = dx / dist;
-                const ny = dy / dist;
+                const dist = Math.hypot(d.x, d.y) || 1;
+                const nx = d.x / dist;
+                const ny = d.y / dist;
                 return hitInfo
                     .addDamage(p.damage)
                     .addKnockback(nx * p.knockback, ny * p.knockback);

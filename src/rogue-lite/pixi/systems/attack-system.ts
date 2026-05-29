@@ -1,3 +1,5 @@
+import { Vec2 } from "../types";
+
 /**
  * Returns true if a circular target overlaps the sword's swept arc.
  *
@@ -16,18 +18,15 @@
  *                     base constant after Wide Cleave stacks are applied.
  */
 export function isInAttackCone(
-    attackerX: number,
-    attackerY: number,
+    attacker: Vec2,
     arcStart: number,
     arcEnd: number,
-    targetX: number,
-    targetY: number,
+    target: Vec2,
     targetRadius: number,
     attackRange: number,
 ): boolean {
-    const dx   = targetX - attackerX;
-    const dy   = targetY - attackerY;
-    const dist = Math.hypot(dx, dy);
+    const d = attacker.to(target);
+    const dist = Math.hypot(d.x, d.y);
 
     // Range check — target centre plus its radius must reach the sword
     if (dist > attackRange + targetRadius) return false;
@@ -39,11 +38,11 @@ export function isInAttackCone(
     const angularLeniency = Math.asin(Math.min(1, targetRadius / dist));
 
     // Normalise sweepWidth to [0, 2π) so the comparison is always in one direction
-    const sweepWidth  = ((arcEnd - arcStart)         % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    const sweepWidth = ((arcEnd - arcStart) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
 
     // Angular distance from arcStart to the target direction, also in [0, 2π)
-    const angleToTarget = Math.atan2(dy, dx);
-    const delta         = ((angleToTarget - arcStart) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    const angleToTarget = Math.atan2(d.y, d.x);
+    const delta = ((angleToTarget - arcStart) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
 
     // The target is hit when its angular span overlaps [0, sweepWidth]:
     //   delta ≤ sweepWidth + leniency  → inside or peeking past the leading edge

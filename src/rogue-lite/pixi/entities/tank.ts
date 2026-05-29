@@ -24,14 +24,9 @@ export class Tank extends Enemy {
     readonly xpDropCount = TankConsts.XP_DROP_COUNT;
     readonly contactDamage = TankConsts.HIT_DAMAGE;
     readonly contactKnockback = TankConsts.KNOCKBACK;
-
-    private readonly container: Container;
     private readonly bodyContainer: Container;
     private readonly hpBarGfx: Graphics;
     private readonly flashGfx: Graphics;
-
-    private _hp: number;
-    private readonly _maxHp: number;
     private state: TankState = TankState.WANDER;
     private wanderAngle: number;
     private wanderTimer = 0;
@@ -48,24 +43,24 @@ export class Tank extends Enemy {
      *                Level 1 = base stats; each additional level scales HP, speed, and XP drop.
      */
     constructor(parent: Container, x: number, y: number, level = 1) {
-        super(x, y);
+        super(x, y, parent);
 
         this._level = level;
 
-        const hpMult    = 1 + (level - 1) * TankConsts.HP_SCALE_PER_LEVEL;
+        const hpMult = 1 + (level - 1) * TankConsts.HP_SCALE_PER_LEVEL;
         const speedMult = 1 + (level - 1) * TankConsts.SPEED_SCALE_PER_LEVEL;
-        const scaledHp  = Math.round(TankConsts.HP * hpMult);
+        const scaledHp = Math.round(TankConsts.HP * hpMult);
 
-        this._hp    = scaledHp;
+        this._hp = scaledHp;
         this._maxHp = scaledHp;
         this.speedWander = TankConsts.SPEED_WANDER * speedMult;
-        this.speedChase  = TankConsts.SPEED_CHASE  * speedMult;
+        this.speedChase = TankConsts.SPEED_CHASE * speedMult;
+        this.radius = TankConsts.RADIUS;
 
         this.wanderAngle = Math.random() * Math.PI * 2;
         this.wanderTimer = Math.random() * 1.5;
 
         // Outer container — moves with position, never rotates
-        this.container = new Container();
         this.container.label = 'tank';
         this.container.position.set(x, y);
         parent.addChild(this.container);
@@ -75,31 +70,33 @@ export class Tank extends Enemy {
         this.container.addChild(this.bodyContainer);
 
         // Square body (pointing right at rotation=0)
-        const r = TankConsts.RADIUS;
         const body = new Graphics();
-        body.rect(-r, -r, r * 2, r * 2)
+        body.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
             .fill({ color: TankConsts.COLOR })
-            .rect(-r, -r, r * 2, r * 2)
+            .rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2)
             .stroke({ color: TankConsts.OUTLINE_COLOR, width: 2.5 });
         this.bodyContainer.addChild(body);
 
         // White flash overlay — same square shape, alpha driven by flashTimer
         this.flashGfx = new Graphics();
-        this.flashGfx.rect(-r, -r, r * 2, r * 2).fill({ color: 0xffffff });
+        this.flashGfx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2).fill({ color: 0xffffff });
         this.flashGfx.alpha = 0;
         this.bodyContainer.addChild(this.flashGfx);
 
         // HP bar (child of outer container — stays horizontal)
         this.hpBarGfx = new Graphics();
         this.container.addChild(this.hpBarGfx);
+
+        this.radius = TankConsts.RADIUS;
     }
 
-    get radius(): number  { return TankConsts.RADIUS; }
-    get hp(): number      { return this._hp; }
-    get maxHp(): number   { return this._maxHp; }
-    get isDead(): boolean { return this._hp <= 0; }
-    get level(): number   { return this._level; }
-    get position()        { return { x: this.posX, y: this.posY }; }
+    get isDead(): boolean {
+        return this._hp <= 0;
+    }
+
+    get level(): number {
+        return this._level;
+    }
 
     /** XP awarded per gem dropped; scales with spawn level. */
     get xpGemValue(): number {
@@ -112,8 +109,8 @@ export class Tank extends Enemy {
         // Update flash overlay alpha
         this.flashGfx.alpha = this.flashAlpha;
 
-        const dx = playerX - this.posX;
-        const dy = playerY - this.posY;
+        const dx = playerX - this.position.x;
+        const dy = playerY - this.position.y;
         const dist = Math.hypot(dx, dy);
 
         // ── State machine ──────────────────────────────────────────────────
@@ -147,15 +144,13 @@ export class Tank extends Enemy {
         const speed = this.state === TankState.CHASE ? this.speedChase : this.speedWander;
 
         // ── Physics ────────────────────────────────────────────────────────
-        this.posX += (moveX * speed + this.vx) * dt;
-        this.posY += (moveY * speed + this.vy) * dt;
+        this.position.add((moveX * speed + this.velocity.x) * dt, (moveY * speed + this.velocity.y) * dt);
 
         // Clamp to arena
         const r = TankConsts.RADIUS;
-        this.posX = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posX));
-        this.posY = Math.max(r, Math.min(ArenaConsts.SIZE - r, this.posY));
+        this.position.set(Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.x)), Math.max(r, Math.min(ArenaConsts.SIZE - r, this.position.y)));
 
-        this.container.position.set(this.posX, this.posY);
+        this.updateContainerPosition();
 
         // Rotate body to face movement direction
         if (Math.abs(moveX) + Math.abs(moveY) > 0.01) {
@@ -166,8 +161,7 @@ export class Tank extends Enemy {
     takeDamage(amount: number, kbx: number, kby: number): void {
         if (this._hp <= 0) return;
         this._hp = Math.max(0, this._hp - amount);
-        this.vx += kbx;
-        this.vy += kby;
+        this.velocity.add(kbx, kby);
         this.startFlash();
         this.drawHpBar();
     }

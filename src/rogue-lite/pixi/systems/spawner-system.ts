@@ -1,5 +1,5 @@
 import { ArenaConsts, EnemyLevelConsts, SpawnerConsts } from '../constants';
-import type { Vec2 } from '../types';
+import { Vec2 } from '../types';
 
 /** Enemy types the spawner can request. */
 export type SpawnType = 'chaser' | 'tank';
@@ -21,7 +21,8 @@ export class SpawnerSystem {
     constructor(
         /** Called once per enemy that needs to be spawned this tick. */
         private readonly spawnEnemy: (x: number, y: number, type: SpawnType) => void,
-    ) {}
+    ) {
+    }
 
     /**
      * Advance the spawn timer and emit new enemies as needed.
@@ -98,14 +99,11 @@ export class SpawnerSystem {
             const x = playerX + Math.cos(angle) * dist;
             const y = playerY + Math.sin(angle) * dist;
             if (x >= margin && x <= maxXY && y >= margin && y <= maxXY) {
-                return { x, y };
+                return new Vec2(x, y);
             }
         }
 
         // Fallback: mirror the player across the arena centre
-        return {
-            x: Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerX)),
-            y: Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerY)),
-        };
+        return new Vec2(Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerX)), Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerY)));
     }
 }

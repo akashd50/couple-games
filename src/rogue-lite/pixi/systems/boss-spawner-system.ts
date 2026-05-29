@@ -1,5 +1,5 @@
 import { ArenaConsts, BossSpawnerConsts, SpawnerConsts } from '../constants';
-import type { Vec2 } from '../types';
+import { Vec2 } from '../types';
 
 /**
  * Tracks fixed-time thresholds and triggers boss spawns.
@@ -69,14 +69,11 @@ export class BossSpawnerSystem {
             const x = playerX + Math.cos(angle) * dist;
             const y = playerY + Math.sin(angle) * dist;
             if (x >= margin && x <= maxXY && y >= margin && y <= maxXY) {
-                return { x, y };
+                return new Vec2(x, y);
             }
         }
 
         // Fallback: mirror player across arena centre
-        return {
-            x: Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerX)),
-            y: Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerY)),
-        };
+        return new Vec2(Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerX)), Math.max(margin, Math.min(maxXY, ArenaConsts.SIZE - playerY)));
     }
 }

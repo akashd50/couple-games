@@ -86,7 +86,7 @@ export abstract class Player extends Entity {
     constructor(parent: Container) {
         super(parent);
 
-        this.position = { x: ArenaConsts.SIZE / 2, y: ArenaConsts.SIZE / 2 };
+        this.position.set(ArenaConsts.SIZE / 2, ArenaConsts.SIZE / 2);
         this._hp = KnightConsts.hp;
         this._maxHp = KnightConsts.hp;
 
@@ -100,6 +100,7 @@ export abstract class Player extends Entity {
         this.backgroundFxContainer = new Container();
         this.backgroundFxContainer.label = "bg_fx";
         parent.addChild(this.backgroundFxContainer);
+
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
@@ -108,20 +109,8 @@ export abstract class Player extends Entity {
         return this.backgroundFxContainer;
     }
 
-    getPosition(): Vec2 {
-        return this.position;
-    }
-
-    get hp(): number {
-        return this._hp;
-    }
-
-    get maxHp(): number {
-        return this._maxHp;
-    }
-
-    get radius(): number {
-        return KnightConsts.radius + this._radiusBonus;
+    override getRadius(): number {
+        return this.radius;
     }
 
     get pickupRadius(): number {
@@ -159,6 +148,7 @@ export abstract class Player extends Entity {
      */
     addRadiusBonus(amount: number): void {
         this._radiusBonus += amount;
+        this.radius += amount;
         this.onRadiusChanged();
     }
 

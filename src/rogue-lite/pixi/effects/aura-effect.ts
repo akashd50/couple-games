@@ -136,14 +136,13 @@ export class AuraEffect extends Effect {
      * independently strike the same enemy.
      */
     isInRange(enemy: Enemy): boolean {
-        const dx = enemy.posX - this.lastPos.x;
-        const dy = enemy.posY - this.lastPos.y;
-        const dist = Math.hypot(dx, dy);
+        const d = this.lastPos.to(enemy.getPosition());
+        const dist = Math.hypot(d.x, d.y);
 
         for (const p of this.pulses) {
             if (p.hitSet.has(enemy)) continue;
-            if (dist <  p.currentRadius + enemy.radius &&
-                dist >= Math.max(0, p.prevRadius - enemy.radius)) {
+            if (dist < p.currentRadius + enemy.getRadius() &&
+                dist >= Math.max(0, p.prevRadius - enemy.getRadius())) {
                 p.hitSet.add(enemy);
                 return true;
             }

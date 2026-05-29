@@ -70,7 +70,7 @@ export class AuraResolver extends Resolver {
     override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
         const effect = this.effects[0] as AuraEffect | undefined;
         if (effect?.isInRange(enemy)) {
-            const dir = getDirectionTo(this.player.getPosition(), { x: enemy.posX, y: enemy.posY });
+            const dir = getDirectionTo(this.player.getPosition(), enemy.getPosition());
             return new HitInfo()
                 .setDamage(this.props.damage)
                 .setKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);

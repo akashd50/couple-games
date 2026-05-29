@@ -74,6 +74,7 @@ export class SummonerPlayer extends Player {
         this._hp = SummonerConsts.hp;
         this._maxHp = SummonerConsts.hp;
         this._baseSpeed = SummonerConsts.speed;
+        this.radius = SummonerConsts.radius;
 
         // ── Minion system ─────────────────────────────────────────────────
         this.minionSystem = new MinionSystem(minionLayer, SummonerConsts.BASE_MINION_CAP);
@@ -99,10 +100,6 @@ export class SummonerPlayer extends Player {
     }
 
     // ── Getters ──────────────────────────────────────────────────────────────
-
-    override get radius(): number {
-        return SummonerConsts.radius + this._radiusBonus;
-    }
 
     get summonRadius(): number {
         return this._summonRadius;

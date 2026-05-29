@@ -1,9 +1,43 @@
 /** Identifies which player class is selected for a run. */
 export type PlayerClass = 'knight' | 'summoner';
 
-export interface Vec2 {
-    x: number;
-    y: number;
+export class Vec2 {
+    x: number = 0;
+    y: number = 0;
+
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    set(x: number, y: number): void {
+        this.x = x;
+        this.y = y;
+    }
+
+    add(x: number, y: number): void {
+        this.x += x;
+        this.y += y;
+    }
+
+    multiplyBy(val: number): void {
+        this.x *= val;
+        this.y *= val;
+    }
+
+    to(b: Vec2): Vec2 {
+        const to = new Vec2(b.x, b.y);
+        to.add(-this.x, -this.y);
+        return to;
+    }
+
+    list(): number[] {
+        return [this.x, this.y];
+    }
+
+    clone(): Vec2 {
+        return new Vec2(this.x, this.y);
+    }
 }
 
 export interface InputState {

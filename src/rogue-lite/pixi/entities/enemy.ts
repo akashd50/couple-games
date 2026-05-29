@@ -1,4 +1,8 @@
 import { PhysicsConsts } from '../constants';
+import { Entity } from "./entity";
+import { HitInfo } from "./attacks";
+import { Container } from "pixi.js";
+import { Vec2 } from "../types";
 
 /**
  * Abstract base class for all enemy entities.
@@ -16,14 +20,7 @@ import { PhysicsConsts } from '../constants';
  *   - HP tracking and HP-bar drawing
  *   - Concrete values for radius, contactDamage, contactKnockback, xpDropCount
  */
-export abstract class Enemy {
-    posX: number;
-    posY: number;
-
-    /** Knockback velocity — accumulated by applyKnockback(), decays via friction. */
-    protected vx = 0;
-    protected vy = 0;
-
+export abstract class Enemy extends Entity {
     /** Seconds remaining for the white hit-flash.  0 = no flash. */
     protected flashTimer = 0;
 
@@ -33,16 +30,13 @@ export abstract class Enemy {
      */
     readonly isBoss: boolean = false;
 
-    constructor(x: number, y: number) {
-        this.posX = x;
-        this.posY = y;
+    constructor(x: number, y: number, parent?: Container) {
+        super(parent);
+        this.position.set(x, y);
     }
 
     // ── Abstract contract ─────────────────────────────────────────────────────
 
-    abstract readonly radius: number;
-    abstract readonly hp: number;
-    abstract readonly maxHp: number;
     abstract readonly isDead: boolean;
 
     /**
@@ -78,10 +72,31 @@ export abstract class Enemy {
 
     // ── Shared concrete behaviour ─────────────────────────────────────────────
 
+    /**
+     * Check whether this enemy's body overlaps with a circular target (usually
+     * the player).  Returns a HitInfo carrying contact damage and the knockback
+     * impulse (pointing away from the enemy) if they are touching.
+     *
+     * The caller is responsible for applying the damage — Enemy never modifies
+     * the target's state here.  Target iframes are handled by takeDamage().
+     */
+    checkHit(targetPos: Vec2, targetRadius: number): HitInfo {
+        const hitInfo = new HitInfo();
+        const dx = targetPos.x - this.position.x;
+        const dy = targetPos.y - this.position.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < this.radius + targetRadius) {
+            const nx = dist > 0.001 ? dx / dist : 1;
+            const ny = dist > 0.001 ? dy / dist : 0;
+            hitInfo.setDamage(this.contactDamage);
+            hitInfo.setKnockback(nx * this.contactKnockback, ny * this.contactKnockback);
+        }
+        return hitInfo;
+    }
+
     /** Add a knockback impulse to this enemy's velocity. */
     applyKnockback(kbx: number, kby: number): void {
-        this.vx += kbx;
-        this.vy += kby;
+        this.velocity.add(kbx, kby);
     }
 
     // ── Protected helpers (used by subclasses) ────────────────────────────────
@@ -92,8 +107,7 @@ export abstract class Enemy {
      */
     protected tickPhysics(dt: number): void {
         const friction = Math.exp(-PhysicsConsts.KNOCKBACK_FRICTION * dt);
-        this.vx *= friction;
-        this.vy *= friction;
+        this.velocity.multiplyBy(friction);
 
         if (this.flashTimer > 0) {
             this.flashTimer = Math.max(0, this.flashTimer - dt);

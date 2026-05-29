@@ -4,7 +4,7 @@ import {
     output,
     signal,
 } from '@angular/core';
-import type { Vec2 } from '../../pixi/types';
+import { Vec2 } from '../../pixi/types';
 
 /** Max knob displacement from centre in CSS pixels. */
 const STICK_RADIUS = 40;
@@ -76,6 +76,6 @@ export class JoystickComponent {
         // Normalize to -1..1 (zero when displacement is negligible)
         const nx = dist > 0.5 ? dx / STICK_RADIUS : 0;
         const ny = dist > 0.5 ? dy / STICK_RADIUS : 0;
-        this.vectorChange.emit({ x: nx, y: ny });
+        this.vectorChange.emit(new Vec2(nx, ny));
     }
 }

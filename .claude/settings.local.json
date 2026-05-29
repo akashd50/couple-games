@@ -6,7 +6,9 @@
       "Bash(npx ng *)",
       "Bash(Select-Object -First 80)",
       "Bash(git mv *)",
-      "Bash(Get-ChildItem *)"
+      "Bash(Get-ChildItem *)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)"
     ]
   }
 }
