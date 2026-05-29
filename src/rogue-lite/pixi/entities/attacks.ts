@@ -4,6 +4,7 @@ import { Vec2 } from "../types";
 import { Effect } from "../effects/effect";
 import { IProps } from "../constants";
 import { all0sProps, all1sProps } from "../props-utils";
+import { Entity } from "./entity";
 
 export class HitInfo {
     damage: number;
@@ -55,7 +56,7 @@ export class HitInfo {
 }
 
 export abstract class Resolver {
-    protected hitSet = new Set<Enemy>();
+    protected hitSet = new Set<Entity>();
     protected effects: Effect[] = [];
     protected multiplier: IProps = all1sProps();
     protected additive: IProps = all0sProps();
@@ -68,7 +69,7 @@ export abstract class Resolver {
         return this.additive;
     }
 
-    checkHit(player: Player, enemy: Enemy): HitInfo | undefined {
+    checkHit(enemy: Entity): HitInfo | undefined {
         return undefined;
     }
 

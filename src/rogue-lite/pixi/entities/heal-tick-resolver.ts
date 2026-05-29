@@ -4,6 +4,7 @@ import { Vec2 } from "../types";
 import { Player } from "./player";
 import { IProps } from "../constants";
 import { applyAM } from "../props-utils";
+import { Entity } from "./entity";
 
 export class HealTickResolver extends Resolver {
     private healCooldown = 0;
@@ -15,7 +16,7 @@ export class HealTickResolver extends Resolver {
         super();
     }
 
-    override checkHit(_player: Player, _enemy: Enemy): HitInfo | undefined {
+    override checkHit(enemy: Entity): HitInfo | undefined {
         return undefined;
     }
 

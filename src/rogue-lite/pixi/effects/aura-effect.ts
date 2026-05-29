@@ -3,6 +3,7 @@ import { Effect } from "./effect";
 import { Enemy } from "../entities/enemy";
 import { Vec2 } from "../types";
 import { IProps } from "../constants";
+import { Entity } from "../entities/entity";
 
 interface AuraPulse {
     /** 0 → 1 progress through the pulse duration. */
@@ -16,7 +17,7 @@ interface AuraPulse {
      * them so they cannot be struck twice by the same pass.
      * Discarded automatically when the pulse is removed.
      */
-    hitSet: Set<Enemy>;
+    hitSet: Set<Entity>;
 }
 
 export class AuraEffect extends Effect {
@@ -135,7 +136,7 @@ export class AuraEffect extends Effect {
      * Because hit dedup is tracked per-pulse, overlapping pulses can each
      * independently strike the same enemy.
      */
-    isInRange(enemy: Enemy): boolean {
+    isInRange(enemy: Entity): boolean {
         const d = this.lastPos.to(enemy.getPosition());
         const dist = Math.hypot(d.x, d.y);
 

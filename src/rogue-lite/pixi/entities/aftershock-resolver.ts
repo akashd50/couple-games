@@ -82,7 +82,7 @@ export class AftershockResolver extends Resolver {
         return angle;
     }
 
-    override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
+    override checkHit(enemy: Entity): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {

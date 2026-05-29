@@ -2,6 +2,7 @@ import { Enemy } from "../entities/enemy";
 import { Vec2 } from "../types";
 import { BehaviorSubject } from "rxjs";
 import { IProps } from "../constants";
+import { Entity } from "../entities/entity";
 
 export abstract class Effect {
     protected onDoneSubject = new BehaviorSubject<boolean>(false);
@@ -17,5 +18,5 @@ export abstract class Effect {
 
     abstract destroy(): void;
 
-    abstract isInRange(enemy: Enemy): boolean;
+    abstract isInRange(enemy: Entity): boolean;
 }

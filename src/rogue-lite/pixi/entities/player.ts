@@ -295,7 +295,7 @@ export abstract class Player extends Entity {
                 continue;
             }
 
-            const h = r.checkHit(this, enemy);
+            const h = r.checkHit(enemy);
             if (h?.success) {
                 r.markHitEnemy(enemy);
             }
@@ -419,11 +419,9 @@ export class KnightPlayer extends Player {
      */
     override enableShockwave(): void {
         if (this.attackResolvers.some(r => r instanceof ShockwaveResolver)) return;
-        const swing = this.attackResolvers.find(
-            (r): r is SwingAttackResolver => r instanceof SwingAttackResolver,
-        );
+        const swing = this.getResolver(SwingAttackResolver);
         if (!swing) throw new Error('KnightPlayer: SwingAttackResolver not found — cannot enable Shockwave');
-        this.attackResolvers.push(new ShockwaveResolver(this, swing));
+        this.attackResolvers.push(new ShockwaveResolver(this, KnightConsts.swordShockwave, swing));
     }
 
     /**

@@ -169,7 +169,7 @@ export class ChaserConsts {
     /** Base XP value of each gem dropped at level 1. */
     static readonly XP_VALUE_BASE = 10;
     /** Additional XP per gem awarded per level above 1. */
-    static readonly XP_VALUE_PER_LEVEL = 2;
+    static readonly XP_VALUE_PER_LEVEL = 1;
 }
 
 // ─── XP gems ─────────────────────────────────────────────────────────────────
@@ -356,17 +356,17 @@ export class SummonerProps implements PlayerProps {
     // ── Projectile auto-attack ─────────────────────────────────────────────────
     /** Seconds between projectile shots. */
     readonly PROJ_COOLDOWN = 0.55;
-    readonly PROJ_DAMAGE   = 22;
+    readonly PROJ_DAMAGE = 22;
     /** World units / second. */
-    readonly PROJ_SPEED    = 420;
+    readonly PROJ_SPEED = 420;
     /** Knockback impulse (world units/s) on hit. */
     readonly PROJ_KNOCKBACK = 110;
     /** Collision radius of each bullet. */
-    readonly PROJ_RADIUS   = 6;
+    readonly PROJ_RADIUS = 6;
     /** Seconds before a bullet expires. */
     readonly PROJ_LIFETIME = 2.2;
     /** Bright glowing-purple fill colour. */
-    readonly PROJ_COLOR    = 0xcc55ff;
+    readonly PROJ_COLOR = 0xcc55ff;
     /** Trail colour (slightly darker). */
     readonly PROJ_TRAIL_COLOR = 0x8822bb;
 
@@ -384,22 +384,22 @@ export const SummonerConsts = new SummonerProps();
 // ─── Minion (Summoner's friendly units) ──────────────────────────────────────
 export class MinionConsts {
     /** Half-side of the square body (world units). */
-    static readonly BASE_RADIUS  = 9;
+    static readonly BASE_RADIUS = 9;
     /** HP at level 1. */
-    static readonly BASE_HP      = 30;
+    static readonly BASE_HP = 30;
     /** Additional HP per enemy level above 1. */
     static readonly HP_PER_LEVEL = 10;
     /** Movement speed (world units/s). */
-    static readonly SPEED        = 195;
+    static readonly SPEED = 195;
     /**
      * Distance from the Summoner within which the minion will peel off to
      * attack a nearby enemy (rather than continuing to follow).
      */
-    static readonly FOLLOW_RANGE   = 340;
+    static readonly FOLLOW_RANGE = 340;
     /** Attack-reach distance from the target's centre. */
-    static readonly ATTACK_RANGE   = 55;
+    static readonly ATTACK_RANGE = 55;
     /** Base HP damage per minion hit. */
-    static readonly ATTACK_DAMAGE  = 15;
+    static readonly ATTACK_DAMAGE = 15;
     /** Additional damage per minion level above 1. */
     static readonly DAMAGE_PER_LEVEL = 3;
     /** Seconds between attacks. */
@@ -413,34 +413,34 @@ export class MinionConsts {
 
     // ── Wander AI ─────────────────────────────────────────────────────────────
     /** World-unit radius from the Summoner within which minions pick wander targets. */
-    static readonly WANDER_RADIUS      = 160;
+    static readonly WANDER_RADIUS = 160;
     /**
      * If a minion drifts farther than this from the Summoner it ignores the
      * wander target and beelines directly back to the Summoner.
      */
-    static readonly LEASH_DISTANCE     = 350;
+    static readonly LEASH_DISTANCE = 350;
     /** Minion considers itself "arrived" at the wander target within this distance. */
     static readonly WANDER_ARRIVE_DIST = 25;
     /** Maximum seconds a minion lingers idle at a wander target before moving. */
-    static readonly WANDER_LINGER_MAX  = 1.2;
+    static readonly WANDER_LINGER_MAX = 1.2;
     /** Minimum seconds a minion lingers idle at a wander target before moving. */
-    static readonly WANDER_LINGER_MIN  = 0.3;
+    static readonly WANDER_LINGER_MIN = 0.3;
 
     // ── Reciprocal contact damage (minion → enemy on body touch) ─────────────
     /** Fraction of minion's attack damage applied to an enemy on body contact. */
     static readonly CONTACT_ENEMY_DAMAGE_MULT = 0.50;
     /** Knockback impulse on an enemy from minion body contact (world units/s). */
-    static readonly CONTACT_ENEMY_KNOCKBACK   = 50;
+    static readonly CONTACT_ENEMY_KNOCKBACK = 50;
 
     // ── Sword-swing VFX (Knight Minion) ──────────────────────────────────────
     /** Seconds the golden arc is visible after each sword strike. */
-    static readonly SWING_DURATION   = 0.16;
+    static readonly SWING_DURATION = 0.16;
     /** Gold fill colour for the swing arc. */
-    static readonly SWING_COLOR      = 0xffcc44;
+    static readonly SWING_COLOR = 0xffcc44;
     /** Half-angle of the swing wedge (±60° = full 120° arc). */
     static readonly SWING_HALF_ANGLE = Math.PI / 3;
 
-    static readonly COLOR         = 0x7722aa;
+    static readonly COLOR = 0x7722aa;
     static readonly OUTLINE_COLOR = 0xcc88ff;
 }
 
@@ -452,40 +452,40 @@ export class MinionConsts {
  */
 export class ChaserMinionConsts {
     /** Circumradius of the equilateral triangle body (world units). */
-    static readonly BASE_RADIUS         = 9;
+    static readonly BASE_RADIUS = 9;
     /** HP at minion level 1. */
-    static readonly BASE_HP             = 18;
+    static readonly BASE_HP = 18;
     /** Additional HP per level above 1. */
-    static readonly HP_PER_LEVEL        = 5;
+    static readonly HP_PER_LEVEL = 5;
     /** World units / second — faster than the KnightMinion. */
-    static readonly SPEED               = 265;
+    static readonly SPEED = 265;
     /** Wander zone radius from the Summoner (tighter than KnightMinion). */
-    static readonly WANDER_RADIUS       = 110;
+    static readonly WANDER_RADIUS = 110;
     /** Leash-back threshold (world units from Summoner). */
-    static readonly LEASH_DISTANCE      = 380;
+    static readonly LEASH_DISTANCE = 380;
     /** "Arrived" proximity for a wander target. */
-    static readonly WANDER_ARRIVE_DIST  = 22;
-    static readonly WANDER_LINGER_MAX   = 0.35;
-    static readonly WANDER_LINGER_MIN   = 0.05;
+    static readonly WANDER_ARRIVE_DIST = 22;
+    static readonly WANDER_LINGER_MAX = 0.35;
+    static readonly WANDER_LINGER_MIN = 0.05;
     /** Detection range for switching into charge-attack mode. */
-    static readonly FOLLOW_RANGE        = 420;
+    static readonly FOLLOW_RANGE = 420;
     /** Base damage applied to the enemy per contact window. */
-    static readonly ATTACK_DAMAGE       = 22;
+    static readonly ATTACK_DAMAGE = 22;
     /** Additional damage per minion level above 1. */
-    static readonly DAMAGE_PER_LEVEL    = 5;
+    static readonly DAMAGE_PER_LEVEL = 5;
     /** Fraction of enemy contactDamage the ChaserMinion takes each contact window. */
-    static readonly CONTACT_DAMAGE_MULT        = 0.65;
+    static readonly CONTACT_DAMAGE_MULT = 0.65;
     /** Fraction of _damage dealt to the enemy each contact window. */
-    static readonly CONTACT_ENEMY_DAMAGE_MULT  = 0.85;
+    static readonly CONTACT_ENEMY_DAMAGE_MULT = 0.85;
     /** Knockback impulse applied to the enemy on contact (world units/s). */
-    static readonly CONTACT_ENEMY_KNOCKBACK    = 90;
+    static readonly CONTACT_ENEMY_KNOCKBACK = 90;
     /**
      * Iframes after taking contact damage (very short — ChaserMinions are fragile
      * and die quickly when they charge into enemies).
      */
     static readonly IFRAMES = 0.28;
     /** Bright blue fill. */
-    static readonly COLOR         = 0x2255ff;
+    static readonly COLOR = 0x2255ff;
     /** Light blue outline. */
     static readonly OUTLINE_COLOR = 0x66aaff;
 }
@@ -493,13 +493,13 @@ export class ChaserMinionConsts {
 // ─── Corpse node (Summoner sees these on enemy death) ────────────────────────
 export class CorpseConsts {
     /** Seconds before a corpse fades out on its own. */
-    static readonly LIFETIME    = 4.5;
+    static readonly LIFETIME = 4.5;
     /** Collision radius used for proximity checks. */
-    static readonly RADIUS      = 14;
+    static readonly RADIUS = 14;
     /** Base dark fill colour. */
-    static readonly COLOR       = 0x2a2040;
+    static readonly COLOR = 0x2a2040;
     /** Centre mark colour. */
-    static readonly MARK_COLOR  = 0x6633aa;
+    static readonly MARK_COLOR = 0x6633aa;
     /** Alpha when freshly spawned (fades to 0 over LIFETIME). */
     static readonly ALPHA_START = 0.70;
 }
@@ -509,35 +509,35 @@ export class SummonAreaConsts {
     /** Starting minion cap (duplicated here for readability). */
     static readonly BASE_MINION_CAP = 3;
     /** Auto-summon cooldown (matches SummonerConsts). */
-    static readonly COOLDOWN        = 3.0;
+    static readonly COOLDOWN = 3.0;
     /** Very dark violet for the disc fill. */
-    static readonly COLOR           = 0x1a0033;
+    static readonly COLOR = 0x1a0033;
     /** Slightly brighter violet for the outline stroke. */
-    static readonly OUTLINE_COLOR   = 0x7700cc;
+    static readonly OUTLINE_COLOR = 0x7700cc;
     /** Alpha for the disc fill. */
-    static readonly ALPHA           = 0.18;
+    static readonly ALPHA = 0.18;
     /** Alpha for the outline ring. */
-    static readonly OUTLINE_ALPHA   = 0.55;
+    static readonly OUTLINE_ALPHA = 0.55;
 }
 
 // ─── Dust clouds (both player classes) ───────────────────────────────────────
 export class DustCloudConsts {
     /** Seconds each cloud lives. */
-    static readonly LIFETIME      = 0.45;
+    static readonly LIFETIME = 0.45;
     /** Starting visual radius of the puff. */
-    static readonly RADIUS        = 9;
+    static readonly RADIUS = 9;
     /** Starting alpha (fades to 0). */
-    static readonly ALPHA_START   = 0.28;
+    static readonly ALPHA_START = 0.28;
     /** Seconds between puff emissions while moving. */
     static readonly EMIT_INTERVAL = 0.10;
     /**
      * Minimum effective movement speed (world units/s) required to emit.
      * Prevents clouds when the player is standing still or against a wall.
      */
-    static readonly MIN_SPEED     = 25;
+    static readonly MIN_SPEED = 25;
 
     /** Soft lavender — used by KnightPlayer. */
-    static readonly KNIGHT_COLOR   = 0xc4aaff;
+    static readonly KNIGHT_COLOR = 0xc4aaff;
     /** More vivid purple — used by SummonerPlayer. */
     static readonly SUMMONER_COLOR = 0xcc66ff;
 }

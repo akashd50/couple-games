@@ -104,12 +104,12 @@ export class SwingAttackResolver extends Resolver {
         this._fireListeners.push(cb);
     }
 
-    override checkHit(player: Player, enemy: Enemy): HitInfo | undefined {
+    override checkHit(enemy: Entity): HitInfo | undefined {
         if (this.swingTimer <= 0 || this.hitSet.has(enemy)) {
             return undefined;
         }
 
-        const position = player.getPosition();
+        const position = this.parentEntity.getPosition();
         if (isInAttackCone(
             position,
             this.arcStart, this.arcEnd,

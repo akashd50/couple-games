@@ -2,7 +2,7 @@ import type { Player } from './player';
 import type { Enemy } from './enemy';
 import type { Vec2 } from '../types';
 import { Resolver, HitInfo } from './attacks';
-import { KnightConsts } from '../constants';
+import { IProps, KnightConsts } from '../constants';
 import { ShockwaveEffect } from "../effects/shockwave-effect";
 import { getDirectionTo } from "../common-utils";
 import { SwingAttackResolver } from "./swing-resolver";
@@ -29,6 +29,7 @@ export class ShockwaveResolver extends Resolver {
 
     constructor(
         private readonly parentEntity: Entity,
+        private readonly props: IProps,
         private readonly swing: SwingAttackResolver
     ) {
         super();
@@ -74,7 +75,7 @@ export class ShockwaveResolver extends Resolver {
 
     private onSwingFired(angle: number): void {
         this._attacksFired++;
-        if (this._attacksFired % KnightConsts.swordShockwave.everyN === 0) {
+        if (this._attacksFired % this.props.everyN === 0) {
             this._pendingAngle = angle;
             for (const cb of this._fireListeners) {
                 cb(angle);
@@ -89,7 +90,7 @@ export class ShockwaveResolver extends Resolver {
         if (angle !== null) {
             this.clearHitSet();
             const shockwave = new ShockwaveEffect(this.parentEntity.bgContainer, this.parentEntity.getPosition().x, this.parentEntity.getPosition().y, angle,
-                this.halfAngle, this.innerRadius, KnightConsts.swordShockwave.range, KnightConsts.swordShockwave.color, KnightConsts.swordShockwave.duration
+                this.halfAngle, this.innerRadius, this.props.range, this.props.color, this.props.duration
             );
             this.effects.push(shockwave);
         }
@@ -97,14 +98,14 @@ export class ShockwaveResolver extends Resolver {
         return angle;
     }
 
-    override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
+    override checkHit(enemy: Entity): HitInfo | undefined {
         const hitInfo = new HitInfo();
         for (const se of this.effects) {
             if (se.isInRange(enemy)) {
                 const dir = getDirectionTo(this.parentEntity.getPosition(), enemy.getPosition());
                 hitInfo
-                    .addDamage(KnightConsts.swordShockwave.damage)
-                    .addKnockback(dir.x * KnightConsts.swordShockwave.knockback, dir.y * KnightConsts.swordShockwave.knockback);
+                    .addDamage(this.props.damage)
+                    .addKnockback(dir.x * this.props.knockback, dir.y * this.props.knockback);
             }
         }
 

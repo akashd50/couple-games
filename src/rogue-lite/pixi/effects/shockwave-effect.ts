@@ -4,6 +4,7 @@ import { wrapAngle } from "../common-utils";
 import { Effect } from "./effect";
 import { KnightConsts } from "../constants";
 import { Enemy } from "../entities/enemy";
+import { Entity } from "../entities/entity";
 
 /**
  * Expanding cone-shaped shockwave visual.
@@ -108,7 +109,7 @@ export class ShockwaveEffect extends Effect {
         g.stroke({ color: this.color, width: 2, alpha: alpha * 0.4 });
     }
 
-    isInRange(enemy: Enemy): boolean {
+    isInRange(enemy: Entity): boolean {
         const outerRadius = this.innerRadius + this.range;
         const dx = enemy.getPosition().x - this.x;
         const dy = enemy.getPosition().y - this.y;

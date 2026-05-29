@@ -68,7 +68,7 @@ export class AuraResolver extends Resolver {
         return false;
     }
 
-    override checkHit(_player: Player, enemy: Enemy): HitInfo | undefined {
+    override checkHit(enemy: Entity): HitInfo | undefined {
         const effect = this.effects[0] as AuraEffect | undefined;
         if (effect?.isInRange(enemy)) {
             const dir = getDirectionTo(this.parentEntity.getPosition(), enemy.getPosition());
