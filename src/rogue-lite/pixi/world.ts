@@ -273,18 +273,9 @@ export class World {
             enemy.update(dt, targetX, targetY);
 
             // Player ↔ Enemy contact
-            const dx = pp.x - enemy.getPosition().x;
-            const dy = pp.y - enemy.getPosition().y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < pr + enemy.getRadius()) {
-                const nx = dist > 0.001 ? dx / dist : 1;
-                const ny = dist > 0.001 ? dy / dist : 0;
-                this.player.takeDamage(
-                    enemy.contactDamage,
-                    nx * enemy.contactKnockback,
-                    ny * enemy.contactKnockback,
-                );
+            const contactHit = enemy.checkHit(pp, pr);
+            if (contactHit.success) {
+                this.player.takeDamage(contactHit.damage, contactHit.knockback.x, contactHit.knockback.y);
             }
 
             // Player attacks → enemy (melee / resolvers)
@@ -314,16 +305,12 @@ export class World {
             WorldData.boss.update(dt, bossTargetX, bossTargetY);
 
             // Boss body ↔ player contact
-            const bdx = pp.x - WorldData.boss.getPosition().x;
-            const bdy = pp.y - WorldData.boss.getPosition().y;
-            const bdist = Math.hypot(bdx, bdy);
-            if (bdist < pr + WorldData.boss.getRadius()) {
-                const nx = bdist > 0.001 ? bdx / bdist : 1;
-                const ny = bdist > 0.001 ? bdy / bdist : 0;
+            const bossContactHit = WorldData.boss.checkHit(pp, pr);
+            if (bossContactHit.success) {
                 const hit = this.player.takeDamage(
-                    WorldData.boss.contactDamage,
-                    nx * WorldData.boss.contactKnockback,
-                    ny * WorldData.boss.contactKnockback,
+                    bossContactHit.damage,
+                    bossContactHit.knockback.x,
+                    bossContactHit.knockback.y,
                 );
                 if (hit) {
                     this.camera.shake(VfxConsts.SHAKE_INTENSITY, VfxConsts.SHAKE_DURATION);
@@ -625,7 +612,7 @@ export class World {
         const nx = dist > 0.001 ? dx / dist : 1;
         const ny = dist > 0.001 ? dy / dist : 0;
 
-        posA.set(-nx * depth * shareA, -ny * depth * shareA);
-        posB.set(nx * depth * (1 - shareA), ny * depth * (1 - shareA));
+        posA.add(-nx * depth * shareA, -ny * depth * shareA);
+        posB.add(nx * depth * (1 - shareA), ny * depth * (1 - shareA));
     }
 }

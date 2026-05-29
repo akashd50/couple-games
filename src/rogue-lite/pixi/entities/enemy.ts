@@ -1,6 +1,8 @@
 import { PhysicsConsts } from '../constants';
 import { Entity } from "./entity";
+import { HitInfo } from "./attacks";
 import { Container } from "pixi.js";
+import { Vec2 } from "../types";
 
 /**
  * Abstract base class for all enemy entities.
@@ -69,6 +71,28 @@ export abstract class Enemy extends Entity {
     abstract destroy(): void;
 
     // ── Shared concrete behaviour ─────────────────────────────────────────────
+
+    /**
+     * Check whether this enemy's body overlaps with a circular target (usually
+     * the player).  Returns a HitInfo carrying contact damage and the knockback
+     * impulse (pointing away from the enemy) if they are touching.
+     *
+     * The caller is responsible for applying the damage — Enemy never modifies
+     * the target's state here.  Target iframes are handled by takeDamage().
+     */
+    checkHit(targetPos: Vec2, targetRadius: number): HitInfo {
+        const hitInfo = new HitInfo();
+        const dx = targetPos.x - this.position.x;
+        const dy = targetPos.y - this.position.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < this.radius + targetRadius) {
+            const nx = dist > 0.001 ? dx / dist : 1;
+            const ny = dist > 0.001 ? dy / dist : 0;
+            hitInfo.setDamage(this.contactDamage);
+            hitInfo.setKnockback(nx * this.contactKnockback, ny * this.contactKnockback);
+        }
+        return hitInfo;
+    }
 
     /** Add a knockback impulse to this enemy's velocity. */
     applyKnockback(kbx: number, kby: number): void {

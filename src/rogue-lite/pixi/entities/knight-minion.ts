@@ -132,8 +132,36 @@ export class KnightMinion extends Minion {
 
     // ── Public ────────────────────────────────────────────────────────────────
 
-    checkHit(enemy: Enemy, hitInfo: HitInfo) {
+    /**
+     * Check whether this KnightMinion can land a sword strike on `enemy` this tick.
+     *
+     * Only fires when:
+     *   - This minion is alive and in ATTACK state targeting `enemy`
+     *   - The enemy is within ATTACK_RANGE
+     *   - The attack cooldown has expired
+     *
+     * Damage and knockback are accumulated into `hitInfo` so World can apply them
+     * through the standard pipeline (enemy.takeDamage, player lifesteal, etc.).
+     */
+    checkHit(enemy: Enemy, hitInfo: HitInfo): void {
+        if (this._hp <= 0 || this.state !== MinionState.ATTACK || this.target !== enemy) return;
 
+        const td = this.position.to(enemy.getPosition());
+        const tdist = Math.hypot(td.x, td.y);
+        const engageDistance = MinionConsts.ATTACK_RANGE + enemy.getRadius() + this.getRadius();
+
+        if (tdist > engageDistance || this.attackTimer > 0) return;
+
+        // In range and cooldown ready — sword strike
+        this.attackTimer = MinionConsts.ATTACK_COOLDOWN;
+        const nx = tdist > 0.01 ? td.x / tdist : 0;
+        const ny = tdist > 0.01 ? td.y / tdist : 0;
+        hitInfo.addDamage(this._damage);
+        hitInfo.addKnockback(nx * MinionConsts.ATTACK_KNOCKBACK, ny * MinionConsts.ATTACK_KNOCKBACK);
+
+        // Trigger swing arc VFX
+        this.swingTimer = MinionConsts.SWING_DURATION;
+        this.swingGfx.rotation = this.bodyGfx.rotation;
     }
 
 
@@ -256,22 +284,9 @@ export class KnightMinion extends Minion {
                     moveX = td.x / tdist;
                     moveY = td.y / tdist;
                 }
-            } else if (this.attackTimer <= 0) {
-                // In range — sword strike
-                this.attackTimer = MinionConsts.ATTACK_COOLDOWN;
-                const nx = tdist > 0.01 ? td.x / tdist : 0;
-                const ny = tdist > 0.01 ? td.y / tdist : 0;
-                this.target.takeDamage(
-                    this._damage,
-                    nx * MinionConsts.ATTACK_KNOCKBACK,
-                    ny * MinionConsts.ATTACK_KNOCKBACK,
-                );
-                damageDealt += this._damage;
-
-                // Trigger swing arc VFX
-                this.swingTimer = MinionConsts.SWING_DURATION;
-                this.swingGfx.rotation = this.bodyGfx.rotation;
             }
+            // Sword strike is handled in checkHit() so it flows through the
+            // standard HitInfo pipeline (enemy.takeDamage + Summoner lifesteal).
 
             // Face target
             if (Math.abs(td.x) + Math.abs(td.y) > 0.01) {
